@@ -1,0 +1,17 @@
+[package]
+name = "valence-coprocessor-app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+valence-coprocessor.workspace = true
+valence-coprocessor-wasm = { workspace = true, optional = true }
+
+[dev-dependencies]
+valence-coprocessor-wasm = { workspace = true, features = ["tests-runtime"] }
+
+[features]
+default = ["lib"]
+lib = ["anyhow", "serde_json", "valence-coprocessor-wasm"]

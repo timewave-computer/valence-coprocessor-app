@@ -1,0 +1,3 @@
+[workspace]
+members = ["circuit", "script"]
+resolver = "2"
