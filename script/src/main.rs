@@ -199,6 +199,8 @@ fn build_circuit() -> anyhow::Result<Vec<u8>> {
     let script = manifest.join("zkvm").join("script").join("Cargo.toml");
     let circuit = assets.join("demo.elf");
 
+    fs::create_dir(&assets).ok();
+
     eprintln!("building circuit...");
 
     let build = Command::new("cargo")
