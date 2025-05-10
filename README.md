@@ -20,10 +20,6 @@ The circuit specification to be proven by the zkVM for generating a verifiable p
 
 A CLI application acting as a helper for deployment, proving, and verification.
 
-#### `./scripts`
-
-Shell scripts for building, deploying, and testing the application.
-
 ## Cargo CLI Approach
 
 Alternatively, you can try the original Cargo approach (though it may not work on all platforms due to dependency issues):
@@ -38,7 +34,6 @@ echo '{"name": "Valence"}' | cargo run --manifest-path script/Cargo.toml -- prov
 # Verify a proof
 echo '{"name": "Valence"}' | cargo run --manifest-path script/Cargo.toml -- prove | cargo run --manifest-path script/Cargo.toml -- verify
 ```
-
 
 ## Requirements for Manual Install
 
@@ -72,8 +67,6 @@ sp1up
 cargo prove --version
 ```
 
-
-
 ## Workflow Overview
 
 ```mermaid
@@ -83,11 +76,10 @@ graph TD
     C --> D[Generate Proof]
     D --> E[Verify Proof]
     
-    subgraph "Scripts"
-        F[build-wasm.sh] -.- B
-        G[build-wasm-wrapper.sh<br/>friendly wrapper] -.- B
-        H[deploy-to-service.sh] -.- C
-        I[full-pipeline.sh] -.- J[Runs all steps]
+    subgraph "Nix Commands"
+        F[nix run .#build-wasm] -.- B
+        H[nix run .#deploy-to-service] -.- C
+        I[nix run .#full-pipeline] -.- J[Runs all steps]
     end
     
     J --> B
@@ -109,17 +101,16 @@ graph TD
     end
 ```
 
-## Available Scripts
+## Available Nix Commands
 
-| Script | Purpose | Description |
+| Command | Purpose | Description |
 |--------|---------|-------------|
-| `build-wasm.sh` | Build WASM | Builds the WASM binary using Nix wasm-shell |
-| `build-wasm-wrapper.sh` | User-friendly wrapper | A more user-friendly wrapper around build-wasm.sh |
-| `deploy-to-service.sh` | Deploy to service | Deploys the WASM binary to the co-processor service |
-| `full-pipeline.sh` | Complete workflow | Runs the entire pipeline from build to verification |
-| `install-cargo-prove.sh` | Install cargo-prove | Utility to install the cargo-prove binary |
+| `nix run .#install-cargo-prove` | Install cargo-prove | Utility to install the cargo-prove binary |
+| `nix run .#build-wasm` | Build WASM | Builds the WASM binary using Nix wasm-shell |
+| `nix run .#deploy-to-service` | Deploy to service | Deploys the WASM binary to the co-processor service |
+| `nix run .#full-pipeline` | Complete workflow | Runs the entire pipeline from build to verification |
 
-## Setup
+## Nix Setup
 
 ### Nix Development Environment
 
@@ -161,7 +152,7 @@ The project provides multiple specialized development shells:
 
 ### 1. Set Up the Co-processor Service
 
-Start the Valence co-processor service (requires a separate repo checkout):
+Start the Valence co-processor service (same as above):
 
 ```sh
 git clone https://github.com/timewave-computer/valence-coprocessor.git $HOME/valence-coprocessor
@@ -176,7 +167,7 @@ Wait until you see output indicating the service is initialized and running on p
 Build the WebAssembly binary:
 
 ```sh
-./scripts/build-wasm.sh
+nix run .#build-wasm
 ```
 
 This builds the WebAssembly binary that will be deployed to the co-processor service.
@@ -186,7 +177,7 @@ This builds the WebAssembly binary that will be deployed to the co-processor ser
 Deploy the WASM binary to the co-processor service:
 
 ```sh
-./scripts/deploy-to-service.sh
+nix run .#deploy-to-service
 ```
 
 You'll receive a Program ID which is needed for subsequent steps.
@@ -209,9 +200,17 @@ Verify a generated proof:
 cat proof.json | curl -s -X POST "http://localhost:37281/api/registry/program/YOUR_PROGRAM_ID/verify" -H "Content-Type: application/json" -d @-
 ```
 
-## Direct Commands with Nix
+### All-in-One Command
 
-You can use Nix development shells to run commands in the appropriate environment:
+To run the complete pipeline (build, deploy, prove, verify):
+
+```sh
+nix run .#full-pipeline
+```
+
+## Direct Commands with Nix Development Shells
+
+You can also use Nix development shells to run commands in the appropriate environment:
 
 ### WASM Commands
 ```sh
