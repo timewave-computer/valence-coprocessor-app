@@ -1,11 +1,17 @@
 [package]
 name = "valence-coprocessor-app-lib"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 valence-coprocessor-app = { path = "../core", features = ["lib"] }
 valence-coprocessor-wasm = { workspace = true, features = ["abi-handlers"] }
+getrandom = { workspace = true }
+
+# Exclude incompatible dependencies when targeting WebAssembly
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# Empty mio to satisfy dependencies that require it
+mio = { version = "1.0", default-features = false, optional = true }
 
 [lib]
 crate-type = ["cdylib"]

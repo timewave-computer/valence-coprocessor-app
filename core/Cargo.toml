@@ -1,13 +1,14 @@
 [package]
 name = "valence-coprocessor-app"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 valence-coprocessor.workspace = true
 valence-coprocessor-wasm = { workspace = true, optional = true }
+getrandom = { workspace = true }
 
 [dev-dependencies]
 valence-coprocessor-wasm = { workspace = true, features = ["tests-runtime"] }

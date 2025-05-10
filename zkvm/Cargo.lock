@@ -5614,6 +5614,7 @@ name = "valence-coprocessor-app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "getrandom 0.2.15",
  "serde_json",
  "valence-coprocessor",
  "valence-coprocessor-wasm",

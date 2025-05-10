@@ -6164,6 +6164,7 @@ name = "valence-coprocessor-app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "getrandom 0.2.16",
  "serde_json",
  "valence-coprocessor",
  "valence-coprocessor-wasm",
@@ -6173,6 +6174,8 @@ dependencies = [
 name = "valence-coprocessor-app-lib"
 version = "0.1.0"
 dependencies = [
+ "getrandom 0.2.16",
+ "mio",
  "valence-coprocessor-app",
  "valence-coprocessor-wasm",
 ]
@@ -6185,6 +6188,7 @@ dependencies = [
  "base64",
  "bincode",
  "clap",
+ "getrandom 0.2.16",
  "hex",
  "reqwest",
  "serde_json",

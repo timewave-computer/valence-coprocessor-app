@@ -16,6 +16,8 @@ rustPlatform.buildRustPackage {
     pkg-config
     openssl
   ];
+  
+  # Only build the sp1-cli package
   cargoBuildFlags = [ "--package sp1-cli" ];
   cargoHash = "sha256-gI/N381IfIWnF4tfXM1eKLI93eCjEELg/a5gWQn/3EA=";
 
@@ -26,5 +28,6 @@ rustPlatform.buildRustPackage {
     hash = "sha256-RpllsIlrGyYw6dInN0tTs7K1y4FiFmrxFSyt3/Xelkg=";
     fetchSubmodules = true;
   };
+  
   doCheck = false;
 }

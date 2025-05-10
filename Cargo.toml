@@ -1,7 +1,6 @@
 [workspace]
 members = ["core", "lib", "script"]
 default-members = ["core", "script"]
-default-run = "valence-coprocessor-app-script"
 resolver = "2"
 
 [workspace.package]
@@ -20,5 +19,19 @@ serde = { version = "1.0.219", default-features = false, features = [
 serde_json = { version = "1.0.140", default-features = false, features = [
   "alloc",
 ] }
+getrandom = { version = "0.2", features = ["js"] }
 valence-coprocessor = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.4", default-features = false }
 valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.4", default-features = false }
+
+# Configure WASM-specific build options
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"
+lto = true
+
+[profile.dev.package."*"]
+# Optimize all dependencies even in development
+opt-level = 3
+
+[profile.dev.build-override]
+opt-level = 3

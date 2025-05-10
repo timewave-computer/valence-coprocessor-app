@@ -1,2 +1,51 @@
+# Build artifacts
 /assets
 **/target
+/bin
+/result
+/result-*
+
+# Rust
+**/*.rs.bk
+*.pdb
+
+# IDE and editor files
+.vscode/
+.idea/
+*.iml
+*.swp
+*~
+
+# macOS specific files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Nix
+.direnv/
+.envrc
+
+# Cargo
+Cargo.lock
+!Cargo.lock
+
+# Debug and backup files
+*.log
+*.bak
+*.backup
+*.orig
+
+# WASM specific
+*.wasm
+!target/wasm32-unknown-unknown/optimized/*.wasm
+!target/wasm32-unknown-unknown/release/*.wasm
+
+# SP1 specific
+.sp1/
+.sp1-snapshots/
+
+# Environment files
+.env
+.env.*
+!.env.example
