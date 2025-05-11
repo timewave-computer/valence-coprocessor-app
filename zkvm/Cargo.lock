@@ -507,7 +507,7 @@ name = "app-circuit"
 version = "0.1.0"
 dependencies = [
  "sp1-zkvm",
- "valence-coprocessor-app",
+ "valence-coprocessor-app-core",
 ]
 
 [[package]]
@@ -5610,7 +5610,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "valence-coprocessor-app"
+name = "valence-coprocessor-app-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",

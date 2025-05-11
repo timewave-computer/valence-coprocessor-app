@@ -503,6 +503,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dcfed56ad506cb2c684a14971b8861fdc3baaaae314b9e5f9bb532cbe3ba7a4f"
 
 [[package]]
+name = "app-circuit"
+version = "0.1.0"
+dependencies = [
+ "sp1-zkvm",
+ "valence-coprocessor-app-core",
+]
+
+[[package]]
 name = "arbitrary"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5111,6 +5119,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sp1-lib"
+version = "4.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3ef88f90458b6116da164e9c4c4596c49c8cca1944bfe02850b48b232a06b90"
+dependencies = [
+ "bincode",
+ "serde",
+ "sp1-primitives",
+]
+
+[[package]]
 name = "sp1-primitives"
 version = "4.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5392,6 +5411,22 @@ dependencies = [
  "strum_macros",
  "sysinfo",
  "tracing",
+]
+
+[[package]]
+name = "sp1-zkvm"
+version = "4.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d56dda97ba9915e7484a607e7517783d7422591c815e8dbfdbb716d77198760"
+dependencies = [
+ "cfg-if",
+ "getrandom 0.2.16",
+ "lazy_static",
+ "libm",
+ "rand 0.8.5",
+ "sha2",
+ "sp1-lib",
+ "sp1-primitives",
 ]
 
 [[package]]
@@ -6163,6 +6198,14 @@ dependencies = [
 name = "valence-coprocessor-app"
 version = "0.1.0"
 dependencies = [
+ "valence-coprocessor-app-core",
+ "valence-coprocessor-app-lib",
+]
+
+[[package]]
+name = "valence-coprocessor-app-core"
+version = "0.1.0"
+dependencies = [
  "anyhow",
  "getrandom 0.2.16",
  "serde_json",
@@ -6176,7 +6219,7 @@ version = "0.1.0"
 dependencies = [
  "getrandom 0.2.16",
  "mio",
- "valence-coprocessor-app",
+ "valence-coprocessor-app-core",
  "valence-coprocessor-wasm",
 ]
 
@@ -7296,6 +7339,15 @@ dependencies = [
  "sha2",
  "sha3",
  "subtle",
+]
+
+[[package]]
+name = "zkvm-script"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "sp1-build",
+ "sp1-sdk",
 ]
 
 [[package]]

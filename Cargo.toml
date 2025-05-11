@@ -1,11 +1,31 @@
+[package]
+name = "valence-coprocessor-app"
+version = "0.1.0"
+description = "Valence coprocessor application"
+license = "MIT"
+repository = "https://github.com/timewave-computer/valence-coprocessor-app"
+edition = "2024"
+
+[lib]
+name = "valence_coprocessor_app"
+path = "src/lib.rs"
+
+[profile.optimized]
+inherits = "release"
+strip = true
+lto = true
+codegen-units = 1
+
 [workspace]
-members = ["core", "lib", "script"]
-default-members = ["core", "script"]
+members = ["core", "lib", "script", "zkvm/circuit", "zkvm/script"]
 resolver = "2"
+
+[dependencies]
+valence-coprocessor-app-core = { path = "core" }
+valence-coprocessor-app-lib = { path = "lib" }
 
 [workspace.package]
 authors = ["Timewave Labs"]
-edition = "2021"
 license = "Apache-2.0"
 version = "0.1.0"
 
