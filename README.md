@@ -18,30 +18,56 @@ curl http://127.0.0.1:37281/api/stats
 
 ### Deploy
 
-First, we deploy the program. It will compile the crates under `./crates/program` and `./crates/circuit`, and submit them to the co-processor. Finally, the program ID will be returned.
+Initially, we execute the program, which will build the crates located in `./crates/program` and `./crates/circuit`, followed by submitting these built components to the coprocessor. Ultimately, the assigned Program ID will be returned for your reference.
 
 ```sh
 cargo run -- deploy program
 ```
 
-You should see the compilation process, and then the generated ID
+Upon successful deployment, you should observe the generated ID:
 
 ```
 dc8b02eced17353e42ff11a0fc4aa2b982435735b9b2f24da79a8bcd69792ce6
 ```
 
-Then, we request the co-processor to compute a proof for the program. The default implementation of the program will take a value, and submit it to the circuit. The circuit will then add `1`, and return the value as little-endian.
+### Prove
+
+We instruct the coprocessor to generate a proof for the program. The default implementation of the program will accept an input value and pass it through the circuit. The circuit will then add `1` to the given value before returning the result as little-endian.
 
 ```sh
-cargo run -- prove dc8b02eced17353e42ff11a0fc4aa2b982435735b9b2f24da79a8bcd69792ce6 '{"value": 42}' /var/share/proof.bin
+cargo run -- prove \
+  dc8b02eced17353e42ff11a0fc4aa2b982435735b9b2f24da79a8bcd69792ce6 \
+  '{"value": 42}' \
+  /var/share/proof.bin
 ```
 
-The command will submit a proof request to the workers of the co-processor. Once the proof is ready, it will be submitted to the entrypoint of the program. The default implementation will write it to the provided path of the virtual filesystem of the program. Note: the virtual filesystem is a FAT-16, so extensions can have up to 3 characters, and paths are case insensitive.
+The command sends a proof request to the coprocessor's worker nodes. Once the proof is ready, it will be delivered to the program's entrypoint. The default implementation will then write the proof to the specified path within the program's virtual filesystem. Note that the virtual filesystem follows a FAT-16 structure, with file extensions limited to 3 characters and case-insensitive paths.
 
-Finally, we can fetch the proof from the virtual filesystem:
+In conclusion, we can retrieve the proof from the virtual filesystem:
 
 ```sh
-cargo run -- storage dc8b02eced17353e42ff11a0fc4aa2b982435735b9b2f24da79a8bcd69792ce6 /var/share/proof.bin | base64 -d
+cargo run -- storage \
+  dc8b02eced17353e42ff11a0fc4aa2b982435735b9b2f24da79a8bcd69792ce6 \
+  /var/share/proof.bin | base64 -d
+```
+
+You should see the proof that was deployed to the program storage via the entrypoint function:
+
+```json
+{
+  "args": {
+    "value": 42
+  },
+  "log": [
+    "received a proof request with arguments {\"value\":42}"
+  ],
+  "payload": {
+    "cmd": "store",
+    "path": "/var/share/proof.bin"
+  },
+  "proof": "AAAAAAAAAAAAAAAAKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACsAAAAAAAAACwAAAAAAAAB2NC4wLjAtcmMuMwA=",
+  "success": true
+}
 ```
 
 ### Structure
@@ -61,3 +87,4 @@ The Valence program. It will be used to compute the circuit witnesses from given
 ### Requirements
 
 - Docker
+- Rust

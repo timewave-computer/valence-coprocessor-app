@@ -8,6 +8,11 @@ use valence_coprocessor::Witness;
 use valence_coprocessor_wasm::abi;
 
 pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
+    abi::log!(
+        "received a proof request with arguments {}",
+        serde_json::to_string(&args).unwrap_or_default()
+    )?;
+
     let value = args["value"].as_u64().unwrap();
     let value = value.to_le_bytes().to_vec();
 
@@ -15,6 +20,11 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
 }
 
 pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
+    abi::log!(
+        "received an entrypoint request with arguments {}",
+        serde_json::to_string(&args).unwrap_or_default()
+    )?;
+
     let cmd = args["payload"]["cmd"].as_str().unwrap();
 
     match cmd {
