@@ -8,6 +8,6 @@ description = "The Valence co-processor domain definition."
 [dependencies]
 anyhow.workspace = true
 base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
-clap = { version = "4.5.38", features = ["cargo"] }
+clap = { version = "4.5.38", features = ["derive"] }
 reqwest = { version = "0.12.15", features = ["blocking", "json"] }
 serde_json.workspace = true

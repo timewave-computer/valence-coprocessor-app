@@ -1,66 +1,122 @@
 use std::{fs, net::SocketAddr, path::PathBuf, process::Command as Cmd};
 
 use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
-use clap::{arg, command, value_parser, Command};
+use clap::{arg, command, Parser, Subcommand};
 use serde_json::{json, Value};
 
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    /// Socket address of the co-processor.
+    #[arg(short, long, value_name = "SOCKET", default_value = "127.0.0.1:37281")]
+    socket: SocketAddr,
+
+    #[command(subcommand)]
+    cmd: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Starts the co-processor service
+    Coprocessor,
+
+    /// Deploys definitions to the co-processor
+    #[command(subcommand)]
+    Deploy(CmdDeploy),
+
+    /// Submits a proof request to the co-processor
+    Prove {
+        /// ID of the deployed program
+        #[arg(value_name = "PROGRAM")]
+        program: String,
+
+        /// Optional JSON argument to be passed to the program
+        #[arg(short, long, value_name = "JSON")]
+        json: Option<String>,
+
+        /// Path to store the proof on the virtual filesystem
+        #[arg(
+            short,
+            long,
+            value_name = "PATH",
+            default_value = "/var/share/proof.bin"
+        )]
+        path: PathBuf,
+    },
+
+    /// Reads a file from the storage, returning its base64 data
+    Storage {
+        /// ID of the deployed program
+        #[arg(value_name = "PROGRAM")]
+        program: String,
+
+        /// Path to the file on the virtual filesystem
+        #[arg(
+            short,
+            long,
+            value_name = "PATH",
+            default_value = "/var/share/proof.bin"
+        )]
+        path: PathBuf,
+    },
+
+    /// Returns the VK of a program
+    Vk {
+        /// ID of the deployed program
+        #[arg(value_name = "PROGRAM")]
+        program: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum CmdDeploy {
+    /// Deploys the domain definition to the co-processor
+    Domain {
+        /// Name of the domain to be deployed
+        #[arg(short, long, value_name = "NAME")]
+        name: String,
+    },
+
+    /// Deploys the program definition to the co-processor
+    Program {
+        /// Nonce of the deployed program. Used to compute the ID
+        #[arg(short, long, default_value_t = 0)]
+        nonce: u64,
+    },
+}
+
 fn main() -> anyhow::Result<()> {
-    let matches = command!()
-        .propagate_version(true)
-        .subcommand_required(true)
-        .arg_required_else_help(true)
-        .arg(
-            arg!([SOCKET])
-                .value_parser(value_parser!(SocketAddr))
-                .default_value("127.0.0.1:37281"),
-        )
-        .subcommand(
-            Command::new("deploy")
-                .about("Deploys definitions to the co-processor")
-                .subcommand(
-                    Command::new("domain")
-                        .about("Deploys the domain definition to the co-processor")
-                        .arg(arg!([NAME])),
-                )
-                .subcommand(
-                    Command::new("program")
-                        .about("Deploys the program definition to the co-processor")
-                        .arg(
-                            arg!([NONCE])
-                                .value_parser(value_parser!(u64))
-                                .default_value("0"),
-                        ),
-                ),
-        )
-        .subcommand(Command::new("coprocessor").about("starts the co-processor service"))
-        .subcommand(
-            Command::new("prove")
-                .about("submits a proof request to the co-processor.")
-                .arg(arg!([PROGRAM]))
-                .arg(arg!([JSON]))
-                .arg(arg!([PATH])),
-        )
-        .subcommand(
-            Command::new("storage")
-                .about("reads a file from the storage, returning its base64 data.")
-                .arg(arg!([PROGRAM]))
-                .arg(arg!([PATH])),
-        )
-        .subcommand(
-            Command::new("vk")
-                .about("returns the VK of a program")
-                .arg(arg!([PROGRAM])),
-        )
-        .get_matches();
+    let Cli { socket, cmd } = Cli::parse();
 
-    let socket = matches.get_one::<SocketAddr>("SOCKET").unwrap();
+    match cmd {
+        Commands::Coprocessor => {
+            let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .canonicalize()?;
 
-    match matches.subcommand() {
-        Some(("deploy", m)) => match m.subcommand() {
-            Some(("domain", m)) => {
-                let name = m
-                    .get_one::<String>("NAME")
-                    .ok_or_else(|| anyhow::anyhow!("argument `NAME` expected"))?;
+            anyhow::ensure!(Cmd::new("docker")
+                .current_dir(&base)
+                .args(["build", "-t", "coprocessor:0.1.0", "./docker/coprocessor"])
+                .status()?
+                .success());
+
+            anyhow::ensure!(Cmd::new("docker")
+                .current_dir(&base)
+                .args([
+                    "run",
+                    "--rm",
+                    "-it",
+                    "--init",
+                    "-p",
+                    "37281:37281",
+                    "coprocessor:0.1.0"
+                ])
+                .status()?
+                .success());
+        }
+
+        Commands::Deploy(c) => match c {
+            CmdDeploy::Domain { name } => {
                 let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                     .join("..")
                     .canonicalize()?;
@@ -126,10 +182,7 @@ fn main() -> anyhow::Result<()> {
                 println!("{response}");
             }
 
-            Some(("program", m)) => {
-                let nonce = m
-                    .get_one::<u64>("NONCE")
-                    .ok_or_else(|| anyhow::anyhow!("argument `NONCE` expected"))?;
+            CmdDeploy::Program { nonce } => {
                 let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                     .join("..")
                     .canonicalize()?;
@@ -216,21 +269,17 @@ fn main() -> anyhow::Result<()> {
 
                 println!("{response}");
             }
-
-            _ => panic!("invalid `DEPLOY` argument"),
         },
 
-        Some(("prove", m)) => {
-            let program = m
-                .get_one::<String>("PROGRAM")
-                .ok_or_else(|| anyhow::anyhow!("argument `PROGRAM` expected"))?;
-            let args = m
-                .get_one::<String>("JSON")
-                .ok_or_else(|| anyhow::anyhow!("argument `JSON` expected"))?;
-            let path = m
-                .get_one::<String>("PATH")
-                .ok_or_else(|| anyhow::anyhow!("argument `PATH` expected"))?;
-            let args: Value = serde_json::from_str(&args)?;
+        Commands::Prove {
+            program,
+            json,
+            path,
+        } => {
+            let args: Value = match json {
+                Some(a) => serde_json::from_str(&a)?,
+                None => Value::Null,
+            };
             let uri = format!("http://{socket}/api/registry/program/{program}/prove");
 
             let response = reqwest::blocking::Client::new()
@@ -248,13 +297,7 @@ fn main() -> anyhow::Result<()> {
             println!("{response}");
         }
 
-        Some(("storage", m)) => {
-            let program = m
-                .get_one::<String>("PROGRAM")
-                .ok_or_else(|| anyhow::anyhow!("argument `PROGRAM` expected"))?;
-            let path = m
-                .get_one::<String>("PATH")
-                .ok_or_else(|| anyhow::anyhow!("argument `PATH` expected"))?;
+        Commands::Storage { program, path } => {
             let uri = format!("http://{socket}/api/registry/program/{program}/storage/fs");
 
             let response = reqwest::blocking::Client::new()
@@ -273,10 +316,7 @@ fn main() -> anyhow::Result<()> {
             println!("{response}");
         }
 
-        Some(("vk", m)) => {
-            let program = m
-                .get_one::<String>("PROGRAM")
-                .ok_or_else(|| anyhow::anyhow!("argument `PROGRAM` expected"))?;
+        Commands::Vk { program } => {
             let uri = format!("http://{socket}/api/registry/program/{program}/vk");
 
             let response = reqwest::blocking::Client::new()
@@ -291,34 +331,6 @@ fn main() -> anyhow::Result<()> {
 
             println!("{response}");
         }
-
-        Some(("coprocessor", _)) => {
-            let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("..")
-                .canonicalize()?;
-
-            anyhow::ensure!(Cmd::new("docker")
-                .current_dir(&base)
-                .args(["build", "-t", "coprocessor:0.1.0", "./docker/coprocessor"])
-                .status()?
-                .success());
-
-            anyhow::ensure!(Cmd::new("docker")
-                .current_dir(&base)
-                .args([
-                    "run",
-                    "--rm",
-                    "-it",
-                    "--init",
-                    "-p",
-                    "37281:37281",
-                    "coprocessor:0.1.0"
-                ])
-                .status()?
-                .success());
-        }
-
-        _ => unreachable!("Exhausted list of subcommands and subcommand_required prevents `None`"),
     }
 
     Ok(())

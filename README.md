@@ -36,9 +36,9 @@ We instruct the coprocessor to generate a proof for the program. The default imp
 
 ```sh
 cargo run -- prove \
-  dc8b02eced17353e42ff11a0fc4aa2b982435735b9b2f24da79a8bcd69792ce6 \
-  '{"value": 42}' \
-  /var/share/proof.bin
+  -j '{"value": 42}' \
+  -p /var/share/proof.bin \
+  dc8b02eced17353e42ff11a0fc4aa2b982435735b9b2f24da79a8bcd69792ce6
 ```
 
 The command sends a proof request to the coprocessor's worker nodes. Once the proof is ready, it will be delivered to the program's entrypoint. The default implementation will then write the proof to the specified path within the program's virtual filesystem. Note that the virtual filesystem follows a FAT-16 structure, with file extensions limited to 3 characters and case-insensitive paths.
@@ -47,8 +47,9 @@ In conclusion, we can retrieve the proof from the virtual filesystem:
 
 ```sh
 cargo run -- storage \
+  -p /var/share/proof.bin \
   dc8b02eced17353e42ff11a0fc4aa2b982435735b9b2f24da79a8bcd69792ce6 \
-  /var/share/proof.bin | base64 -d
+  | base64 -d
 ```
 
 You should see the proof that was deployed to the program storage via the entrypoint function:
