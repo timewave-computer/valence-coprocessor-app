@@ -58,7 +58,9 @@ fn main() -> anyhow::Result<()> {
     match matches.subcommand() {
         Some(("deploy", m)) => match m.subcommand() {
             Some(("domain", m)) => {
-                let name = m.get_one::<String>("NAME").unwrap();
+                let name = m
+                    .get_one::<String>("NAME")
+                    .ok_or_else(|| anyhow::anyhow!("argument `NAME` expected"))?;
                 let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                     .join("..")
                     .canonicalize()?;
@@ -125,7 +127,9 @@ fn main() -> anyhow::Result<()> {
             }
 
             Some(("program", m)) => {
-                let nonce = m.get_one::<u64>("NONCE").unwrap();
+                let nonce = m
+                    .get_one::<u64>("NONCE")
+                    .ok_or_else(|| anyhow::anyhow!("argument `NONCE` expected"))?;
                 let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                     .join("..")
                     .canonicalize()?;
@@ -213,13 +217,19 @@ fn main() -> anyhow::Result<()> {
                 println!("{response}");
             }
 
-            _ => unreachable!(),
+            _ => panic!("invalid `DEPLOY` argument"),
         },
 
         Some(("prove", m)) => {
-            let program = m.get_one::<String>("PROGRAM").unwrap();
-            let args = m.get_one::<String>("JSON").unwrap();
-            let path = m.get_one::<String>("PATH").unwrap();
+            let program = m
+                .get_one::<String>("PROGRAM")
+                .ok_or_else(|| anyhow::anyhow!("argument `PROGRAM` expected"))?;
+            let args = m
+                .get_one::<String>("JSON")
+                .ok_or_else(|| anyhow::anyhow!("argument `JSON` expected"))?;
+            let path = m
+                .get_one::<String>("PATH")
+                .ok_or_else(|| anyhow::anyhow!("argument `PATH` expected"))?;
             let args: Value = serde_json::from_str(&args)?;
             let uri = format!("http://{socket}/api/registry/program/{program}/prove");
 
@@ -239,8 +249,12 @@ fn main() -> anyhow::Result<()> {
         }
 
         Some(("storage", m)) => {
-            let program = m.get_one::<String>("PROGRAM").unwrap();
-            let path = m.get_one::<String>("PATH").unwrap();
+            let program = m
+                .get_one::<String>("PROGRAM")
+                .ok_or_else(|| anyhow::anyhow!("argument `PROGRAM` expected"))?;
+            let path = m
+                .get_one::<String>("PATH")
+                .ok_or_else(|| anyhow::anyhow!("argument `PATH` expected"))?;
             let uri = format!("http://{socket}/api/registry/program/{program}/storage/fs");
 
             let response = reqwest::blocking::Client::new()
@@ -260,7 +274,9 @@ fn main() -> anyhow::Result<()> {
         }
 
         Some(("vk", m)) => {
-            let program = m.get_one::<String>("PROGRAM").unwrap();
+            let program = m
+                .get_one::<String>("PROGRAM")
+                .ok_or_else(|| anyhow::anyhow!("argument `PROGRAM` expected"))?;
             let uri = format!("http://{socket}/api/registry/program/{program}/vk");
 
             let response = reqwest::blocking::Client::new()
