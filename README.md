@@ -7,29 +7,13 @@ This is a template for a Valence app.
 First, start the co-processor. This can take a couple of minutes to compile. You can check the API interface via http://127.0.0.1:37281/
 
 ```sh
-make coprocessor
+cargo run -- coprocessor
 ```
 
 You can check the status of the application via:
 
 ```sh
 curl http://127.0.0.1:37281/api/stats
-```
-
-### Build
-
-These commands will build (not deploy) the applications:
-
-```sh
-make circuit
-make domain
-make program
-```
-
-Or, to build everything
-
-```sh
-make
 ```
 
 ### Deploy
@@ -77,4 +61,3 @@ The Valence program. It will be used to compute the circuit witnesses from given
 ### Requirements
 
 - Docker
-- Makefile

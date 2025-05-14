@@ -32,6 +32,7 @@ fn main() -> anyhow::Result<()> {
                         ),
                 ),
         )
+        .subcommand(Command::new("coprocessor").about("starts the co-processor service"))
         .subcommand(
             Command::new("prove")
                 .about("submits a proof request to the co-processor.")
@@ -58,11 +59,42 @@ fn main() -> anyhow::Result<()> {
         Some(("deploy", m)) => match m.subcommand() {
             Some(("domain", m)) => {
                 let name = m.get_one::<String>("NAME").unwrap();
-
-                anyhow::ensure!(Cmd::new("make").arg("domain").status()?.success());
-
-                let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                     .join("..")
+                    .canonicalize()?;
+
+                anyhow::ensure!(Cmd::new("docker")
+                    .current_dir(&base)
+                    .args([
+                        "build",
+                        "-t",
+                        "valence-coprocessor-app:0.1.0",
+                        "./docker/deploy"
+                    ])
+                    .status()?
+                    .success());
+
+                anyhow::ensure!(Cmd::new("docker")
+                    .current_dir(&base)
+                    .args([
+                        "run",
+                        "--rm",
+                        "-it",
+                        "-v",
+                        format!("{}:/usr/src/app", base.display()).as_str(),
+                        "valence-coprocessor-app:0.1.0",
+                        "cargo",
+                        "build",
+                        "--target",
+                        "wasm32-unknown-unknown",
+                        "--release",
+                        "--manifest-path",
+                        "./docker/build/domain-wasm/Cargo.toml"
+                    ])
+                    .status()?
+                    .success());
+
+                let path = base
                     .join("docker")
                     .join("build")
                     .join("domain-wasm")
@@ -94,14 +126,55 @@ fn main() -> anyhow::Result<()> {
 
             Some(("program", m)) => {
                 let nonce = m.get_one::<u64>("NONCE").unwrap();
-
-                anyhow::ensure!(Cmd::new("make").arg("program").status()?.success());
-                anyhow::ensure!(Cmd::new("make").arg("circuit").status()?.success());
-
-                let build = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                     .join("..")
-                    .join("docker")
-                    .join("build");
+                    .canonicalize()?;
+
+                anyhow::ensure!(Cmd::new("docker")
+                    .current_dir(&base)
+                    .args([
+                        "build",
+                        "-t",
+                        "valence-coprocessor-app:0.1.0",
+                        "./docker/deploy"
+                    ])
+                    .status()?
+                    .success());
+
+                anyhow::ensure!(Cmd::new("docker")
+                    .current_dir(&base)
+                    .args([
+                        "run",
+                        "--rm",
+                        "-it",
+                        "-v",
+                        format!("{}:/usr/src/app", base.display()).as_str(),
+                        "valence-coprocessor-app:0.1.0",
+                        "cargo",
+                        "build",
+                        "--target",
+                        "wasm32-unknown-unknown",
+                        "--release",
+                        "--manifest-path",
+                        "./docker/build/program-wasm/Cargo.toml"
+                    ])
+                    .status()?
+                    .success());
+
+                anyhow::ensure!(Cmd::new("docker")
+                    .current_dir(&base)
+                    .args([
+                        "run",
+                        "--rm",
+                        "-it",
+                        "-v",
+                        format!("{}:/usr/src/app", base.display()).as_str(),
+                        "valence-coprocessor-app:0.1.0"
+                    ])
+                    .status()?
+                    .success());
+
+                let build = base.join("docker").join("build");
 
                 let wasm = build
                     .join("program-wasm")
@@ -201,6 +274,32 @@ fn main() -> anyhow::Result<()> {
                 .to_string();
 
             println!("{response}");
+        }
+
+        Some(("coprocessor", _)) => {
+            let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .canonicalize()?;
+
+            anyhow::ensure!(Cmd::new("docker")
+                .current_dir(&base)
+                .args(["build", "-t", "coprocessor:0.1.0", "./docker/coprocessor"])
+                .status()?
+                .success());
+
+            anyhow::ensure!(Cmd::new("docker")
+                .current_dir(&base)
+                .args([
+                    "run",
+                    "--rm",
+                    "-it",
+                    "--init",
+                    "-p",
+                    "37281:37281",
+                    "coprocessor:0.1.0"
+                ])
+                .status()?
+                .success());
         }
 
         _ => unreachable!("Exhausted list of subcommands and subcommand_required prevents `None`"),
