@@ -13,10 +13,10 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
         serde_json::to_string(&args).unwrap_or_default()
     )?;
 
-    let value = args["value"].as_u64().unwrap();
-    let value = value.to_le_bytes().to_vec();
+    let registry = args["registry"].as_u64().unwrap();
+    let registry = registry.to_le_bytes().to_vec();
 
-    Ok([Witness::Data(value)].to_vec())
+    Ok([Witness::Data(registry)].to_vec())
 }
 
 pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
