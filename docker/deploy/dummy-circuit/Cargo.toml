@@ -4,6 +4,6 @@ name = "dummy-circuit"
 edition = "2021"
 
 [dependencies]
-sp1-zkvm = "4.2.0"
+sp1-zkvm = "4.2.1"
 
 [workspace]
