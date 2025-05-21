@@ -9,7 +9,7 @@ description = "The Valence co-processor program WASM definition."
 
 [dependencies]
 valence-coprocessor-app-program.path = "../../../crates/program"
-valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.8", default-features = false, features = [
+valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.10", default-features = false, features = [
   "abi-handlers",
 ] }
 

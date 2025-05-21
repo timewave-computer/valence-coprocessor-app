@@ -27,7 +27,7 @@ cargo run -- deploy program
 Upon successful deployment, you should observe the generated ID:
 
 ```
-dc8b02eced17353e42ff11a0fc4aa2b982435735b9b2f24da79a8bcd69792ce6
+7700f268ff1b59be05ded5f5f4e35ebbab578d07f30182989ab946df62630d7a
 ```
 
 ### Prove
@@ -38,7 +38,7 @@ We instruct the coprocessor to generate a proof for the program. The default imp
 cargo run -- prove \
   -j '{"value": 42}' \
   -p /var/share/proof.bin \
-  dc8b02eced17353e42ff11a0fc4aa2b982435735b9b2f24da79a8bcd69792ce6
+  7700f268ff1b59be05ded5f5f4e35ebbab578d07f30182989ab946df62630d7a
 ```
 
 The command sends a proof request to the coprocessor's worker nodes. Once the proof is ready, it will be delivered to the program's entrypoint. The default implementation will then write the proof to the specified path within the program's virtual filesystem. Note that the virtual filesystem follows a FAT-16 structure, with file extensions limited to 3 characters and case-insensitive paths.
@@ -48,7 +48,7 @@ In conclusion, we can retrieve the proof from the virtual filesystem:
 ```sh
 cargo run -- storage \
   -p /var/share/proof.bin \
-  dc8b02eced17353e42ff11a0fc4aa2b982435735b9b2f24da79a8bcd69792ce6 \
+  7700f268ff1b59be05ded5f5f4e35ebbab578d07f30182989ab946df62630d7a \
   | base64 -d
 ```
 
