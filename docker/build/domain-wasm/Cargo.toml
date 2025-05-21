@@ -12,7 +12,7 @@ serde_json = { version = "1.0.140", default-features = false, features = [
   "alloc",
 ] }
 valence-coprocessor-app-domain.path = "../../../crates/domain"
-valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.10", default-features = false, features = [
+valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.11", default-features = false, features = [
   "abi-handlers",
 ] }
 

@@ -5783,8 +5783,8 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "valence-coprocessor"
-version = "0.1.10"
-source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.10#c73895d339980d9ffffa7c3eb5b1b3f3709fcc27"
+version = "0.1.11"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.11#703d00e301a4f9ce49abc2b6d312bc7b2ba27592"
 dependencies = [
  "anyhow",
  "base64",
@@ -5807,8 +5807,8 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-sp1"
-version = "0.1.10"
-source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.10#c73895d339980d9ffffa7c3eb5b1b3f3709fcc27"
+version = "0.1.11"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.11#703d00e301a4f9ce49abc2b6d312bc7b2ba27592"
 dependencies = [
  "ark-bn254",
  "ark-ec",

@@ -317,8 +317,8 @@ checksum = "5a5f39404a5da50712a4c1eecf25e90dd62b613502b7e925fd4e4d19b5c96512"
 
 [[package]]
 name = "valence-coprocessor"
-version = "0.1.10"
-source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.10#c73895d339980d9ffffa7c3eb5b1b3f3709fcc27"
+version = "0.1.11"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.11#703d00e301a4f9ce49abc2b6d312bc7b2ba27592"
 dependencies = [
  "anyhow",
  "base64",
@@ -352,8 +352,8 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-wasm"
-version = "0.1.10"
-source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.10#c73895d339980d9ffffa7c3eb5b1b3f3709fcc27"
+version = "0.1.11"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.11#703d00e301a4f9ce49abc2b6d312bc7b2ba27592"
 dependencies = [
  "anyhow",
  "dlmalloc",

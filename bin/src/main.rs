@@ -1,8 +1,8 @@
 use std::{fs, net::SocketAddr, path::PathBuf, process::Command as Cmd};
 
-use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
 use clap::{arg, command, Parser, Subcommand};
 use serde_json::{json, Value};
+use valence_coprocessor::{Base64, Proof};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -66,6 +66,23 @@ enum Commands {
         #[arg(value_name = "PROGRAM")]
         program: String,
     },
+
+    /// Returns the public inputs of the proof stored on the provided path of the virtual
+    /// filesystem.
+    ProofInputs {
+        /// ID of the deployed program
+        #[arg(value_name = "PROGRAM")]
+        program: String,
+
+        /// Path to the file on the virtual filesystem
+        #[arg(
+            short,
+            long,
+            value_name = "PATH",
+            default_value = "/var/share/proof.bin"
+        )]
+        path: PathBuf,
+    },
 }
 
 #[derive(Subcommand)]
@@ -114,7 +131,6 @@ fn main() -> anyhow::Result<()> {
                 .status()?
                 .success());
         }
-
         Commands::Deploy(c) => match c {
             CmdDeploy::Domain { name } => {
                 let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -162,7 +178,7 @@ fn main() -> anyhow::Result<()> {
                     .join("valence_coprocessor_app_domain_wasm.wasm");
 
                 let bytes = fs::read(path)?;
-                let lib = Base64.encode(bytes);
+                let lib = Base64::encode(bytes);
                 let uri = format!("http://{socket}/api/registry/domain");
 
                 let response = reqwest::blocking::Client::new()
@@ -249,8 +265,8 @@ fn main() -> anyhow::Result<()> {
                 let elf = fs::read(elf)?;
                 let uri = format!("http://{socket}/api/registry/program");
 
-                let lib = Base64.encode(wasm);
-                let circuit = Base64.encode(elf);
+                let lib = Base64::encode(wasm);
+                let circuit = Base64::encode(elf);
 
                 let response = reqwest::blocking::Client::new()
                     .post(uri)
@@ -270,7 +286,6 @@ fn main() -> anyhow::Result<()> {
                 println!("{response}");
             }
         },
-
         Commands::Prove {
             program,
             json,
@@ -296,7 +311,6 @@ fn main() -> anyhow::Result<()> {
 
             println!("{response}");
         }
-
         Commands::Storage { program, path } => {
             let uri = format!("http://{socket}/api/registry/program/{program}/storage/fs");
 
@@ -315,7 +329,6 @@ fn main() -> anyhow::Result<()> {
 
             println!("{response}");
         }
-
         Commands::Vk { program } => {
             let uri = format!("http://{socket}/api/registry/program/{program}/vk");
 
@@ -330,6 +343,34 @@ fn main() -> anyhow::Result<()> {
                 .to_string();
 
             println!("{response}");
+        }
+
+        Commands::ProofInputs { program, path } => {
+            let uri = format!("http://{socket}/api/registry/program/{program}/storage/fs");
+
+            let response = reqwest::blocking::Client::new()
+                .post(uri)
+                .json(&json!({
+                    "path": path
+                }))
+                .send()?
+                .json::<Value>()?
+                .get("data")
+                .ok_or_else(|| anyhow::anyhow!("no data received"))?
+                .as_str()
+                .ok_or_else(|| anyhow::anyhow!("invalid data received"))?
+                .to_string();
+
+            let response = Base64::decode(response)?;
+            let response: Value = serde_json::from_slice(&response)?;
+
+            let proof = response
+                .get("proof")
+                .and_then(Value::as_str)
+                .ok_or_else(|| anyhow::anyhow!("unexpected data format for proof"))?;
+            let inputs = Proof::try_from_base64(proof)?.inputs;
+
+            println!("{inputs}");
         }
     }
 

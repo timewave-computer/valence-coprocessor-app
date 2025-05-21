@@ -27,7 +27,7 @@ cargo run -- deploy program
 Upon successful deployment, you should observe the generated ID:
 
 ```
-7700f268ff1b59be05ded5f5f4e35ebbab578d07f30182989ab946df62630d7a
+8965493acca61dfc26193978c4b9a785d24192a0a314143f1c497402859df783
 ```
 
 ### Prove
@@ -38,7 +38,7 @@ We instruct the coprocessor to generate a proof for the program. The default imp
 cargo run -- prove \
   -j '{"value": 42}' \
   -p /var/share/proof.bin \
-  7700f268ff1b59be05ded5f5f4e35ebbab578d07f30182989ab946df62630d7a
+  8965493acca61dfc26193978c4b9a785d24192a0a314143f1c497402859df783
 ```
 
 The command sends a proof request to the coprocessor's worker nodes. Once the proof is ready, it will be delivered to the program's entrypoint. The default implementation will then write the proof to the specified path within the program's virtual filesystem. Note that the virtual filesystem follows a FAT-16 structure, with file extensions limited to 3 characters and case-insensitive paths.
@@ -48,7 +48,7 @@ In conclusion, we can retrieve the proof from the virtual filesystem:
 ```sh
 cargo run -- storage \
   -p /var/share/proof.bin \
-  7700f268ff1b59be05ded5f5f4e35ebbab578d07f30182989ab946df62630d7a \
+  8965493acca61dfc26193978c4b9a785d24192a0a314143f1c497402859df783 \
   | base64 -d
 ```
 
@@ -70,6 +70,27 @@ You should see the proof that was deployed to the program storage via the entryp
   "success": true
 }
 ```
+
+Finally, you can inspect the public inputs of the proof via:
+
+```sh
+cargo run -- proof-inputs \
+  -p /var/share/proof.bin \
+  8965493acca61dfc26193978c4b9a785d24192a0a314143f1c497402859df783 \
+  | base64 -d | hexdump -C        
+```
+
+You should see the hexdump of the proof inputs:
+
+```
+00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+00000020  2b 00 00 00 00 00 00 00                           |+.......|
+00000028
+```
+
+Note: The first 32 bytes of the public inputs are reserved for the co-processor root.
+
 
 ### Structure
 
