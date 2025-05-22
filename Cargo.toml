@@ -1,5 +1,11 @@
 [workspace]
-members = ["bin", "crates/circuit", "crates/domain", "crates/program"]
+members = [
+  "bin",
+  "crates/circuit",
+  "crates/domain",
+  "crates/program",
+  "crates/types",
+]
 resolver = "2"
 
 [workspace.package]
@@ -10,6 +16,7 @@ version = "0.1.0"
 
 [workspace.dependencies]
 anyhow = { version = "1.0.83", default-features = false }
+serde = "1"
 serde_json = { version = "1.0.140", default-features = false, features = [
   "alloc",
 ] }

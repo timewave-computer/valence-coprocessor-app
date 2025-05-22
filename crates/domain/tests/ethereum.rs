@@ -1,4 +1,3 @@
-#[cfg(feature = "dev")]
 #[cfg(test)]
 mod tests {
     use valence_coprocessor_app_domain::validate;

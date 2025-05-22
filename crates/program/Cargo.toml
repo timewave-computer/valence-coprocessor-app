@@ -31,3 +31,5 @@ tokio = { version = "1.44.2", features = ["full"] }
 reqwest = { version = "0.12" }
 url = { version = "2.5" }
 alloy = { version = "0.12.5", features = ["full"] }
+valence-coprocessor-app-domain = { path = "../domain" }
+types = { path = "../types" }

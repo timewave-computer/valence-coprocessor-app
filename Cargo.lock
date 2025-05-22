@@ -6575,6 +6575,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
 
 [[package]]
+name = "types"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "valence-coprocessor",
+]
+
+[[package]]
 name = "ucd-trie"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6718,8 +6727,10 @@ dependencies = [
  "sp1-sdk",
  "sp1-verifier",
  "tokio",
+ "types",
  "url",
  "valence-coprocessor",
+ "valence-coprocessor-app-domain",
  "valence-coprocessor-wasm",
 ]
 
