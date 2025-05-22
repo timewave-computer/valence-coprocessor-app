@@ -10,3 +10,10 @@ anyhow.workspace = true
 serde_json.workspace = true
 valence-coprocessor.workspace = true
 valence-coprocessor-wasm.workspace = true
+recursion-types = { git = "https://github.com/timewave-computer/valence-helios" }
+common-merkle-proofs = { package = "common", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false }
+ethereum-merkle-proofs = { package = "ethereum", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false, features = [
+    "no-zkvm",
+] }
+hex = "0.4"
+dotenvy = "0.15.7"
