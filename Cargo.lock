@@ -1738,7 +1738,7 @@ checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 [[package]]
 name = "common"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/zk-merkle-proofs#a294e0738bc810b3a4468fb14dd83aa7e676af5e"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs#57ad868cabe9da6eb839140382a9e13599af2cbc"
 dependencies = [
  "anyhow",
  "serde",
@@ -2345,7 +2345,7 @@ dependencies = [
 [[package]]
 name = "ethereum"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/zk-merkle-proofs#a294e0738bc810b3a4468fb14dd83aa7e676af5e"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs#57ad868cabe9da6eb839140382a9e13599af2cbc"
 dependencies = [
  "alloy",
  "alloy-primitives",
@@ -6690,6 +6690,21 @@ dependencies = [
 name = "valence-coprocessor-app-domain"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "borsh",
+ "const-hex",
+ "dotenvy",
+ "recursion-types",
+ "serde_json",
+ "sp1-verifier",
+ "valence-coprocessor",
+ "valence-coprocessor-wasm",
+]
+
+[[package]]
+name = "valence-coprocessor-app-program"
+version = "0.1.0"
+dependencies = [
  "alloy",
  "anyhow",
  "borsh",
@@ -6704,16 +6719,6 @@ dependencies = [
  "sp1-verifier",
  "tokio",
  "url",
- "valence-coprocessor",
- "valence-coprocessor-wasm",
-]
-
-[[package]]
-name = "valence-coprocessor-app-program"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "serde_json",
  "valence-coprocessor",
  "valence-coprocessor-wasm",
 ]
