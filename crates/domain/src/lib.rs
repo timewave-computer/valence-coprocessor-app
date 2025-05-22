@@ -1,3 +1,10 @@
+//! Ethereum state proof validation and verification module.
+//!
+//! This module provides functionality for:
+//! - Validating Ethereum blocks using Groth16 zero-knowledge proofs
+//! - Retrieving and verifying Ethereum state proofs (account and storage proofs)
+//! - Working with Ethereum merkle proofs for both account and storage data
+
 use std::env;
 
 use dotenvy::dotenv;
@@ -10,6 +17,25 @@ use serde_json::Value;
 use sp1_verifier::{Groth16Verifier, GROTH16_VK_BYTES};
 use valence_coprocessor::{StateProof, ValidatedBlock};
 
+/// Validates an Ethereum block using a Groth16 zero-knowledge proof.
+///
+/// # Arguments
+///
+/// * `args` - A JSON value containing:
+///   * `proof` - Hex-encoded proof bytes as a string
+///   * `public_values` - Hex-encoded public values as a string
+///   * `vk` - Hex-encoded verification key as a string
+///
+/// # Returns
+///
+/// Returns a `ValidatedBlock` containing the verified block number and state root.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// * Any required fields are missing or invalid
+/// * Proof verification fails
+/// * Public values cannot be deserialized
 pub fn validate_block(args: Value) -> anyhow::Result<ValidatedBlock> {
     let proof_bytes = args["proof"]
         .as_str()
@@ -23,11 +49,37 @@ pub fn validate_block(args: Value) -> anyhow::Result<ValidatedBlock> {
         .as_str()
         .ok_or(anyhow::anyhow!("vk must be a string"))?
         .as_bytes();
-    let vk_str = std::str::from_utf8(&vk_bytes).expect("Failed to convert vk bytes to string");
+    let vk_str = std::str::from_utf8(vk_bytes).expect("Failed to convert vk bytes to string");
     let valid_block = validate(proof_bytes, public_values_bytes, vk_str)?;
     Ok(valid_block)
 }
 
+/// Retrieves an Ethereum state proof for a given address and block height.
+///
+/// This function can return either:
+/// * An account proof - when no storage key is provided
+/// * A storage proof - when a storage key is provided
+///
+/// # Arguments
+///
+/// * `args` - A JSON value containing:
+///   * `address` - Ethereum address to get proof for
+///   * `height` - Block height to get proof for
+///   * `abi_encoded_key_hex` - (Optional) Storage slot key for storage proofs
+///
+/// # Returns
+///
+/// Returns a `StateProof` containing:
+/// * The proof type (account or storage)
+/// * The domain ("ethereum")
+/// * The proof bytes
+///
+/// # Errors
+///
+/// Returns an error if:
+/// * Required fields are missing
+/// * RPC request fails
+/// * Proof serialization fails
 pub async fn get_state_proof(args: Value) -> anyhow::Result<StateProof> {
     let address = args["address"]
         .as_str()
@@ -69,7 +121,7 @@ pub async fn get_state_proof(args: Value) -> anyhow::Result<StateProof> {
             let simple_proof = EthereumSimpleProof::from_combined_proof(combined_proof.unwrap());
             let proof = EthereumProofType::Simple(simple_proof);
             let proof_bytes = serde_json::to_vec(&proof)?;
-            return Ok(StateProof {
+            Ok(StateProof {
                 domain: "ethereum".to_string(),
                 // todo: use the height to get the root
                 // we can decide if we want to do this here,
@@ -78,23 +130,34 @@ pub async fn get_state_proof(args: Value) -> anyhow::Result<StateProof> {
                 root: [0; 32],
                 payload: Vec::new(),
                 proof: proof_bytes,
-            });
+            })
         }
         None => {
             // request an account proof
             let account_proof = merkle_prover.get_account_proof(address, height).await;
             let proof = EthereumProofType::Account(account_proof.unwrap());
             let proof_bytes = serde_json::to_vec(&proof)?;
-            return Ok(StateProof {
+            Ok(StateProof {
                 domain: "ethereum".to_string(),
                 root: [0; 32],
                 payload: Vec::new(),
                 proof: proof_bytes,
-            });
+            })
         }
     }
 }
 
+/// Internal function to validate a block using Groth16 proof verification.
+///
+/// # Arguments
+///
+/// * `proof_bytes` - Raw proof bytes
+/// * `public_values_bytes` - Raw public values bytes
+/// * `vk_str` - Verification key as a string
+///
+/// # Returns
+///
+/// Returns a `ValidatedBlock` if verification succeeds.
 fn validate(
     proof_bytes: &[u8],
     public_values_bytes: &[u8],
@@ -103,7 +166,7 @@ fn validate(
     // verify the wrapper proof from the Helios operator
     Groth16Verifier::verify(proof_bytes, public_values_bytes, vk_str, &GROTH16_VK_BYTES)?;
     // deserialize the public values
-    let wrapper_outputs: WrapperCircuitOutputs = borsh::from_slice(&public_values_bytes)?;
+    let wrapper_outputs: WrapperCircuitOutputs = borsh::from_slice(public_values_bytes)?;
     let verified_block = ValidatedBlock {
         number: wrapper_outputs.height,
         root: wrapper_outputs.root,
@@ -112,6 +175,15 @@ fn validate(
     Ok(verified_block)
 }
 
+/// Reads the Ethereum RPC URL from environment variables.
+///
+/// # Returns
+///
+/// Returns the Ethereum RPC URL as a String.
+///
+/// # Panics
+///
+/// Panics if the ETHEREUM_URL environment variable is not set.
 pub(crate) fn read_ethereum_url() -> String {
     dotenv().ok();
     env::var("ETHEREUM_URL").expect("Missing Ethereum url!")
@@ -160,7 +232,7 @@ mod tests {
     async fn test_simple_state_proof() {
         use alloy::providers::{Provider, ProviderBuilder};
         use common_merkle_proofs::merkle::types::MerkleVerifiable;
-        use ethereum_merkle_proofs::merkle_lib::types::{EthereumProofType, EthereumSimpleProof};
+        use ethereum_merkle_proofs::merkle_lib::types::EthereumProofType;
         use serde_json::json;
         use std::str::FromStr;
         use url::Url;
