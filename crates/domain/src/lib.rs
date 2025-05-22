@@ -5,14 +5,27 @@ use ethereum_merkle_proofs::{
     ethereum_rpc::rpc::EvmMerkleRpcClient,
     merkle_lib::types::{EthereumProofType, EthereumSimpleProof},
 };
+use recursion_types::WrapperCircuitOutputs;
 use serde_json::Value;
+use sp1_verifier::{Groth16Verifier, GROTH16_VK_BYTES};
 use valence_coprocessor::{StateProof, ValidatedBlock};
-use valence_coprocessor_wasm::abi;
 
 pub fn validate_block(args: Value) -> anyhow::Result<ValidatedBlock> {
-    abi::log!("validate block not implemented, but received {args:?}")?;
-
-    todo!()
+    let proof_bytes = args["proof"]
+        .as_str()
+        .ok_or(anyhow::anyhow!("proof must be a string"))?
+        .as_bytes();
+    let public_values_bytes = args["public_values"]
+        .as_str()
+        .ok_or(anyhow::anyhow!("public_values must be a string"))?
+        .as_bytes();
+    let vk_bytes = args["vk"]
+        .as_str()
+        .ok_or(anyhow::anyhow!("vk must be a string"))?
+        .as_bytes();
+    let vk_str = std::str::from_utf8(&vk_bytes).expect("Failed to convert vk bytes to string");
+    let valid_block = validate(proof_bytes, public_values_bytes, vk_str)?;
+    Ok(valid_block)
 }
 
 pub async fn get_state_proof(args: Value) -> anyhow::Result<StateProof> {
@@ -82,6 +95,23 @@ pub async fn get_state_proof(args: Value) -> anyhow::Result<StateProof> {
     }
 }
 
+fn validate(
+    proof_bytes: &[u8],
+    public_values_bytes: &[u8],
+    vk_str: &str,
+) -> anyhow::Result<ValidatedBlock> {
+    // verify the wrapper proof from the Helios operator
+    Groth16Verifier::verify(proof_bytes, public_values_bytes, vk_str, &GROTH16_VK_BYTES)?;
+    // deserialize the public values
+    let wrapper_outputs: WrapperCircuitOutputs = borsh::from_slice(&public_values_bytes)?;
+    let verified_block = ValidatedBlock {
+        number: wrapper_outputs.height,
+        root: wrapper_outputs.root,
+        payload: Vec::new(),
+    };
+    Ok(verified_block)
+}
+
 pub(crate) fn read_ethereum_url() -> String {
     dotenv().ok();
     env::var("ETHEREUM_URL").expect("Missing Ethereum url!")
@@ -89,10 +119,41 @@ pub(crate) fn read_ethereum_url() -> String {
 
 #[cfg(test)]
 mod tests {
+    use crate::validate;
     use sp1_verifier::Groth16Verifier;
 
     #[test]
     fn test_verify_helios_proof() {
+        let fixture = get_fixture();
+        let vk_str =
+            std::str::from_utf8(&fixture.vk_bytes).expect("Failed to convert vk bytes to string");
+        let groth16_vk: &[u8] = *sp1_verifier::GROTH16_VK_BYTES;
+        Groth16Verifier::verify(
+            &fixture.proof_bytes,
+            &fixture.public_values_bytes,
+            vk_str,
+            groth16_vk,
+        )
+        .expect("Failed to verify");
+    }
+
+    #[test]
+    fn test_validate_block() {
+        let fixture = get_fixture();
+        let vk_str =
+            std::str::from_utf8(&fixture.vk_bytes).expect("Failed to convert vk bytes to string");
+        let valid_block = validate(&fixture.proof_bytes, &fixture.public_values_bytes, vk_str)
+            .expect("Failed to validate block");
+        println!("Validated block: {:?}", valid_block);
+    }
+
+    struct Fixture {
+        proof_bytes: Vec<u8>,
+        public_values_bytes: Vec<u8>,
+        vk_bytes: Vec<u8>,
+    }
+
+    fn get_fixture() -> Fixture {
         let proof_bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/fixture/proof.bin"))
             .expect("Failed to read proof file");
         let public_values_bytes = std::fs::read(concat!(
@@ -102,9 +163,10 @@ mod tests {
         .unwrap();
         let vk_bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/fixture/vk.bin"))
             .expect("Failed to read vk file");
-        let vk_str = std::str::from_utf8(&vk_bytes).expect("Failed to convert vk bytes to string");
-        let groth16_vk: &[u8] = *sp1_verifier::GROTH16_VK_BYTES;
-        Groth16Verifier::verify(&proof_bytes, &public_values_bytes, vk_str, groth16_vk)
-            .expect("Failed to verify");
+        Fixture {
+            proof_bytes,
+            public_values_bytes,
+            vk_bytes,
+        }
     }
 }
