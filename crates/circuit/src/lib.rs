@@ -30,6 +30,10 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
                     "Decoded account state from account proof: {:?}",
                     decoded_account
                 );
+                /* You can easily extract Balance or Nonce from the decoded account.
+                let account_balance = decoded_account.balance;
+                println!("Account ETH balance: {:?}", account_balance);
+                */
             }
             _ => {}
         }
