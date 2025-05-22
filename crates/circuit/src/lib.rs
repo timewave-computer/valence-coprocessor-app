@@ -1,15 +1,33 @@
-#![no_std]
-
-extern crate alloc;
-
-use alloc::vec::Vec;
+use common_merkle_proofs::merkle::types::MerkleVerifiable;
+use ethereum_merkle_proofs::merkle_lib::types::{
+    EthereumAccountProof, EthereumProofType, EthereumSimpleProof,
+};
+use types::CircuitWitness;
 use valence_coprocessor::Witness;
 
 pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
-    let value = witnesses[0].as_data().unwrap();
-    let value = <[u8; 8]>::try_from(value).unwrap();
-    let value = u64::from_le_bytes(value);
-    let value = value.wrapping_add(1);
+    let circuit_input_witness = witnesses.first().unwrap();
+    // this macro isn't necessary, but rust analyzer throws a false positive
+    #[allow(unused)]
+    let mut circuit_input_serialized: Vec<u8> = vec![];
+    match circuit_input_witness {
+        Witness::Data(data) => {
+            circuit_input_serialized = data.clone();
+        }
+        Witness::StateProof(_) => panic!(
+            "Unexpected Input: For this example template we encode all data in a single field."
+        ),
+    }
 
-    value.to_le_bytes().to_vec()
+    // deserialize the CircuitWitness
+    let input: CircuitWitness = serde_json::from_slice(&circuit_input_serialized).unwrap();
+
+    // verify all Ethereum proofs
+    for proof in input.state_proofs {
+        let proof: EthereumProofType = serde_json::from_slice(&proof.proof).unwrap();
+        assert!(proof.verify(&input.state_root).unwrap());
+    }
+
+    // commit the helios root that we used for verification as an output
+    input.state_root.to_vec()
 }

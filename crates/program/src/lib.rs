@@ -1,17 +1,17 @@
+use anyhow::Context;
+use recursion_types::WrapperCircuitOutputs;
 use reqwest::get;
 use serde_json::Value;
 use sp1_sdk::SP1ProofWithPublicValues;
 use types::CircuitWitness;
 use valence_coprocessor::{StateProof, Witness};
 use valence_coprocessor_app_domain::validate;
-use valence_coprocessor_wasm::abi;
 pub mod utils;
 
-const SEPOLIA_RPC_URL: &str = "https://ethereum-sepolia-rpc.publicnode.com";
-//const SEPOLIA_HEIGHT: u64 = 17000000;
+const MAINNET_RPC_URL: &str = "https://erigon-tw-rpc.polkachu.com";
 const HELIOS_PROVER_ENDPOINT: &str = "http://165.1.70.239:7778/";
 const HELIOS_WRAPPER_VK: &str =
-    "0x0063a53fc1418a7432356779e09fc81a4c0ad6440162480cecf5309f21c65e3b";
+    "0x0059b1d14a0ed16531183110da603b3ac27f31f0f485e5d66a6d8171aa39075e";
 
 pub async fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     // the witness data required to validate the Helios wrapper proof
@@ -76,12 +76,20 @@ pub async fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
 
     let helios_zk_proof_response = get(HELIOS_PROVER_ENDPOINT).await?;
     let helios_proof_serialized = helios_zk_proof_response.bytes().await?;
-    let helios_proof: SP1ProofWithPublicValues = serde_json::from_slice(&helios_proof_serialized)?;
+    let helios_proof: SP1ProofWithPublicValues =
+        serde_json::from_slice(&hex::decode(helios_proof_serialized)?)
+            .context("Failed to deserialize helios proof")?;
+
+    let wrapper_proof_outputs: WrapperCircuitOutputs =
+        borsh::from_slice(&helios_proof.public_values.to_vec())?;
+
     let valid_block = validate(
         &helios_proof.bytes(),
         &helios_proof.public_values.to_vec(),
         HELIOS_WRAPPER_VK,
-    )?;
+    )
+    .context("Failed to verify Helios Proof")?;
+
     let validated_height = valid_block.number;
     let validated_state_root = valid_block.root;
 
@@ -91,12 +99,12 @@ pub async fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
         if key.len() == 0 {
             // if the key is "", we want an account proof
             let state_proof =
-                utils::get_state_proof(address, SEPOLIA_RPC_URL, validated_height, None).await;
+                utils::get_state_proof(address, MAINNET_RPC_URL, validated_height, None).await;
             ethereum_state_proofs.push(state_proof?);
         } else {
             // if the key is not "", we want a storage proof
             let state_proof =
-                utils::get_state_proof(address, SEPOLIA_RPC_URL, validated_height, Some(key)).await;
+                utils::get_state_proof(address, MAINNET_RPC_URL, validated_height, Some(key)).await;
             ethereum_state_proofs.push(state_proof?);
         }
     }
@@ -112,24 +120,36 @@ pub async fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     Ok([Witness::Data(serde_json::to_vec(&circuit_witness)?)].to_vec())
 }
 
-pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
-    abi::log!(
-        "received an entrypoint request with arguments {}",
-        serde_json::to_string(&args).unwrap_or_default()
-    )?;
+#[tokio::test]
+async fn full_e2e_flow() {
+    // these are the args to get one storage proof and one account proof.
+    // the first proof will be a storage proof for the smart contract
+    // with address 0xdac17f958d2ee523a2206206994597c13d831ec7 at slot 0
+    // (which is the total supply of USDT on mainnet)
+    // see: https://etherscan.io/address/0xdac17f958d2ee523a2206206994597c13d831ec7#code#L80
+    // When looking at just the explorer one might be confused to see that it seems like
+    // the total supply is stored at slot 3, but that is not the case.
+    // See: https://etherscan.io/address/0xdac17f958d2ee523a2206206994597c13d831ec7#readContract#F3
+    // The total supply is stored at slot 0, because it's the first state variable defined in the contract.
 
-    let cmd = args["payload"]["cmd"].as_str().unwrap();
+    // the second proof will be an account proof for the account address
+    // 0x07ae8551be970cb1cca11dd7a11f47ae82e70e67
+    // both the contract and the account are on the mainnet network
 
-    match cmd {
-        "store" => {
-            let path = args["payload"]["path"].as_str().unwrap().to_string();
-            let bytes = serde_json::to_vec(&args).unwrap();
-
-            abi::set_storage_file(&path, &bytes).unwrap();
-        }
-
-        _ => panic!("unknown entrypoint command"),
-    }
-
-    Ok(args)
+    let args = serde_json::json!({
+        "keys": [
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
+            ""
+        ],
+        "addresses": [
+            "0xdac17f958d2ee523a2206206994597c13d831ec7",
+            "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"
+        ]
+    });
+    let witness = get_witnesses(args).await.unwrap();
+    let root = valence_coprocessor_app_circuit::circuit(witness);
+    println!(
+        "Success! State Proofs were verified against Helios Root: {:?}",
+        root
+    );
 }

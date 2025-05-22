@@ -33,3 +33,5 @@ url = { version = "2.5" }
 alloy = { version = "0.12.5", features = ["full"] }
 valence-coprocessor-app-domain = { path = "../domain" }
 types = { path = "../types" }
+
+valence-coprocessor-app-circuit = { path = "../circuit" }

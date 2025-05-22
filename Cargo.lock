@@ -6681,6 +6681,10 @@ dependencies = [
 name = "valence-coprocessor-app-circuit"
 version = "0.1.0"
 dependencies = [
+ "common",
+ "ethereum",
+ "serde_json",
+ "types",
  "valence-coprocessor",
 ]
 
@@ -6730,6 +6734,7 @@ dependencies = [
  "types",
  "url",
  "valence-coprocessor",
+ "valence-coprocessor-app-circuit",
  "valence-coprocessor-app-domain",
  "valence-coprocessor-wasm",
 ]
