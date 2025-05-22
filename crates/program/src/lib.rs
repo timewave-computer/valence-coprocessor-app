@@ -1,5 +1,4 @@
 use anyhow::Context;
-use recursion_types::WrapperCircuitOutputs;
 use reqwest::get;
 use serde_json::Value;
 use sp1_sdk::SP1ProofWithPublicValues;
@@ -80,9 +79,6 @@ pub async fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
         serde_json::from_slice(&hex::decode(helios_proof_serialized)?)
             .context("Failed to deserialize helios proof")?;
 
-    let wrapper_proof_outputs: WrapperCircuitOutputs =
-        borsh::from_slice(&helios_proof.public_values.to_vec())?;
-
     let valid_block = validate(
         &helios_proof.bytes(),
         &helios_proof.public_values.to_vec(),
@@ -147,9 +143,5 @@ async fn full_e2e_flow() {
         ]
     });
     let witness = get_witnesses(args).await.unwrap();
-    let root = valence_coprocessor_app_circuit::circuit(witness);
-    println!(
-        "Success! State Proofs were verified against Helios Root: {:?}",
-        root
-    );
+    let _root = valence_coprocessor_app_circuit::circuit(witness);
 }

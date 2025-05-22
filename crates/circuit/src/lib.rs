@@ -1,7 +1,5 @@
 use common_merkle_proofs::merkle::types::MerkleVerifiable;
-use ethereum_merkle_proofs::merkle_lib::types::{
-    EthereumAccountProof, EthereumProofType, EthereumSimpleProof,
-};
+use ethereum_merkle_proofs::merkle_lib::{rlp_decode_account, types::EthereumProofType};
 use types::CircuitWitness;
 use valence_coprocessor::Witness;
 
@@ -25,6 +23,16 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     // verify all Ethereum proofs
     for proof in input.state_proofs {
         let proof: EthereumProofType = serde_json::from_slice(&proof.proof).unwrap();
+        match &proof {
+            EthereumProofType::Account(account_proof) => {
+                let decoded_account = rlp_decode_account(&account_proof.value).unwrap();
+                println!(
+                    "Decoded account state from account proof: {:?}",
+                    decoded_account
+                );
+            }
+            _ => {}
+        }
         assert!(proof.verify(&input.state_root).unwrap());
     }
 
