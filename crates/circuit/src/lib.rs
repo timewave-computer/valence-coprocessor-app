@@ -3,6 +3,23 @@ use ethereum_merkle_proofs::merkle_lib::{rlp_decode_account, types::EthereumProo
 use types::CircuitWitness;
 use valence_coprocessor::Witness;
 
+/// Main circuit function that processes and verifies Ethereum state proofs.
+///
+/// This function:
+/// 1. Takes a vector of witnesses containing the circuit input data
+/// 2. Deserializes the input into a CircuitWitness
+/// 3. Verifies all Ethereum state proofs against the provided state root
+/// 4. Returns the verified state root as output
+///
+/// # Arguments
+/// * `witnesses` - Vector of Witness objects containing the input data
+///
+/// # Returns
+/// * `Vec<u8>` - The verified state root as a byte vector
+///
+/// # Panics
+/// * If the input witness is not of type Data
+/// * If any proof verification fails
 pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let circuit_input_witness = witnesses.first().unwrap();
     // this macro isn't necessary, but rust analyzer throws a false positive
@@ -17,26 +34,28 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
         ),
     }
 
-    // deserialize the CircuitWitness
+    // Deserialize the CircuitWitness from the input data
     let input: CircuitWitness = serde_json::from_slice(&circuit_input_serialized).unwrap();
 
-    // verify all Ethereum proofs
+    // Verify all Ethereum proofs against the state root
     for proof in input.state_proofs {
         let proof: EthereumProofType = serde_json::from_slice(&proof.proof).unwrap();
         match &proof {
             EthereumProofType::Account(account_proof) => {
+                // Decode and print the account state for debugging
                 let decoded_account = rlp_decode_account(&account_proof.value).unwrap();
                 println!(
                     "Decoded account state from account proof: {:?}",
                     decoded_account
                 );
-                /* You can easily extract Balance or Nonce from the decoded account.
+                /* Example of how to access account data:
                 let account_balance = decoded_account.balance;
                 println!("Account ETH balance: {:?}", account_balance);
                 */
             }
             _ => {}
         }
+        // Verify the proof against the state root
         assert!(proof.verify(&input.state_root).unwrap());
     }
 

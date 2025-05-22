@@ -7,11 +7,34 @@ use valence_coprocessor::{StateProof, Witness};
 use valence_coprocessor_app_domain::validate;
 pub mod utils;
 
+/// Mainnet RPC endpoint for Ethereum network
 const MAINNET_RPC_URL: &str = "https://erigon-tw-rpc.polkachu.com";
+/// Endpoint for the Helios prover service
 const HELIOS_PROVER_ENDPOINT: &str = "http://165.1.70.239:7778/";
+/// Verification key for the Helios wrapper proof
 const HELIOS_WRAPPER_VK: &str =
     "0x0059b1d14a0ed16531183110da603b3ac27f31f0f485e5d66a6d8171aa39075e";
 
+/// Retrieves and validates witnesses for the circuit computation.
+///
+/// This function:
+/// 1. Takes Ethereum addresses and storage keys as input
+/// 2. Fetches the latest Helios proof and validates it
+/// 3. Retrieves Ethereum state proofs (account or storage) for each address
+/// 4. Constructs and returns the circuit witness
+///
+/// # Arguments
+/// * `args` - JSON value containing:
+///   * `addresses` - Array of Ethereum addresses to get proofs for
+///   * `keys` - Array of storage keys (empty string for account proofs)
+///
+/// # Returns
+/// * `Vec<Witness>` - Vector containing the circuit witness data
+///
+/// # Errors
+/// * If required fields are missing or invalid
+/// * If Helios proof validation fails
+/// * If state proof retrieval fails
 pub async fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     // the witness data required to validate the Helios wrapper proof
     // e.g. the Block proof
@@ -116,6 +139,12 @@ pub async fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     Ok([Witness::Data(serde_json::to_vec(&circuit_witness)?)].to_vec())
 }
 
+/// End-to-end test of the witness generation and circuit computation flow.
+///
+/// This test:
+/// 1. Requests a storage proof for USDT total supply
+/// 2. Requests an account proof for a specific address
+/// 3. Validates the generated witnesses through the circuit
 #[tokio::test]
 async fn full_e2e_flow() {
     // these are the args to get one storage proof and one account proof.
