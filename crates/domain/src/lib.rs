@@ -86,3 +86,25 @@ pub(crate) fn read_ethereum_url() -> String {
     dotenv().ok();
     env::var("ETHEREUM_URL").expect("Missing Ethereum url!")
 }
+
+#[cfg(test)]
+mod tests {
+    use sp1_verifier::Groth16Verifier;
+
+    #[test]
+    fn test_verify_helios_proof() {
+        let proof_bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/fixture/proof.bin"))
+            .expect("Failed to read proof file");
+        let public_values_bytes = std::fs::read(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/fixture/public_outputs.bin"
+        ))
+        .unwrap();
+        let vk_bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/fixture/vk.bin"))
+            .expect("Failed to read vk file");
+        let vk_str = std::str::from_utf8(&vk_bytes).expect("Failed to convert vk bytes to string");
+        let groth16_vk: &[u8] = *sp1_verifier::GROTH16_VK_BYTES;
+        Groth16Verifier::verify(&proof_bytes, &public_values_bytes, vk_str, groth16_vk)
+            .expect("Failed to verify");
+    }
+}

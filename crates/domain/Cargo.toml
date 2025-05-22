@@ -15,5 +15,10 @@ common-merkle-proofs = { package = "common", git = "https://github.com/timewave-
 ethereum-merkle-proofs = { package = "ethereum", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false, features = [
     "no-zkvm",
 ] }
+sp1-sdk = { git = "https://github.com/timewave-computer/sp1", branch = "jonas/fix-4.1.7-syscall", features = [
+    "native-gnark",
+] }
+sp1-verifier = { git = "https://github.com/timewave-computer/sp1", branch = "jonas/fix-4.1.7-syscall" }
 hex = "0.4"
 dotenvy = "0.15.7"
+borsh = { version = "1.5.5", features = ["derive"] }
