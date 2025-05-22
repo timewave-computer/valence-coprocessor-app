@@ -120,23 +120,7 @@ pub(crate) fn read_ethereum_url() -> String {
 #[cfg(test)]
 mod tests {
     use crate::validate;
-    use sp1_verifier::Groth16Verifier;
-
-    #[test]
-    fn test_verify_helios_proof() {
-        let fixture = get_fixture();
-        let vk_str =
-            std::str::from_utf8(&fixture.vk_bytes).expect("Failed to convert vk bytes to string");
-        let groth16_vk: &[u8] = *sp1_verifier::GROTH16_VK_BYTES;
-        Groth16Verifier::verify(
-            &fixture.proof_bytes,
-            &fixture.public_values_bytes,
-            vk_str,
-            groth16_vk,
-        )
-        .expect("Failed to verify");
-    }
-
+    // test the helios wrapper proof verification
     #[test]
     fn test_validate_block() {
         let fixture = get_fixture();
@@ -168,5 +152,94 @@ mod tests {
             public_values_bytes,
             vk_bytes,
         }
+    }
+
+    // test an ethereum storage proof
+    #[cfg(feature = "dev")]
+    #[tokio::test]
+    async fn test_simple_state_proof() {
+        use alloy::providers::{Provider, ProviderBuilder};
+        use common_merkle_proofs::merkle::types::MerkleVerifiable;
+        use ethereum_merkle_proofs::merkle_lib::types::{EthereumProofType, EthereumSimpleProof};
+        use serde_json::json;
+        use std::str::FromStr;
+        use url::Url;
+
+        use crate::{get_state_proof, read_ethereum_url};
+        let sepolia_height = read_sepolia_height().await.unwrap();
+        let storage_slot_key = hex::decode(read_ethereum_vault_balances_storage_key()).unwrap();
+
+        let provider = ProviderBuilder::new().on_http(Url::from_str(&read_ethereum_url()).unwrap());
+        let block = provider
+            .get_block_by_number(alloy::eips::BlockNumberOrTag::Number(sepolia_height))
+            .await
+            .unwrap()
+            .unwrap();
+
+        // Prepare arguments for get_state_proof
+        let args = json!({
+            "address": read_ethereum_vault_contract_address(),
+            "height": sepolia_height,
+            "abi_encoded_key_hex": alloy::hex::encode(&storage_slot_key)
+        });
+
+        // Get state proof using our function
+        let state_proof = get_state_proof(args).await.unwrap();
+
+        // Deserialize the proof bytes into EthereumProofType
+        let proof_type: EthereumProofType = serde_json::from_slice(&state_proof.proof).unwrap();
+
+        // Match on the proof type and verify
+        match proof_type {
+            EthereumProofType::Simple(simple_proof) => {
+                assert!(simple_proof
+                    .verify(block.header.state_root.as_slice())
+                    .unwrap());
+            }
+            EthereumProofType::Account(_account_proof) => {
+                /*assert!(account_proof
+                .verify(block.header.state_root.as_slice())
+                .unwrap());*/
+                panic!("Expected Simple proof but got Account proof");
+            }
+            _ => {
+                panic!("Unsupported EthereumProofType: The MVP only supports SimpleProof and AccountProof");
+            }
+        }
+        // note that alernatively we can just call EthereumProofType::verify()
+        // on either an AccountProof or SimpleProof, if we don't care about the details.
+    }
+
+    #[cfg(feature = "dev")]
+    async fn read_sepolia_height() -> Result<u64, anyhow::Error> {
+        use alloy::providers::{Provider, ProviderBuilder};
+        use std::str::FromStr;
+        use url::Url;
+
+        use crate::read_ethereum_url;
+        let provider = ProviderBuilder::new().on_http(Url::from_str(&read_ethereum_url())?);
+        let block = provider
+            .get_block_by_number(alloy::eips::BlockNumberOrTag::Latest)
+            .await?
+            .expect("Failed to get Block!");
+        Ok(block.header.number)
+    }
+
+    #[cfg(feature = "dev")]
+    pub(crate) fn read_ethereum_vault_balances_storage_key() -> String {
+        use std::env;
+
+        dotenvy::dotenv().ok();
+        env::var("ETHEREUM_SEPOLIA_VAULT_BALANCES_STORAGE_KEY")
+            .expect("Missing Sepolia Vault Balances Storage Key!")
+    }
+
+    #[cfg(feature = "dev")]
+    pub(crate) fn read_ethereum_vault_contract_address() -> String {
+        use std::env;
+
+        dotenvy::dotenv().ok();
+        env::var("ETHEREUM_SEPOLIA_VAULT_EXAMPLE_CONTRACT_ADDRESS")
+            .expect("Missing Sepolia Vault Contract Address!")
     }
 }
