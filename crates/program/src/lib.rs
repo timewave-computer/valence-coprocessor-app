@@ -1,12 +1,11 @@
 use anyhow::Context;
 use reqwest::get;
-use serde_json::Value;
+use serde_json::{json, Value};
 use sp1_sdk::SP1ProofWithPublicValues;
 use types::CircuitWitness;
 use valence_coprocessor::{StateProof, Witness};
 use valence_coprocessor_app_domain::validate;
 use valence_coprocessor_wasm::abi;
-pub mod utils;
 
 /// Mainnet RPC endpoint for Ethereum network
 const MAINNET_RPC_URL: &str = "https://erigon-tw-rpc.polkachu.com";
@@ -114,18 +113,38 @@ pub async fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     let validated_state_root = valid_block.root;
 
     let mut ethereum_state_proofs: Vec<StateProof> = Vec::new();
+    let client = reqwest::Client::new();
     // populate the ethereum_state_proofs vector with the storage and account proofs
     for (key, address) in keys.iter().zip(addresses.iter()) {
         if key.len() == 0 {
             // if the key is "", we want an account proof
-            let state_proof =
-                utils::get_state_proof(address, MAINNET_RPC_URL, validated_height, None).await;
-            ethereum_state_proofs.push(state_proof?);
+            let account_proof_request = json!({
+                "address": address,
+                "ethereum_url": MAINNET_RPC_URL,
+                "height": validated_height
+            });
+            let response = client
+                .post("http://localhost:3000/")
+                .json(&account_proof_request)
+                .send()
+                .await?;
+            let state_proof: StateProof = response.json().await?;
+            ethereum_state_proofs.push(state_proof);
         } else {
             // if the key is not "", we want a storage proof
-            let state_proof =
-                utils::get_state_proof(address, MAINNET_RPC_URL, validated_height, Some(key)).await;
-            ethereum_state_proofs.push(state_proof?);
+            let storage_proof_request: serde_json::Value = json!({
+                "address": address,
+                "ethereum_url": MAINNET_RPC_URL,
+                "height": validated_height,
+                "key": key
+            });
+            let response = client
+                .post("http://localhost:3000/")
+                .json(&storage_proof_request)
+                .send()
+                .await?;
+            let state_proof: StateProof = response.json().await?;
+            ethereum_state_proofs.push(state_proof);
         }
     }
 

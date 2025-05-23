@@ -6,8 +6,8 @@ authors.workspace = true
 description = "The Valence co-processor circuit definition."
 
 [dependencies]
-serde-json-wasm = "1.0.1"
 valence-coprocessor.workspace = true
 types = { path = "../types" }
+serde_json.workspace = true
 common-merkle-proofs = { package = "common", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false }
 ethereum-merkle-proofs = { package = "ethereum", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false }

@@ -13,10 +13,6 @@ valence-coprocessor-wasm.workspace = true
 
 
 recursion-types = { git = "https://github.com/timewave-computer/valence-helios" }
-common-merkle-proofs = { package = "common", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false }
-ethereum-merkle-proofs = { package = "ethereum", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false, features = [
-    "no-zkvm",
-] }
 sp1-sdk = { git = "https://github.com/timewave-computer/sp1", branch = "jonas/fix-4.1.7-syscall", features = [
     "native-gnark",
 ] }
@@ -28,10 +24,9 @@ hex = { package = "const-hex", version = "1.14", default-features = false, featu
 dotenvy = "0.15.7"
 borsh = { version = "1.5.5", features = ["derive"] }
 tokio = { version = "1.44.2", features = ["full"] }
-reqwest = { version = "0.12" }
+reqwest = { version = "0.12", default-features = false }
 url = { version = "2.5" }
 alloy = { version = "0.12.5", features = ["full"] }
 valence-coprocessor-app-domain = { path = "../domain" }
 types = { path = "../types" }
-
 valence-coprocessor-app-circuit = { path = "../circuit" }
