@@ -5,6 +5,7 @@ use sp1_sdk::SP1ProofWithPublicValues;
 use types::CircuitWitness;
 use valence_coprocessor::{StateProof, Witness};
 use valence_coprocessor_app_domain::validate;
+use valence_coprocessor_wasm::abi;
 pub mod utils;
 
 /// Mainnet RPC endpoint for Ethereum network
@@ -137,6 +138,28 @@ pub async fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
 
     // commit the ethereum_state_proofs as the circuit witness
     Ok([Witness::Data(serde_json::to_vec(&circuit_witness)?)].to_vec())
+}
+
+pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
+    abi::log!(
+        "received an entrypoint request with arguments {}",
+        serde_json::to_string(&args).unwrap_or_default()
+    )?;
+
+    let cmd = args["payload"]["cmd"].as_str().unwrap();
+
+    match cmd {
+        "store" => {
+            let path = args["payload"]["path"].as_str().unwrap().to_string();
+            let bytes = serde_json::to_vec(&args).unwrap();
+
+            abi::set_storage_file(&path, &bytes).unwrap();
+        }
+
+        _ => panic!("unknown entrypoint command"),
+    }
+
+    Ok(args)
 }
 
 /// End-to-end test of the witness generation and circuit computation flow.
