@@ -13,7 +13,7 @@ const MAINNET_RPC_URL: &str = "https://erigon-tw-rpc.polkachu.com";
 const HELIOS_PROVER_ENDPOINT: &str = "http://165.1.70.239:7778/";
 /// Verification key for the Helios wrapper proof
 const HELIOS_WRAPPER_VK: &str =
-    "0x0059b1d14a0ed16531183110da603b3ac27f31f0f485e5d66a6d8171aa39075e";
+    "0x0063a53fc1418a7432356779e09fc81a4c0ad6440162480cecf5309f21c65e3b";
 
 /// Retrieves and validates witnesses for the circuit computation.
 ///

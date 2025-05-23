@@ -1,3 +1,6 @@
+#![no_std]
+extern crate alloc;
+use alloc::{vec, vec::Vec};
 use common_merkle_proofs::merkle::types::MerkleVerifiable;
 use ethereum_merkle_proofs::merkle_lib::{rlp_decode_account, types::EthereumProofType};
 use types::CircuitWitness;
@@ -35,19 +38,15 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     }
 
     // Deserialize the CircuitWitness from the input data
-    let input: CircuitWitness = serde_json::from_slice(&circuit_input_serialized).unwrap();
+    let input: CircuitWitness = serde_json_wasm::from_slice(&circuit_input_serialized).unwrap();
 
     // Verify all Ethereum proofs against the state root
     for proof in input.state_proofs {
-        let proof: EthereumProofType = serde_json::from_slice(&proof.proof).unwrap();
+        let proof: EthereumProofType = serde_json_wasm::from_slice(&proof.proof).unwrap();
         match &proof {
             EthereumProofType::Account(account_proof) => {
                 // Decode and print the account state for debugging
-                let decoded_account = rlp_decode_account(&account_proof.value).unwrap();
-                println!(
-                    "Decoded account state from account proof: {:?}",
-                    decoded_account
-                );
+                let _decoded_account = rlp_decode_account(&account_proof.value).unwrap();
                 /* Example of how to access account data:
                 let account_balance = decoded_account.balance;
                 println!("Account ETH balance: {:?}", account_balance);
