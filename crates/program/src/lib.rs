@@ -61,6 +61,10 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
 
     assert_eq!(keys.len(), addresses.len());
 
+    // we want to move this as the "get_state_proof" function in the domain crate
+    // that's easy to do, just for now I have everything here for testing
+    // will be moved very very soon!
+
     let validated_height = 22548473;
     let validated_state_root = [0; 32];
 

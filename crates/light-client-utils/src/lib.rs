@@ -1,6 +1,6 @@
 use serde_json::json;
 use sp1_sdk::SP1ProofWithPublicValues;
-use valence_coprocessor::{StateProof, ValidatedBlock};
+use valence_coprocessor::ValidatedBlock;
 use valence_coprocessor_app_domain::validate;
 
 /// Endpoint for the Helios prover service
