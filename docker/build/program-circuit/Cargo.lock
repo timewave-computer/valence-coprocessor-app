@@ -1274,6 +1274,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 
 [[package]]
+name = "common"
+version = "0.1.0"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs#57ad868cabe9da6eb839140382a9e13599af2cbc"
+dependencies = [
+ "anyhow",
+ "serde",
+]
+
+[[package]]
 name = "console"
 version = "0.15.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1863,6 +1872,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "ethereum"
+version = "0.1.0"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs#57ad868cabe9da6eb839140382a9e13599af2cbc"
+dependencies = [
+ "anyhow",
+ "arrayvec",
+ "bytes",
+ "common",
+ "const-hex",
+ "hash-db",
+ "hex-literal",
+ "num-bigint 0.4.6",
+ "nybbles",
+ "plain_hasher",
+ "serde",
+ "serde_json",
+ "tiny-keccak",
+ "tracing",
+ "tracing-subscriber",
+ "triehash",
+]
+
+[[package]]
 name = "eventsource-stream"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2222,6 +2254,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-db"
+version = "0.15.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d23bd4e7b5eda0d0f3a307e8b381fdc8ba9000f26fbe912250c0a4cc3956364a"
+
+[[package]]
 name = "hash32"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2295,6 +2333,12 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 dependencies = [
  "serde",
 ]
+
+[[package]]
+name = "hex-literal"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
 
 [[package]]
 name = "hmac"
@@ -3021,6 +3065,7 @@ checksum = "a5e44f723f1133c9deac646763579fdb3ac745e418f2a7af9cd0c431da1f20b9"
 dependencies = [
  "num-integer",
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -3605,6 +3650,15 @@ checksum = "f950b2377845cebe5cf8b5165cb3cc1a5e0fa5cfa3e1f7f55707d8fd82e0a7b7"
 dependencies = [
  "der",
  "spki",
+]
+
+[[package]]
+name = "plain_hasher"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e19e6491bdde87c2c43d70f4c194bc8a758f2eb732df00f61e43f7362e3b4cc"
+dependencies = [
+ "crunchy",
 ]
 
 [[package]]
@@ -5708,6 +5762,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "triehash"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1631b201eb031b563d2e85ca18ec8092508e262a3196ce9bd10a67ec87b9f5c"
+dependencies = [
+ "hash-db",
+ "rlp",
+]
+
+[[package]]
 name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5740,6 +5804,15 @@ name = "typenum"
 version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
+
+[[package]]
+name = "types"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "valence-coprocessor",
+]
 
 [[package]]
 name = "ucd-trie"
@@ -5820,8 +5893,8 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "valence-coprocessor"
-version = "0.1.8"
-source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.8#9ed25f03acbd25faf201039d74e8e7e6093dcf59"
+version = "0.1.11"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.11#703d00e301a4f9ce49abc2b6d312bc7b2ba27592"
 dependencies = [
  "anyhow",
  "base64",
@@ -5839,13 +5912,17 @@ dependencies = [
 name = "valence-coprocessor-app-circuit"
 version = "0.1.0"
 dependencies = [
+ "common",
+ "ethereum",
+ "serde_json",
+ "types",
  "valence-coprocessor",
 ]
 
 [[package]]
 name = "valence-coprocessor-sp1"
-version = "0.1.8"
-source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.8#9ed25f03acbd25faf201039d74e8e7e6093dcf59"
+version = "0.1.11"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.11#703d00e301a4f9ce49abc2b6d312bc7b2ba27592"
 dependencies = [
  "ark-bn254",
  "ark-ec",

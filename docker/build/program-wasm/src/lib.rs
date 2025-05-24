@@ -1,7 +1,5 @@
 #![no_std]
-
 extern crate alloc;
-
 use valence_coprocessor_wasm::abi;
 
 #[no_mangle]

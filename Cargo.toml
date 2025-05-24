@@ -5,6 +5,7 @@ members = [
   "crates/domain",
   "crates/program",
   "crates/types",
+  "crates/light-client-utils",
 ]
 resolver = "2"
 
@@ -16,9 +17,15 @@ version = "0.1.0"
 
 [workspace.dependencies]
 anyhow = { version = "1.0.83", default-features = false }
-serde = "1"
+serde = { version = "1.0.219", default-features = false, features = [
+  "alloc",
+  "derive",
+] }
 serde_json = { version = "1.0.140", default-features = false, features = [
   "alloc",
 ] }
-valence-coprocessor = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.8", default-features = false }
-valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.8", default-features = false }
+valence-coprocessor = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.11", default-features = false }
+valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.11", default-features = false }
+sp1-sdk = { git = "https://github.com/timewave-computer/sp1", branch = "jonas/fix-4.1.7-syscall", default-features = false, features = [
+  "native-gnark",
+] }

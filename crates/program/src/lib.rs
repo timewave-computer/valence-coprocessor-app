@@ -1,19 +1,22 @@
-use anyhow::Context;
-use reqwest_wasm::get;
+#![no_std]
+extern crate alloc;
+use alloc::{string::ToString, vec::Vec};
+//use anyhow::Context;
+//use reqwest_wasm::get;
 use serde_json::{json, Value};
 //use sp1_sdk::SP1ProofWithPublicValues;
 use types::CircuitWitness;
 use valence_coprocessor::{StateProof, Witness};
-use valence_coprocessor_app_domain::validate;
+//use valence_coprocessor_app_domain::validate;
 use valence_coprocessor_wasm::abi;
 
 /// Mainnet RPC endpoint for Ethereum network
 const MAINNET_RPC_URL: &str = "https://erigon-tw-rpc.polkachu.com";
 /// Endpoint for the Helios prover service
-const HELIOS_PROVER_ENDPOINT: &str = "http://165.1.70.239:7778/";
+//const HELIOS_PROVER_ENDPOINT: &str = "http://165.1.70.239:7778/";
 /// Verification key for the Helios wrapper proof
-const HELIOS_WRAPPER_VK: &str =
-    "0x0063a53fc1418a7432356779e09fc81a4c0ad6440162480cecf5309f21c65e3b";
+/*const HELIOS_WRAPPER_VK: &str =
+"0x0063a53fc1418a7432356779e09fc81a4c0ad6440162480cecf5309f21c65e3b";*/
 
 /// Retrieves and validates witnesses for the circuit computation.
 ///
@@ -35,27 +38,7 @@ const HELIOS_WRAPPER_VK: &str =
 /// * If required fields are missing or invalid
 /// * If Helios proof validation fails
 /// * If state proof retrieval fails
-pub async fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
-    // the witness data required to validate the Helios wrapper proof
-    // e.g. the Block proof
-    // question: do we want to do this here or elsewhere?
-
-    // for now we ask Helios directly for the most recent proof,
-    // very soon we will instead pass the helios proof that
-    // is associated with this updated through args
-    /*let proof_bytes = args["proof"]
-        .as_str()
-        .ok_or(anyhow::anyhow!("proof must be a string"))?
-        .as_bytes();
-    let public_values_bytes = args["public_values"]
-        .as_str()
-        .ok_or(anyhow::anyhow!("public_values must be a string"))?
-        .as_bytes();
-    let vk_bytes = args["vk"]
-        .as_str()
-        .ok_or(anyhow::anyhow!("vk must be a string"))?
-        .as_bytes();*/
-
+pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     let addresses = args["addresses"]
         .as_array()
         .ok_or(anyhow::anyhow!("addresses must be an array"))?
@@ -66,22 +49,6 @@ pub async fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
         })
         .collect::<anyhow::Result<Vec<&str>>>()?;
 
-    /* Examples to compute the keccak_hash_of_abi_encoded_key_hex:
-        1. Stored value under a contract in an account mapping Address -> U256:
-            // the storage slot of the mapping
-            let slot: U256 = alloy_primitives::U256::from(0);
-            // address: the address of the account in the mapping
-            let encoded_key = (address, slot).abi_encode();
-            // must be hashed under the hood (todo: remove this comment)
-            // let keccak_key = digest_keccak(&encoded_key).to_vec();
-
-        2. Stored value in contract at slot:
-            // just the hex encoded slot number
-            let encoded_key = 0x0000000000000000000000000000000000000000000000000000000000000001
-
-    */
-
-    // the witness data required to validate the Ethereum merkle proofs
     let keys = args["keys"]
         .as_array()
         .ok_or(anyhow::anyhow!("keys must be an array"))?
@@ -92,58 +59,66 @@ pub async fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
         })
         .collect::<anyhow::Result<Vec<&str>>>()?;
 
-    // pass an empty key if you want an account proof,
-    // the key at index i corresponds to the address at index i
     assert_eq!(keys.len(), addresses.len());
 
-    let helios_zk_proof_response = get(HELIOS_PROVER_ENDPOINT).await?;
-    let helios_proof_serialized = helios_zk_proof_response.bytes().await?;
-    /*let helios_proof: SP1ProofWithPublicValues =
-    serde_json::from_slice(&hex::decode(helios_proof_serialized)?)
-        .context("Failed to deserialize helios proof")?;*/
-
-    /*let valid_block = validate(
-        &helios_proof.bytes(),
-        &helios_proof.public_values.to_vec(),
-        HELIOS_WRAPPER_VK,
-    )
-    .context("Failed to verify Helios Proof")?;*/
-
-    let validated_height = 10; //valid_block.number;
-    let validated_state_root = [0; 32]; //valid_block.root;
+    let validated_height = 22548473;
+    let validated_state_root = [0; 32];
 
     let mut ethereum_state_proofs: Vec<StateProof> = Vec::new();
-    let client = reqwest_wasm::Client::new();
-    // populate the ethereum_state_proofs vector with the storage and account proofs
+
+    // get state proofs from the service
     for (key, address) in keys.iter().zip(addresses.iter()) {
         if key.len() == 0 {
             // if the key is "", we want an account proof
-            let account_proof_request = json!({
-                "address": address,
-                "ethereum_url": MAINNET_RPC_URL,
-                "height": validated_height
-            });
-            let response = client
-                .post("http://localhost:3000/")
-                .body(serde_json::to_string(&account_proof_request)?)
-                .send()
-                .await?;
-            let state_proof: StateProof = serde_json::from_str(&response.text().await?)?;
-            ethereum_state_proofs.push(state_proof);
-        } else {
-            // if the key is not "", we want a storage proof
-            let storage_proof_request: serde_json::Value = json!({
+            let state_proof_request = json!({
+                "method": "POST",
+                "url": "http://165.1.70.239:7777/",
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "json": {
                 "address": address,
                 "ethereum_url": MAINNET_RPC_URL,
                 "height": validated_height,
-                "key": key
+                "key": key  // empty string for account proof
+                }
             });
-            let response = client
-                .post("http://localhost:3000/")
-                .body(serde_json::to_string(&storage_proof_request)?)
-                .send()
-                .await?;
-            let state_proof: StateProof = serde_json::from_str(&response.text().await?)?;
+            let response = abi::http(&state_proof_request)?;
+            let body_bytes: Vec<u8> = response["body"]
+                .as_array()
+                .ok_or("body not an array")
+                .unwrap()
+                .iter()
+                .map(|v| Ok::<u8, &str>(v.as_u64().unwrap() as u8))
+                .collect::<Result<Vec<u8>, _>>()
+                .unwrap();
+            let state_proof: StateProof = serde_json::from_slice(&body_bytes)?;
+            ethereum_state_proofs.push(state_proof);
+        } else {
+            // if the key is not "", we want a storage proof
+            let account_proof_request = json!({
+                "method": "POST",
+                "url": "http://165.1.70.239:7777/",
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "json": {
+                    "address": address,
+                    "ethereum_url": MAINNET_RPC_URL,
+                    "height": validated_height,
+                    "key": ""
+                }
+            });
+            let response: Value = abi::http(&account_proof_request)?;
+            let body_bytes: Vec<u8> = response["body"]
+                .as_array()
+                .ok_or("body not an array")
+                .unwrap()
+                .iter()
+                .map(|v| Ok::<u8, &str>(v.as_u64().unwrap() as u8))
+                .collect::<Result<Vec<u8>, _>>()
+                .unwrap();
+            let state_proof: StateProof = serde_json::from_slice(&body_bytes)?;
             ethereum_state_proofs.push(state_proof);
         }
     }
@@ -213,5 +188,5 @@ async fn full_e2e_flow() {
             "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"
         ]
     });
-    let _witness = get_witnesses(args).await.unwrap();
+    let _witness = get_witnesses(args).unwrap();
 }
