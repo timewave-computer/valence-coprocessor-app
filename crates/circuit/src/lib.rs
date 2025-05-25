@@ -38,7 +38,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let input: CircuitWitness = serde_json::from_slice(&circuit_input_serialized).unwrap();
 
     // Verify all Ethereum proofs against the state root
-    for (idx, proof) in input.state_proofs.iter().enumerate() {
+    for proof in input.state_proofs {
         let proof: EthereumProofType = serde_json::from_slice(&proof.proof).unwrap();
         match &proof {
             EthereumProofType::Account(account_proof) => {

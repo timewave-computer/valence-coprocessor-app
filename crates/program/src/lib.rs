@@ -12,11 +12,6 @@ use valence_coprocessor_wasm::abi;
 
 /// Mainnet RPC endpoint for Ethereum network
 const MAINNET_RPC_URL: &str = "https://erigon-tw-rpc.polkachu.com";
-/// Endpoint for the Helios prover service
-//const HELIOS_PROVER_ENDPOINT: &str = "http://165.1.70.239:7778/";
-/// Verification key for the Helios wrapper proof
-/*const HELIOS_WRAPPER_VK: &str =
-"0x0063a53fc1418a7432356779e09fc81a4c0ad6440162480cecf5309f21c65e3b";*/
 
 /// Retrieves and validates witnesses for the circuit computation.
 ///
@@ -61,16 +56,20 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
 
     assert_eq!(keys.len(), addresses.len());
 
-    // we want to move this as the "get_state_proof" function in the domain crate
-    // that's easy to do, just for now I have everything here for testing
-    // will be moved very very soon!
+    let validated_state_root_hex = args["root"].as_str().unwrap();
+    let validated_state_root = <[u8; 32]>::try_from(hex::decode(validated_state_root_hex).unwrap())
+        .expect("Invalid State Root");
 
-    let validated_height = 22548473;
-    let validated_state_root = [0; 32];
+    let validated_height = args["height"].as_u64().unwrap();
+    let validated_state_root = validated_state_root;
 
     let mut ethereum_state_proofs: Vec<StateProof> = Vec::new();
 
     // get state proofs from the service
+
+    // we want to move this as the "get_state_proof" function in the domain crate
+    // that's easy to do, just for now I have everything here for testing
+    // will be moved very very soon!
     for (key, address) in keys.iter().zip(addresses.iter()) {
         if key.len() == 0 {
             // if the key is "", we want an account proof

@@ -1652,6 +1652,7 @@ name = "valence-coprocessor-app-program"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "hex",
  "recursion-types",
  "serde_json",
  "sp1-verifier",
