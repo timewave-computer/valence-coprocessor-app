@@ -51,14 +51,14 @@ cargo test test_get_latest_helios_block -- --nocapture
 
 Example output, note that it is recommended to obtain a more recent root when testing:
 ```sh
-Validated block root: "9f63d9730cb777a816f9df69bda96dc3de2fe4c674dfa893901fd84cdc2f1322"
-Validated block height: 22561349
+Validated block root: "f23a31049ed7774037322fa153cc23b25d79f475dd0e990ce40c23cd65d8dab7"
+Validated block height: 22566730
 ```
 
 Now we can use this trusted block root and height to prove the program at that point in time:
 
 ```sh
-cargo run -- prove -j '{"addresses": ["0xdac17f958d2ee523a2206206994597c13d831ec7", "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"], "keys": ["0x0000000000000000000000000000000000000000000000000000000000000000", ""], "height":22561349, "root":"9f63d9730cb777a816f9df69bda96dc3de2fe4c674dfa893901fd84cdc2f1322"}' -p /var/share/proof.bin a73509f334b7b5bc8c5921a3f2b45cf5230bdc0f99ff72db2d33716a92bd687b
+cargo run -- prove -j '{"addresses": ["0xdac17f958d2ee523a2206206994597c13d831ec7", "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"], "keys": ["0x0000000000000000000000000000000000000000000000000000000000000000", ""], "height":22566730, "root":"f23a31049ed7774037322fa153cc23b25d79f475dd0e990ce40c23cd65d8dab7"}' -p /var/share/proof.bin a73509f334b7b5bc8c5921a3f2b45cf5230bdc0f99ff72db2d33716a92bd687b
 ```
 
 Note that in production we will either use the wasm module on the co-processor to obtain that trusted root, or verify the proof in the circuit.

@@ -7,11 +7,13 @@
 //! - Working with Ethereum merkle proofs for both account and storage data
 
 use recursion_types::WrapperCircuitOutputs;
+use serde_json::json;
 use sp1_verifier::{Groth16Verifier, GROTH16_VK_BYTES};
-use valence_coprocessor::ValidatedBlock;
+use valence_coprocessor::{StateProof, ValidatedBlock};
 
 extern crate alloc;
 use alloc::{str, vec::Vec};
+use valence_coprocessor_wasm::abi;
 
 /// Validates an Ethereum block using a Groth16 zero-knowledge proof.
 ///
@@ -39,6 +41,37 @@ pub fn validate_block(
 ) -> anyhow::Result<ValidatedBlock> {
     let valid_block = validate(proof_bytes, public_values_bytes, vk_str)?;
     Ok(valid_block)
+}
+
+pub fn get_state_proof(
+    address: &str,
+    key: &str,
+    height: u64,
+    ethereum_url: &str,
+) -> anyhow::Result<StateProof> {
+    let state_proof_request = json!({
+        "method": "POST",
+        "url": "http://165.1.70.239:7777/",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "json": {
+        "address": address,
+        "ethereum_url": ethereum_url,
+        "height": height,
+        "key": key  // empty string for account proof
+        }
+    });
+    let response = abi::http(&state_proof_request)?;
+    let body_bytes: Vec<u8> = response["body"]
+        .as_array()
+        .ok_or("body not an array")
+        .unwrap()
+        .iter()
+        .map(|v| Ok::<u8, &str>(v.as_u64().unwrap() as u8))
+        .collect::<Result<Vec<u8>, _>>()
+        .unwrap();
+    Ok(serde_json::from_slice(&body_bytes)?)
 }
 
 /// Internal function to validate a block using Groth16 proof verification.

@@ -3,10 +3,11 @@ extern crate alloc;
 use alloc::{string::ToString, vec::Vec};
 //use anyhow::Context;
 //use reqwest_wasm::get;
-use serde_json::{json, Value};
+use serde_json::Value;
 //use sp1_sdk::SP1ProofWithPublicValues;
 use types::CircuitWitness;
 use valence_coprocessor::{StateProof, Witness};
+use valence_coprocessor_app_domain::get_state_proof;
 //use valence_coprocessor_app_domain::validate;
 use valence_coprocessor_wasm::abi;
 
@@ -65,63 +66,13 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
 
     let mut ethereum_state_proofs: Vec<StateProof> = Vec::new();
 
-    // get state proofs from the service
-
-    // we want to move this as the "get_state_proof" function in the domain crate
-    // that's easy to do, just for now I have everything here for testing
-    // will be moved very very soon!
+    // get state proofs from the domain service
     for (key, address) in keys.iter().zip(addresses.iter()) {
         if key.len() == 0 {
-            // if the key is "", we want an account proof
-            let state_proof_request = json!({
-                "method": "POST",
-                "url": "http://165.1.70.239:7777/",
-                "headers": {
-                    "Content-Type": "application/json"
-                },
-                "json": {
-                "address": address,
-                "ethereum_url": MAINNET_RPC_URL,
-                "height": validated_height,
-                "key": key  // empty string for account proof
-                }
-            });
-            let response = abi::http(&state_proof_request)?;
-            let body_bytes: Vec<u8> = response["body"]
-                .as_array()
-                .ok_or("body not an array")
-                .unwrap()
-                .iter()
-                .map(|v| Ok::<u8, &str>(v.as_u64().unwrap() as u8))
-                .collect::<Result<Vec<u8>, _>>()
-                .unwrap();
-            let state_proof: StateProof = serde_json::from_slice(&body_bytes)?;
+            let state_proof = get_state_proof(address, key, validated_height, MAINNET_RPC_URL)?;
             ethereum_state_proofs.push(state_proof);
         } else {
-            // if the key is not "", we want a storage proof
-            let account_proof_request = json!({
-                "method": "POST",
-                "url": "http://165.1.70.239:7777/",
-                "headers": {
-                    "Content-Type": "application/json"
-                },
-                "json": {
-                    "address": address,
-                    "ethereum_url": MAINNET_RPC_URL,
-                    "height": validated_height,
-                    "key": ""
-                }
-            });
-            let response: Value = abi::http(&account_proof_request)?;
-            let body_bytes: Vec<u8> = response["body"]
-                .as_array()
-                .ok_or("body not an array")
-                .unwrap()
-                .iter()
-                .map(|v| Ok::<u8, &str>(v.as_u64().unwrap() as u8))
-                .collect::<Result<Vec<u8>, _>>()
-                .unwrap();
-            let state_proof: StateProof = serde_json::from_slice(&body_bytes)?;
+            let state_proof = get_state_proof(address, "", validated_height, MAINNET_RPC_URL)?;
             ethereum_state_proofs.push(state_proof);
         }
     }
