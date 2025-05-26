@@ -38,6 +38,10 @@ Upon successful deployment, you should observe the generated ID:
 7694d9aabedff8769d734be5cbd1dde972f766b25c58c2d4e593a14aa0e28f99
 ```
 
+>[!NOTE]
+> When updating git dependencies, run `make clean` to ensure all lockfiles are properly updated.
+
+
 ### Prove
 
 We instruct the coprocessor to generate a proof for the program. The default implementation of the program will accept an input value and pass it through the circuit. The circuit will then add `1` to the given value before returning the result as little-endian.
