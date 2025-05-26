@@ -35,7 +35,7 @@ cargo run -- deploy program
 Upon successful deployment, you should observe the generated ID:
 
 ```
-a73509f334b7b5bc8c5921a3f2b45cf5230bdc0f99ff72db2d33716a92bd687b
+7694d9aabedff8769d734be5cbd1dde972f766b25c58c2d4e593a14aa0e28f99
 ```
 
 ### Prove

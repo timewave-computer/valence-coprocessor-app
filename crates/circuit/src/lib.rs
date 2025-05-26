@@ -1,5 +1,8 @@
 use common_merkle_proofs::merkle::types::MerkleVerifiable;
-use ethereum_merkle_proofs::merkle_lib::{rlp_decode_account, types::EthereumProofType};
+use ethereum_merkle_proofs::merkle_lib::{
+    types::{EthereumAccount, EthereumProofType},
+    RlpDecodable,
+};
 use types::CircuitWitness;
 use valence_coprocessor::Witness;
 
@@ -43,7 +46,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
         match &proof {
             EthereumProofType::Account(account_proof) => {
                 // Decode and print the account state for debugging
-                let _decoded_account = rlp_decode_account(&account_proof.value).unwrap();
+                let _decoded_account = EthereumAccount::rlp_decode(&account_proof.value).unwrap();
                 /* Example of how to access account data:
                 let account_balance = decoded_account.balance;
                 println!("Account ETH balance: {:?}", account_balance);

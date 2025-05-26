@@ -5,6 +5,10 @@ PWD := $(CURDIR)
 
 all: circuit domain program ## Build all targets.
 
+clean: ## Clean all build artifacts and lock files
+	cargo clean
+	find docker/build -name Cargo.lock -type f -delete
+
 circuit: docker-deploy ## Build the circuit ELF file.
 	docker run --rm -it -v "$(PWD):/usr/src/app" $(PROJECT):$(VERSION)
 

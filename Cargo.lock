@@ -342,7 +342,7 @@ checksum = "89e25b6adfb930f02d1981565a6e5d9c547ac15a96606256d3b59040e5cd4ca3"
 [[package]]
 name = "beacon-electra"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/valence-helios#f4b8832ad208024b3a4de8ccb8b315a2a96612c8"
+source = "git+https://github.com/timewave-computer/valence-helios#0662fdc950fd31994482319edf22a1086c3bea7d"
 dependencies = [
  "anyhow",
  "borsh",
@@ -691,7 +691,7 @@ checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 [[package]]
 name = "common"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/zk-merkle-proofs#57ad868cabe9da6eb839140382a9e13599af2cbc"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs#d40ab9310e18a21434d29994d4c5e2b3cd17f8af"
 dependencies = [
  "anyhow",
  "serde",
@@ -1170,7 +1170,7 @@ dependencies = [
 [[package]]
 name = "ethereum"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/zk-merkle-proofs#57ad868cabe9da6eb839140382a9e13599af2cbc"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs#d40ab9310e18a21434d29994d4c5e2b3cd17f8af"
 dependencies = [
  "anyhow",
  "arrayvec",
@@ -2216,13 +2216,13 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "1.0.3"
+version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2886843bf800fba2e3377cff24abf6379b4c4d5c6681eaf9ea5b0d15090450bd"
+checksum = "78bed444cc8a2160f01cbcf811ef18cac863ad68ae8ca62092e8db51d51c761c"
 dependencies = [
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3257,7 +3257,7 @@ dependencies = [
 [[package]]
 name = "recursion-types"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/valence-helios#f4b8832ad208024b3a4de8ccb8b315a2a96612c8"
+source = "git+https://github.com/timewave-computer/valence-helios#0662fdc950fd31994482319edf22a1086c3bea7d"
 dependencies = [
  "beacon-electra",
  "borsh",
@@ -3845,9 +3845,9 @@ dependencies = [
 
 [[package]]
 name = "socket2"
-version = "0.5.9"
+version = "0.5.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f5fd57c80058a56cf5c777ab8a126398ece8e442983605d280a44ce79d0edef"
+checksum = "e22376abed350d73dd1cd119b57ffccad95b4e585a7cda43e286245ce23c0678"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
@@ -4641,9 +4641,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.45.0"
+version = "1.45.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2513ca694ef9ede0fb23fe71a4ee4107cb102b9dc1930f6d0fd77aae068ae165"
+checksum = "75ef51a33ef1da925cea3e4eb122833cb377c61439ca401b770f54902b806779"
 dependencies = [
  "backtrace",
  "bytes",
