@@ -35,7 +35,7 @@ cargo run -- deploy program
 Upon successful deployment, you should observe the generated ID:
 
 ```
-7694d9aabedff8769d734be5cbd1dde972f766b25c58c2d4e593a14aa0e28f99
+130292224d2c0678d0bafe642d5129d08b3dfd51dd1900a398f27f94a2a6bc77
 ```
 
 >[!NOTE]
@@ -55,14 +55,18 @@ cargo test test_get_latest_helios_block -- --nocapture
 
 Example output, note that it is recommended to obtain a more recent root when testing:
 ```sh
-Validated block root: "f23a31049ed7774037322fa153cc23b25d79f475dd0e990ce40c23cd65d8dab7"
-Validated block height: 22566730
+Validated block root: "0446e5c49ab8ef1f7758f356d7d17ab46b7636f20af14aa856b5da36ef837047"
+Validated block height: 22574456
 ```
 
 Now we can use this trusted block root and height to prove the program at that point in time:
 
+Note that this command has a hardcoded Sepolia root and Height for now, 
+the reason for that is that we don't yet have the contract on mainnet.
+For now use a Sepolia root and height instead of the one Helios (described above).
+
 ```sh
-cargo run -- prove -j '{"addresses": ["0xdac17f958d2ee523a2206206994597c13d831ec7", "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"], "keys": ["0x0000000000000000000000000000000000000000000000000000000000000000", ""], "height":22566730, "root":"f23a31049ed7774037322fa153cc23b25d79f475dd0e990ce40c23cd65d8dab7"}' -p /var/share/proof.bin a73509f334b7b5bc8c5921a3f2b45cf5230bdc0f99ff72db2d33716a92bd687b
+cargo run -- prove -j '{"addresses": ["0xA4C6063b20fd2f878F1A50c9FDeAF3943F867E4e", "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"], "keys": ["0xec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6b", ""], "height":8418207, "root":"f3994b2e95b08a7ed728ccf4eed012fe8549d45c5bee9fcfc2ad5e6e0ba5fe4a"}' -p /var/share/proof.bin 13187cb01cc5cdea01d82a1e321a80cc6cbd9789500b0c11e84d668fdb56c19a
 ```
 
 Note that in production we will either use the wasm module on the co-processor to obtain that trusted root, or verify the proof in the circuit.

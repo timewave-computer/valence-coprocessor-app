@@ -3,7 +3,7 @@ use ethereum_merkle_proofs::merkle_lib::{
     types::{EthereumAccount, EthereumProofType},
     RlpDecodable,
 };
-use types::CircuitWitness;
+use types::{CircuitOutput, CircuitWitness, WithdrawRequest};
 use valence_coprocessor::Witness;
 
 /// Main circuit function that processes and verifies Ethereum state proofs.
@@ -40,6 +40,8 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     // Deserialize the CircuitWitness from the input data
     let input: CircuitWitness = serde_json::from_slice(&circuit_input_serialized).unwrap();
 
+    let mut withdraw_requests: Vec<WithdrawRequest> = Vec::new();
+
     // Verify all Ethereum proofs against the state root
     for proof in input.state_proofs {
         let proof: EthereumProofType = serde_json::from_slice(&proof.proof).unwrap();
@@ -47,10 +49,10 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
             EthereumProofType::Account(account_proof) => {
                 // Decode and print the account state for debugging
                 let _decoded_account = EthereumAccount::rlp_decode(&account_proof.value).unwrap();
-                /* Example of how to access account data:
-                let account_balance = decoded_account.balance;
-                println!("Account ETH balance: {:?}", account_balance);
-                */
+            }
+            EthereumProofType::Simple(storage_proof) => {
+                let withdraw_request = WithdrawRequest::rlp_decode(&storage_proof.value).unwrap();
+                withdraw_requests.push(withdraw_request);
             }
             _ => {}
         }
@@ -58,6 +60,10 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
         assert!(proof.verify(&input.state_root).unwrap());
     }
 
-    // commit the helios root that we used for verification as an output
-    input.state_root.to_vec()
+    // commit the verified withdraw requests and the root that was used as an output
+    let output = CircuitOutput {
+        withdraw_requests,
+        state_root: input.state_root,
+    };
+    serde_json::to_vec(&output).expect("Failed to serialize circuit output")
 }

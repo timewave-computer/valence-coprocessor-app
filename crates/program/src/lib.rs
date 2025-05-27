@@ -12,7 +12,7 @@ use valence_coprocessor_app_domain::get_state_proof;
 use valence_coprocessor_wasm::abi;
 
 /// Mainnet RPC endpoint for Ethereum network
-const MAINNET_RPC_URL: &str = "https://erigon-tw-rpc.polkachu.com";
+const MAINNET_RPC_URL: &str = "https://ethereum-sepolia-rpc.publicnode.com"; //"https://erigon-tw-rpc.polkachu.com";
 
 /// Retrieves and validates witnesses for the circuit computation.
 ///
@@ -117,28 +117,33 @@ pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
 /// 2. Requests an account proof for a specific address
 /// 3. Validates the generated witnesses through the circuit
 #[tokio::test]
-async fn full_e2e_flow() {
+async fn test_get_witnesses() {
+    use alloy_primitives::{keccak256, U256};
+    use alloy_sol_types::SolValue;
+    // Note that currently we are using a sepolia contract
+    // and mainnet Helios => we need to deploy the contract to mainnet
+    // and use the real Helios root.
     // these are the args to get one storage proof and one account proof.
     // the first proof will be a storage proof for the smart contract
-    // with address 0xdac17f958d2ee523a2206206994597c13d831ec7 at slot 0
-    // (which is the total supply of USDT on mainnet)
-    // see: https://etherscan.io/address/0xdac17f958d2ee523a2206206994597c13d831ec7#code#L80
-    // When looking at just the explorer one might be confused to see that it seems like
-    // the total supply is stored at slot 3, but that is not the case.
-    // See: https://etherscan.io/address/0xdac17f958d2ee523a2206206994597c13d831ec7#readContract#F3
-    // The total supply is stored at slot 0, because it's the first state variable defined in the contract.
+    // with address 0xA4C6063b20fd2f878F1A50c9FDeAF3943F867E4e at slot 0
+    // (which is the vault contract that emits the WithdrawRequest event)
 
     // the second proof will be an account proof for the account address
     // 0x07ae8551be970cb1cca11dd7a11f47ae82e70e67
     // both the contract and the account are on the mainnet network
 
+    // The WithdrawalRequest mapping is stored at slot 9
+    // we want to get the first WithdrawalRequest for the vault contract
+    // at index 0u64
+    let abi_key = (0u64, U256::from(9)).abi_encode();
+    let key_hash = hex::encode(keccak256(abi_key));
     let args = serde_json::json!({
         "keys": [
-            "0x0000000000000000000000000000000000000000000000000000000000000000",
+            hex::encode(key_hash),
             ""
         ],
         "addresses": [
-            "0xdac17f958d2ee523a2206206994597c13d831ec7",
+            "0xA4C6063b20fd2f878F1A50c9FDeAF3943F867E4e",
             "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"
         ]
     });
