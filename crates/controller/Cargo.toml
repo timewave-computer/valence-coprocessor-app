@@ -1,9 +1,9 @@
 [package]
-name = "valence-coprocessor-app-program"
+name = "valence-coprocessor-app-controller"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
-description = "The Valence co-processor program definition."
+description = "The Valence co-processor controller definition."
 
 [dependencies]
 anyhow.workspace = true
