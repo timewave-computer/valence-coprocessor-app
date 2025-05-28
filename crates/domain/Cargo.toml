@@ -17,5 +17,4 @@ hex = { package = "const-hex", version = "1.14", default-features = false, featu
     "alloc",
     "core-error",
 ] }
-dotenvy = "0.15.7"
 borsh = { version = "1.5.5", features = ["derive"] }

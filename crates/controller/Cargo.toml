@@ -18,7 +18,7 @@ tokio = { version = "1.44.2", default-features = false, features = [
     "macros",
     "rt",
 ] }
-url = { version = "2.5" }
+url = { version = "2.5", default-features = false }
 valence-coprocessor-app-domain = { path = "../domain" }
 types.workspace = true
 
