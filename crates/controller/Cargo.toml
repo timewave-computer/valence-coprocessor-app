@@ -13,16 +13,11 @@ valence-coprocessor-wasm.workspace = true
 hex.workspace = true
 
 recursion-types = { git = "https://github.com/timewave-computer/valence-helios" }
-#sp1-sdk = { git = "https://github.com/timewave-computer/sp1", branch = "jonas/fix-4.1.7-syscall", features = [
-#    "native-gnark",
-#] }
-sp1-verifier = { git = "https://github.com/timewave-computer/sp1", branch = "jonas/fix-4.1.7-syscall" }
-#borsh = { version = "1.5.5", features = ["derive"] }
+sp1-verifier = { git = "https://github.com/timewave-computer/sp1", branch = "jonas/fix-4.1.7-syscall", default-features = false }
 tokio = { version = "1.44.2", default-features = false, features = [
     "macros",
     "rt",
 ] }
-#reqwest-wasm = { version = "0.11", default-features = false }
 url = { version = "2.5" }
 valence-coprocessor-app-domain = { path = "../domain" }
 types.workspace = true

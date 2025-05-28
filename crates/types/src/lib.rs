@@ -1,3 +1,6 @@
+#![no_std]
+extern crate alloc;
+use alloc::{string::String, vec::Vec};
 use anyhow::{Context, Result};
 use ethereum_merkle_proofs::merkle_lib::{rlp_decode_bytes, RlpDecodable};
 use num_bigint::BigUint;

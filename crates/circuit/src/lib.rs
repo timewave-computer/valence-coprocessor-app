@@ -1,3 +1,6 @@
+#![no_std]
+extern crate alloc;
+use alloc::vec::Vec;
 use common_merkle_proofs::merkle::types::MerkleVerifiable;
 use ethereum_merkle_proofs::merkle_lib::{
     types::{EthereumAccount, EthereumProofType},
@@ -27,7 +30,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let circuit_input_witness = witnesses.first().unwrap();
     // this macro isn't necessary, but rust analyzer throws a false positive
     #[allow(unused)]
-    let mut circuit_input_serialized: Vec<u8> = vec![];
+    let mut circuit_input_serialized: Vec<u8> = Vec::new();
     match circuit_input_witness {
         Witness::Data(data) => {
             circuit_input_serialized = data.clone();
