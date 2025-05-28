@@ -338,7 +338,7 @@ checksum = "89e25b6adfb930f02d1981565a6e5d9c547ac15a96606256d3b59040e5cd4ca3"
 [[package]]
 name = "beacon-electra"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/valence-helios#0662fdc950fd31994482319edf22a1086c3bea7d"
+source = "git+https://github.com/timewave-computer/valence-helios#6a91dfb61a3d092e77ca69c523451a2e1c037555"
 dependencies = [
  "anyhow",
  "borsh",
@@ -1731,7 +1731,7 @@ dependencies = [
 [[package]]
 name = "recursion-types"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/valence-helios#0662fdc950fd31994482319edf22a1086c3bea7d"
+source = "git+https://github.com/timewave-computer/valence-helios#6a91dfb61a3d092e77ca69c523451a2e1c037555"
 dependencies = [
  "beacon-electra",
  "borsh",
