@@ -18,8 +18,10 @@ url = { version = "2.5", default-features = false }
 valence-coprocessor-app-domain = { path = "../domain" }
 types.workspace = true
 
-[dev-dependencies]
+sha3 = { version = "0.10", default-features = false }
 alloy-primitives = { version = "0.8.25", default-features = false }
+
+[dev-dependencies]
 alloy-sol-types = { version = "0.8.23", default-features = false }
 tokio = { version = "1.44.2", default-features = false, features = [
     "macros",

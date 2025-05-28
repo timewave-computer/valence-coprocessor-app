@@ -1,7 +1,10 @@
+use core::panic;
+
 use common_merkle_proofs::merkle::types::MerkleVerifiable;
 use ethereum_merkle_proofs::merkle_lib::types::{
     EthereumAccount, EthereumProofType, RlpDecodable as MerkleProofRlpDecodable,
 };
+use num_bigint::BigUint;
 use types::ethereum::RlpDecodable;
 use types::{CircuitOutput, CircuitWitness, WithdrawRequest};
 use valence_coprocessor::Witness;
@@ -43,7 +46,6 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let mut withdraw_requests: Vec<WithdrawRequest> = Vec::new();
 
     // Verify all Ethereum proofs against the state root
-    assert_eq!(input.state_proofs.len(), 2);
     for proof in input.state_proofs {
         let proof: EthereumProofType = serde_json::from_slice(&proof.proof).unwrap();
         match &proof {
@@ -52,10 +54,20 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
                 let _decoded_account = EthereumAccount::rlp_decode(&account_proof.value).unwrap();
             }
             EthereumProofType::Simple(storage_proof) => {
-                let withdraw_request = WithdrawRequest::rlp_decode(&storage_proof.value).unwrap();
+                // todo: decode the values and populate the WithdrawRequest instance
+
+                let withdraw_request = WithdrawRequest {
+                    id: 0,
+                    owner: "".to_string(),
+                    redemption_rate: BigUint::from(0u64),
+                    shares_amount: BigUint::from(0u64),
+                    receiver: "".to_string(),
+                };
                 withdraw_requests.push(withdraw_request);
             }
-            _ => {}
+            _ => {
+                panic!("Unexpected proof type");
+            }
         }
         // Verify the proof against the state root
         assert!(proof.verify(&input.state_root).unwrap());

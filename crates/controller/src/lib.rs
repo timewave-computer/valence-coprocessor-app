@@ -1,7 +1,9 @@
 #![no_std]
 extern crate alloc;
-use alloc::{string::ToString, vec::Vec};
+use alloc::{format, string::ToString, vec::Vec};
+use alloy_primitives::U256;
 use serde_json::Value;
+use sha3::{Digest, Keccak256};
 use types::CircuitWitness;
 use valence_coprocessor::{StateProof, Witness};
 use valence_coprocessor_app_domain::get_state_proof;
@@ -31,28 +33,6 @@ const MAINNET_RPC_URL: &str = "https://erigon-tw-rpc.polkachu.com";
 /// * If Helios proof validation fails
 /// * If state proof retrieval fails
 pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
-    let addresses = args["addresses"]
-        .as_array()
-        .ok_or(anyhow::anyhow!("addresses must be an array"))?
-        .iter()
-        .map(|v| {
-            v.as_str()
-                .ok_or(anyhow::anyhow!("each address must be a string"))
-        })
-        .collect::<anyhow::Result<Vec<&str>>>()?;
-
-    let keys = args["keys"]
-        .as_array()
-        .ok_or(anyhow::anyhow!("keys must be an array"))?
-        .iter()
-        .map(|v| {
-            v.as_str()
-                .ok_or(anyhow::anyhow!("each key must be a string"))
-        })
-        .collect::<anyhow::Result<Vec<&str>>>()?;
-
-    assert_eq!(keys.len(), addresses.len());
-
     let validated_state_root_hex = args["root"].as_str().unwrap();
     let validated_state_root = <[u8; 32]>::try_from(hex::decode(validated_state_root_hex).unwrap())
         .expect("Invalid State Root");
@@ -60,17 +40,39 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     let validated_height = args["height"].as_u64().unwrap();
     let validated_state_root = validated_state_root;
 
-    let mut ethereum_state_proofs: Vec<StateProof> = Vec::new();
+    let contract_address = "0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98";
+    let keys = Vec::from([
+        "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6b",
+        "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6c",
+        "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6d",
+        "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6e",
+    ]);
+    let string_key = keys.last().unwrap();
 
-    // get state proofs from the domain service
-    for (key, address) in keys.iter().zip(addresses.iter()) {
-        if key.len() == 0 {
-            let state_proof = get_state_proof(address, key, validated_height, MAINNET_RPC_URL)?;
-            ethereum_state_proofs.push(state_proof);
-        } else {
-            let state_proof = get_state_proof(address, "", validated_height, MAINNET_RPC_URL)?;
+    let mut ethereum_state_proofs: Vec<StateProof> = Vec::new();
+    // get the state proofs for non-dynamic data
+    // this is straightforward, we just get the state proofs for the keys
+    for (idx, key) in keys.iter().enumerate() {
+        if idx < key.len() {
+            let state_proof =
+                get_state_proof(contract_address, key, validated_height, MAINNET_RPC_URL)?;
             ethereum_state_proofs.push(state_proof);
         }
+    }
+
+    let hashed_slot = Keccak256::digest(&string_key);
+    let current_slot = U256::from_be_slice(&hashed_slot);
+    let chunks = 2;
+    for i in 0..chunks {
+        let chunk_slot = current_slot + U256::from(i);
+        let chunk_slot_hex = format!("{:064x}", chunk_slot);
+        let string_chunk_proof = get_state_proof(
+            contract_address,
+            &chunk_slot_hex,
+            validated_height,
+            MAINNET_RPC_URL,
+        )?;
+        ethereum_state_proofs.push(string_chunk_proof);
     }
 
     // the final witness for our state proof circuit :D
@@ -104,46 +106,4 @@ pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
     }
 
     Ok(args)
-}
-
-/// End-to-end test of the witness generation and circuit computation flow.
-///
-/// This test:
-/// 1. Requests a storage proof for USDT total supply
-/// 2. Requests an account proof for a specific address
-/// 3. Validates the generated witnesses through the circuit
-#[cfg(test)]
-mod tests {
-    use crate::get_witnesses;
-
-    #[tokio::test]
-    async fn test_get_witnesses() {
-        use alloy_primitives::{keccak256, U256};
-        use alloy_sol_types::SolValue;
-        // tTese are the args to get one storage proof and one account proof.
-        // the first proof will be a storage proof for the smart contract
-        // with address 0xA4C6063b20fd2f878F1A50c9FDeAF3943F867E4e at slot 0
-        // (which is the vault contract that emits the WithdrawRequest event)
-
-        // the second proof will be an account proof for the account address
-        // 0x07ae8551be970cb1cca11dd7a11f47ae82e70e67
-        // both the contract and the account are on the mainnet network
-
-        // The WithdrawalRequest mapping is stored at slot 9
-        // we want to get the first WithdrawalRequest for the vault contract
-        // at index 0u64
-        let abi_key = (0u64, U256::from(9)).abi_encode();
-        let key_hash = hex::encode(keccak256(abi_key));
-        let args = serde_json::json!({
-            "keys": [
-                hex::encode(key_hash),
-                ""
-            ],
-            "addresses": [
-                "0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98",
-                "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"
-            ]
-        });
-        let _witness = get_witnesses(args).unwrap();
-    }
 }

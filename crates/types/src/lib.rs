@@ -2,8 +2,6 @@
 pub mod ethereum;
 extern crate alloc;
 use alloc::{string::String, vec::Vec};
-use anyhow::{Context, Result};
-use ethereum::{rlp_decode_bytes, RlpDecodable};
 use num_bigint::BigUint;
 use serde::{Deserialize, Serialize};
 use valence_coprocessor::StateProof;
@@ -45,68 +43,4 @@ pub struct WithdrawRequest {
     pub shares_amount: BigUint,
     /// Address that will receive the withdrawn funds
     pub receiver: String,
-}
-
-impl RlpDecodable for WithdrawRequest {
-    /// Decodes a WithdrawRequest from RLP encoded bytes.
-    ///
-    /// # Arguments
-    /// * `rlp` - A slice of bytes containing the RLP encoded WithdrawRequest
-    ///
-    /// # Returns
-    /// * `Result<Self>` - The decoded WithdrawRequest or an error if decoding fails
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// * The RLP encoding is invalid
-    /// * Required fields are missing
-    /// * String fields contain invalid UTF-8
-    fn rlp_decode(rlp: &[u8]) -> Result<Self> {
-        let request_rlp_bytes = rlp_decode_bytes(rlp)?;
-        let id = u64::from_be_bytes({
-            let mut padded = [0u8; 8];
-            let id_slice = request_rlp_bytes.first().unwrap().as_ref();
-            let start = 8 - id_slice.len();
-            padded[start..].copy_from_slice(id_slice);
-            padded
-        });
-
-        let owner = String::from_utf8(
-            request_rlp_bytes
-                .get(1)
-                .context("Failed to get owner")?
-                .to_vec(),
-        )
-        .unwrap();
-
-        let redemption_rate = BigUint::from_bytes_be(
-            request_rlp_bytes
-                .get(2)
-                .context("Failed to get redemption rate")?
-                .as_ref(),
-        );
-
-        let shares_amount = BigUint::from_bytes_be(
-            request_rlp_bytes
-                .get(3)
-                .context("Failed to get shares")?
-                .as_ref(),
-        );
-
-        let receiver = String::from_utf8(
-            request_rlp_bytes
-                .get(4)
-                .context("Failed to get receiver")?
-                .to_vec(),
-        )
-        .unwrap();
-
-        Ok(WithdrawRequest {
-            id,
-            owner,
-            redemption_rate,
-            shares_amount,
-            receiver,
-        })
-    }
 }

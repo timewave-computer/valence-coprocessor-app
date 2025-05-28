@@ -25,3 +25,14 @@ serde_json = { version = "1.0.140", default-features = false, features = [
     "alloc",
 ] }
 types = { path = "../types" }
+common-merkle-proofs = { package = "common", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false }
+ethereum-merkle-proofs = { package = "ethereum", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false }
+serde = { version = "1", features = ["derive"] }
+num-bigint = { version = "0.4.6", default-features = false, features = [
+    "serde",
+] }
+alloy-primitives = { version = "0.8.25", default-features = false, features = [
+    "rlp",
+] }
+alloy-rlp = { version = "0.3.12", default-features = false }
+alloy-sol-types = { version = "0.8.25", default-features = false }

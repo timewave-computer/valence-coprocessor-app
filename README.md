@@ -63,9 +63,9 @@ Now we can use this trusted block root and height to prove the program at that p
 
 ```sh
 cargo-valence --socket prover.timewave.computer:37281 \
-  prove -j '{"addresses": ["0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98", "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"], "keys": ["0xec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6b", ""], "height":22580997, "root":"aaeaf717f891f01e55287cd09f7291036d1c06a196e53456c5828bcbcb39250d"}' \
+  prove -j '{"height":22580997, "root":"aaeaf717f891f01e55287cd09f7291036d1c06a196e53456c5828bcbcb39250d"}' \
   -p /var/share/proof.bin \
-  528065255d208f5766a8a92259950c103a3513800cdccd066de2d9003fbbfcde
+  0ee85a38f7bf4a2c63664e9d3e29e5bda13b6a82743c2416af7f918baa0b17c6
 ```
 
 To get the proof:
@@ -73,7 +73,7 @@ To get the proof:
 cargo-valence --socket prover.timewave.computer:37281 \
   storage \
   -p /var/share/proof.bin \
-  528065255d208f5766a8a92259950c103a3513800cdccd066de2d9003fbbfcde | jq -r '.data' | base64 -d | jq
+  0ee85a38f7bf4a2c63664e9d3e29e5bda13b6a82743c2416af7f918baa0b17c6 | jq -r '.data' | base64 -d | jq
 ```
 
 Example Proof:
