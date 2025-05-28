@@ -1,5 +1,6 @@
 use hex;
 use sp1_sdk::SP1ProofWithPublicValues;
+use types::CircuitOutput;
 use valence_coprocessor::ValidatedBlock;
 use valence_coprocessor_app_domain::validate;
 
@@ -31,4 +32,13 @@ async fn test_get_latest_helios_block() {
     // get the latest block from the chain
     println!("Validated block root: {:?}", validated_block_root);
     println!("Validated block height: {:?}", helios_block.number);
+}
+
+#[test]
+fn test_decode_public_values() {
+    let proof_base64 = "2gFcRWJhZ25TODZOL0VqcUlJSHVMNzJmUnNVdEFBNmlrODU1QVRjbnluUVVXc1J1RHQ3RTl1WUxXUktCRFdHejA0NDN0Q09wUWU0RnRWR05hL0xSOVNQVEd1Q25Ka0gvT2g2TkZjK29wVEdJVmJBQU1TYWlPbWVyallEbVliSlBwdFg2RFBSNVEvbGRlQ3AxcGxZblkvbm9DSUhoZWlBcDd2dno1T1BXSnJJMlNGdm9LYmREVDZ4OE1iRjFpN1dkZU9XTVBrbW55UFg5eHRSWndyaHRkRTBxdzd0VkNJU1ZwcnJicjdNcUwxWnlIbVdZUk9JSkFRRkFPWS9OVnRjLzlWTjJWODliQTl5RjcreG5xMlNGZk1ITloveEVFNk5rN01SZXVNb00yMERhWWpjL09KckdLVTc4Z1dPd3BYRTFaMDRLVzJrQUxvTS9YQ2lqZ3g5YnBnaHd3SEh1NGM92fhBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFCN0luZHBkR2hrY21GM1gzSmxjWFZsYzNSeklqcGJYU3dpYzNSaGRHVmZjbTl2ZENJNld6RTNNQ3d5TXpRc01qUTNMREl6TERJME9Dd3hORFVzTWpRd0xETXdMRGcxTERRd0xERXlOQ3d5TURnc01UVTVMREV4TkN3eE5EVXNNeXd4TURrc01qZ3NOaXd4TmpFc01UVXdMREl5T1N3MU1pdzROaXd4T1Rjc01UTXdMREV6T1N3eU1ETXNNakF6TERVM0xETTNMREV6WFgwPQ==";
+    let proof = valence_coprocessor::Proof::try_from_base64(proof_base64).unwrap();
+    let (proof, public_values) = proof.decode().unwrap();
+    let output: CircuitOutput = serde_json::from_slice(&public_values[32..]).unwrap();
+    println!("Output: {:?}", output);
 }

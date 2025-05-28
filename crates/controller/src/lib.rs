@@ -30,7 +30,7 @@ const MAINNET_RPC_URL: &str = "https://erigon-tw-rpc.polkachu.com";
 /// * If required fields are missing or invalid
 /// * If Helios proof validation fails
 /// * If state proof retrieval fails
-pub fn get_witness(args: Value) -> anyhow::Result<Vec<Witness>> {
+pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     let addresses = args["addresses"]
         .as_array()
         .ok_or(anyhow::anyhow!("addresses must be an array"))?
@@ -114,7 +114,7 @@ pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
 /// 3. Validates the generated witnesses through the circuit
 #[cfg(test)]
 mod tests {
-    use crate::get_witness;
+    use crate::get_witnesses;
 
     #[tokio::test]
     async fn test_get_witnesses() {
@@ -144,6 +144,6 @@ mod tests {
                 "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"
             ]
         });
-        let _witness = get_witness(args).unwrap();
+        let _witness = get_witnesses(args).unwrap();
     }
 }

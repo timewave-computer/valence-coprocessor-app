@@ -1193,6 +1193,7 @@ dependencies = [
  "serde_json",
  "sp1-sdk",
  "tokio",
+ "types",
  "valence-coprocessor",
  "valence-coprocessor-app-domain",
  "valence-coprocessor-wasm",

@@ -43,6 +43,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let mut withdraw_requests: Vec<WithdrawRequest> = Vec::new();
 
     // Verify all Ethereum proofs against the state root
+    assert_eq!(input.state_proofs.len(), 2);
     for proof in input.state_proofs {
         let proof: EthereumProofType = serde_json::from_slice(&proof.proof).unwrap();
         match &proof {
