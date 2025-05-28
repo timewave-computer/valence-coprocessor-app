@@ -49,7 +49,7 @@ We instruct the coprocessor to generate a proof for the program. The default imp
 First we need to obtain a light client root and slot from the Co-processor. For testing we can run:
 
 ```sh
-cd crates/light-client-utils
+cd crates/excluded-utils
 cargo test test_get_latest_helios_block -- --nocapture
 ```
 
@@ -64,6 +64,8 @@ Now we can use this trusted block root and height to prove the program at that p
 ```sh
 cargo run -- prove -j '{"addresses": ["0xA4C6063b20fd2f878F1A50c9FDeAF3943F867E4e", "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"], "keys": ["0xec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6b", ""], "height":8418207, "root":"f3994b2e95b08a7ed728ccf4eed012fe8549d45c5bee9fcfc2ad5e6e0ba5fe4a"}' -p /var/share/proof.bin c7782b47658574f4f492937892c9f4fdaaf5b58d7277a018cb3de0a802fa8078
 ```
+
+// 528065255d208f5766a8a92259950c103a3513800cdccd066de2d9003fbbfcde
 
 Note that in production we will either use the wasm module on the co-processor to obtain that trusted root, or verify the proof in the circuit.
 The light client proof verification should ideally always happen in a trustless environment.

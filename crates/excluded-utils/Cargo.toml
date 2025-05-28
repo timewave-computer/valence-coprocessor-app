@@ -1,14 +1,13 @@
 [package]
 name = "excluded-utils"
-authors.workspace = true
-edition.workspace = true
-license.workspace = true
-version.workspace = true
+version = "0.1.0"
+edition = "2021"
+authors = ["Timewave Computer"]
+description = "Utilities for excluded operations"
+
+[workspace]
 
 [dependencies]
-valence-coprocessor.workspace = true
-serde_json.workspace = true
-anyhow.workspace = true
 valence-coprocessor-app-domain = { path = "../domain" }
 sp1-sdk = { git = "https://github.com/timewave-computer/sp1", branch = "jonas/fix-4.1.7-syscall", default-features = false, features = [
     "native-gnark",
@@ -19,3 +18,6 @@ tokio = { version = "1.44.2", default-features = false, features = [
     "rt",
 ] }
 hex = "0.4"
+anyhow = { version = "1.0.83", default-features = false }
+valence-coprocessor = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.13", default-features = false }
+valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.13", default-features = false }
