@@ -1190,6 +1190,7 @@ dependencies = [
  "anyhow",
  "hex",
  "reqwest 0.11.27",
+ "serde_json",
  "sp1-sdk",
  "tokio",
  "valence-coprocessor",
