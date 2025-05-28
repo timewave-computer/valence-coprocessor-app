@@ -7,3 +7,5 @@ description = "The Valence co-processor circuit definition."
 
 [dependencies]
 valence-coprocessor.workspace = true
+valence-authorization-utils   = { git = "https://github.com/timewave-computer/valence-protocol", branch = "main" }
+serde_json.workspace          = true
