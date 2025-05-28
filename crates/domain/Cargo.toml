@@ -17,4 +17,4 @@ hex = { package = "const-hex", version = "1.14", default-features = false, featu
     "alloc",
     "core-error",
 ] }
-borsh = { version = "1.5.5", features = ["derive"] }
+borsh.workspace = true

@@ -1,6 +1,3 @@
-#![no_std]
-extern crate alloc;
-use alloc::vec::Vec;
 use common_merkle_proofs::merkle::types::MerkleVerifiable;
 use ethereum_merkle_proofs::merkle_lib::{
     types::{EthereumAccount, EthereumProofType},
