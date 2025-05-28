@@ -1,16 +1,8 @@
-use alloy_primitives::{Address, U256};
-use alloy_rlp::{decode_exact, Rlp};
-use anyhow::{Context, Result};
-use common_merkle_proofs::merkle::types::MerkleVerifiable;
-use ethereum_merkle_proofs::merkle_lib::{
-    rlp_decode_bytes,
-    types::{EthereumAccount, EthereumProofType},
-    RlpDecodable,
-};
+use alloy_primitives::U256;
+use anyhow::Result;
+use ethereum_merkle_proofs::merkle_lib::types::EthereumProofType;
 use hex;
 use num_bigint::BigUint;
-use reqwest::get;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sp1_sdk::SP1ProofWithPublicValues;
 use types::CircuitOutput;
@@ -49,7 +41,7 @@ async fn test_get_latest_helios_block() {
 
 #[test]
 fn test_decode_public_values() {
-    let proof_base64 = "2gFcRWJhZ25TQjVKekxZQi9iOUtWbHNTRVJxU01qTXBkVEQ2UDNRVEN3eVdhV3o2cDVvQW9vWkRRbFg4UUNLMFVGREdpVVdzNk9ub1RHc1VVRkJxQ0JiUGRzSjk2NFc5ZUczUnpjT0ZhK2E2VUx6bHNDMUU0NUttTEczRXVqdk9wOEk2a0grcHlCZWJOaGs5bkwvQ2xRbjJQeFpGUE5EeGh5RWhQMXJyY0p0T0RKbXp1UlVLZ0NhL0hvSmZ0cW0zOHFNbE5FRGNkSjh5ZDlVRHNNL0V4em9HOGJ4d3J3WUkycXhEMGk3aUNJMUdyVjZnU2ZZemdrODRCQWVoU0ZCM3ZnSEN1anpMaHM5MnVTWDVoZjFyVDYrakJBUGdNY2l3NG1PUTRlSTFFVGFwbTZLMFJQZEJKK0E5cWt3anRlRFA0US8xeGE4cjd4ZHZnS3lBS1N4WkI2VmdrUlpuKzA92fhBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFCN0luZHBkR2hrY21GM1gzSmxjWFZsYzNSeklqcGJYU3dpYzNSaGRHVmZjbTl2ZENJNld6RTNNQ3d5TXpRc01qUTNMREl6TERJME9Dd3hORFVzTWpRd0xETXdMRGcxTERRd0xERXlOQ3d5TURnc01UVTVMREV4TkN3eE5EVXNNeXd4TURrc01qZ3NOaXd4TmpFc01UVXdMREl5T1N3MU1pdzROaXd4T1Rjc01UTXdMREV6T1N3eU1ETXNNakF6TERVM0xETTNMREV6WFgwPQ==";
+    let proof_base64 = "2gFcRWJhZ25TcS9yNGVzZFZCWXRYdXFBWEVkZWt5KzgyZ3VXK2V4ZTdDbHZiNDR4Tk1KTDgrQk5WeUwrak9hUURna0RLRmlaWDdSMndsc1VJaGR0Sy9tZ2V2ZVRlQUZla2VUaUxCNkJpaHNxNU1xUEZ3YkxubzkzYWpNVVYxcS85dXJjQlIwWkNZN3hUcmhxc0pzdi8rSDk0cmtWSnlPMDgrSndEWWFsbkdiSUMvamRLRW1FanU2NUJsM1Vjb1VpdnhrL01halFMWHlLRk0wdHErbkFaYkNXQ1grTCtzZ3VzSE5lOHhpbzZITTErQkZuaWk0WHlocWtwTXNKMTA2T2xIajBzbmh2UUt6K1E0RDNtalUrQzYzbUx6WFU0WGIwaDZ4SHZzU3dzZzArTk0raGx0OEpHeG53S214MVlqL1FMekJLbnNabkdzdWRkSS9HVGhhMnl0bTNic2Vhalk92gGoQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQjdJbmRwZEdoa2NtRjNYM0psY1hWbGMzUnpJanBiZXlKcFpDSTZNQ3dpYjNkdVpYSWlPaUl3ZUdRNVFUSXpZalU0WlRZNE5FSTVPRFZHTmpZeFEyVTNNREExUVVFNFJURXdOak13TVRVd1l6RWlMQ0p5WldSbGJYQjBhVzl1WDNKaGRHVWlPbHN4TURBd01EQXdNREFzTVRNeVhTd2ljMmhoY21WelgyRnRiM1Z1ZENJNld6RXdNRjBzSW5KbFkyVnBkbVZ5SWpvaUluMWRMQ0p6ZEdGMFpWOXliMjkwSWpwYk1UY3dMREl6TkN3eU5EY3NNak1zTWpRNExERTBOU3d5TkRBc016QXNPRFVzTkRBc01USTBMREl3T0N3eE5Ua3NNVEUwTERFME5Td3pMREV3T1N3eU9DdzJMREUyTVN3eE5UQXNNakk1TERVeUxEZzJMREU1Tnl3eE16QXNNVE01TERJd015d3lNRE1zTlRjc016Y3NNVE5kZlE9PQ==";
     let proof = valence_coprocessor::Proof::try_from_base64(proof_base64).unwrap();
     let (_, public_values) = proof.decode().unwrap();
     let output: CircuitOutput = serde_json::from_slice(&public_values[32..]).unwrap();
@@ -58,8 +50,9 @@ fn test_decode_public_values() {
 
 #[tokio::test]
 async fn test_get_state_proof() -> Result<(), anyhow::Error> {
+    use common_merkle_proofs::merkle::types::MerkleVerifiable;
     let client = reqwest::Client::new();
-    let base_key = "0xec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6b";
+    let base_key = "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6c";
 
     let response = client
         .post("http://165.1.70.239:7777/")
@@ -81,16 +74,14 @@ async fn test_get_state_proof() -> Result<(), anyhow::Error> {
 
     match &proof {
         EthereumProofType::Simple(storage_proof) => {
+            let redemption_rate = &U256::from_be_slice(&storage_proof.get_stored_value());
+            println!("Redemption rate: {:?}", redemption_rate);
             let is_valid = storage_proof.clone().verify(
                 hex::decode("aaeaf717f891f01e55287cd09f7291036d1c06a196e53456c5828bcbcb39250d")
                     .unwrap()
                     .as_slice(),
             )?;
             assert!(is_valid);
-
-            println!("value: {:?}", storage_proof.value);
-            let receiver: String = decode_exact(&storage_proof.value).unwrap();
-            println!("receiver: {:?}", receiver);
         }
         _ => {
             panic!("Unexpected proof type");

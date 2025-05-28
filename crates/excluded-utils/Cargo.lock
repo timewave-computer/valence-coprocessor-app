@@ -761,7 +761,7 @@ checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 [[package]]
 name = "common"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/zk-merkle-proofs#d40ab9310e18a21434d29994d4c5e2b3cd17f8af"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs#870a904d72a1b6ec88f19bff0d650cf008d41cb1"
 dependencies = [
  "anyhow",
  "serde",
@@ -1131,7 +1131,7 @@ dependencies = [
  "digest",
  "futures",
  "rand 0.8.5",
- "reqwest 0.12.16",
+ "reqwest 0.12.18",
  "thiserror 1.0.69",
  "tokio",
 ]
@@ -1261,7 +1261,7 @@ dependencies = [
 [[package]]
 name = "ethereum"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/zk-merkle-proofs#d40ab9310e18a21434d29994d4c5e2b3cd17f8af"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs#870a904d72a1b6ec88f19bff0d650cf008d41cb1"
 dependencies = [
  "anyhow",
  "arrayvec",
@@ -1275,6 +1275,7 @@ dependencies = [
  "plain_hasher",
  "serde",
  "serde_json",
+ "sha3",
  "tiny-keccak",
  "tracing",
  "tracing-subscriber",
@@ -3410,9 +3411,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.16"
+version = "0.12.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bf597b113be201cb2269b4c39b39a804d01b99ee95a4278f0ed04e45cff1c71"
+checksum = "e98ff6b0dbbe4d5a37318f433d4fc82babd21631f194d370409ceb2e40b2f0b5"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -4904,7 +4905,7 @@ dependencies = [
  "http-body-util",
  "hyper 1.6.0",
  "prost",
- "reqwest 0.12.16",
+ "reqwest 0.12.18",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
