@@ -1,14 +1,10 @@
 #![no_std]
 extern crate alloc;
 use alloc::{string::ToString, vec::Vec};
-//use anyhow::Context;
-//use reqwest_wasm::get;
 use serde_json::Value;
-//use sp1_sdk::SP1ProofWithPublicValues;
 use types::CircuitWitness;
 use valence_coprocessor::{StateProof, Witness};
 use valence_coprocessor_app_domain::get_state_proof;
-//use valence_coprocessor_app_domain::validate;
 use valence_coprocessor_wasm::abi;
 
 /// Mainnet RPC endpoint for Ethereum network
