@@ -12,7 +12,7 @@ use valence_coprocessor_app_domain::get_state_proof;
 use valence_coprocessor_wasm::abi;
 
 /// Mainnet RPC endpoint for Ethereum network
-const MAINNET_RPC_URL: &str = "https://ethereum-sepolia-rpc.publicnode.com"; //"https://erigon-tw-rpc.polkachu.com";
+const MAINNET_RPC_URL: &str = "https://erigon-tw-rpc.polkachu.com";
 
 /// Retrieves and validates witnesses for the circuit computation.
 ///
@@ -120,10 +120,7 @@ pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
 async fn test_get_witnesses() {
     use alloy_primitives::{keccak256, U256};
     use alloy_sol_types::SolValue;
-    // Note that currently we are using a sepolia contract
-    // and mainnet Helios => we need to deploy the contract to mainnet
-    // and use the real Helios root.
-    // these are the args to get one storage proof and one account proof.
+    // tTese are the args to get one storage proof and one account proof.
     // the first proof will be a storage proof for the smart contract
     // with address 0xA4C6063b20fd2f878F1A50c9FDeAF3943F867E4e at slot 0
     // (which is the vault contract that emits the WithdrawRequest event)
@@ -143,7 +140,7 @@ async fn test_get_witnesses() {
             ""
         ],
         "addresses": [
-            "0xA4C6063b20fd2f878F1A50c9FDeAF3943F867E4e",
+            "0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98",
             "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"
         ]
     });

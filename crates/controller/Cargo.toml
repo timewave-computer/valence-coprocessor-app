@@ -1,5 +1,5 @@
 [package]
-name = "valence-coprocessor-app-program"
+name = "valence-coprocessor-app-controller"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -25,7 +25,7 @@ tokio = { version = "1.44.2", default-features = false, features = [
 #reqwest-wasm = { version = "0.11", default-features = false }
 url = { version = "2.5" }
 valence-coprocessor-app-domain = { path = "../domain" }
-types = { path = "../types" }
+types.workspace = true
 
 [dev-dependencies]
 alloy-primitives = { version = "0.8.25" }

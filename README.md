@@ -61,12 +61,8 @@ Validated block height: 22574456
 
 Now we can use this trusted block root and height to prove the program at that point in time:
 
-Note that this command has a hardcoded Sepolia root and Height for now, 
-the reason for that is that we don't yet have the contract on mainnet.
-For now use a Sepolia root and height instead of the one Helios (described above).
-
 ```sh
-cargo run -- prove -j '{"addresses": ["0xA4C6063b20fd2f878F1A50c9FDeAF3943F867E4e", "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"], "keys": ["0xec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6b", ""], "height":8418207, "root":"f3994b2e95b08a7ed728ccf4eed012fe8549d45c5bee9fcfc2ad5e6e0ba5fe4a"}' -p /var/share/proof.bin 13187cb01cc5cdea01d82a1e321a80cc6cbd9789500b0c11e84d668fdb56c19a
+cargo run -- prove -j '{"addresses": ["0xA4C6063b20fd2f878F1A50c9FDeAF3943F867E4e", "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"], "keys": ["0xec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6b", ""], "height":8418207, "root":"f3994b2e95b08a7ed728ccf4eed012fe8549d45c5bee9fcfc2ad5e6e0ba5fe4a"}' -p /var/share/proof.bin c7782b47658574f4f492937892c9f4fdaaf5b58d7277a018cb3de0a802fa8078
 ```
 
 Note that in production we will either use the wasm module on the co-processor to obtain that trusted root, or verify the proof in the circuit.
