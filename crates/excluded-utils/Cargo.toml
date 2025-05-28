@@ -1,5 +1,5 @@
 [package]
-name = "light-client-utils"
+name = "excluded-utils"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
