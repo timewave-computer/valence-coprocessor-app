@@ -55,17 +55,33 @@ cargo test test_get_latest_helios_block -- --nocapture
 
 Example output, note that it is recommended to obtain a more recent root when testing:
 ```sh
-Validated block root: "0446e5c49ab8ef1f7758f356d7d17ab46b7636f20af14aa856b5da36ef837047"
-Validated block height: 22574456
+Validated block root: "aaeaf717f891f01e55287cd09f7291036d1c06a196e53456c5828bcbcb39250d"
+Validated block height: 22580997
 ```
 
 Now we can use this trusted block root and height to prove the program at that point in time:
 
 ```sh
-cargo run -- prove -j '{"addresses": ["0xA4C6063b20fd2f878F1A50c9FDeAF3943F867E4e", "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"], "keys": ["0xec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6b", ""], "height":8418207, "root":"f3994b2e95b08a7ed728ccf4eed012fe8549d45c5bee9fcfc2ad5e6e0ba5fe4a"}' -p /var/share/proof.bin c7782b47658574f4f492937892c9f4fdaaf5b58d7277a018cb3de0a802fa8078
+cargo-valence --socket prover.timewave.computer:37281 \
+  prove -j '{"addresses": ["0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98", "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"], "keys": ["0xec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6b", ""], "height":22580997, "root":"aaeaf717f891f01e55287cd09f7291036d1c06a196e53456c5828bcbcb39250d"}' \
+  -p /var/share/proof.bin \
+  528065255d208f5766a8a92259950c103a3513800cdccd066de2d9003fbbfcde
 ```
 
-// 528065255d208f5766a8a92259950c103a3513800cdccd066de2d9003fbbfcde
+To get the proof:
+```sh
+cargo-valence --socket prover.timewave.computer:37281 \
+  storage \
+  -p /var/share/proof.bin \
+  528065255d208f5766a8a92259950c103a3513800cdccd066de2d9003fbbfcde | jq -r '.data' | base64 -d | jq
+```
+
+Example Proof:
+
+```json
+"proof": "2gFcRWJhZ25TODZOL0VqcUlJSHVMNzJmUnNVdEFBNmlrODU1QVRjbnluUVVXc1J1RHQ3RTl1WUxXUktCRFdHejA0NDN0Q09wUWU0RnRWR05hL0xSOVNQVEd1Q25Ka0gvT2g2TkZjK29wVEdJVmJBQU1TYWlPbWVyallEbVliSlBwdFg2RFBSNVEvbGRlQ3AxcGxZblkvbm9DSUhoZWlBcDd2dno1T1BXSnJJMlNGdm9LYmREVDZ4OE1iRjFpN1dkZU9XTVBrbW55UFg5eHRSWndyaHRkRTBxdzd0VkNJU1ZwcnJicjdNcUwxWnlIbVdZUk9JSkFRRkFPWS9OVnRjLzlWTjJWODliQTl5RjcreG5xMlNGZk1ITloveEVFNk5rN01SZXVNb00yMERhWWpjL09KckdLVTc4Z1dPd3BYRTFaMDRLVzJrQUxvTS9YQ2lqZ3g5YnBnaHd3SEh1NGM92fhBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFCN0luZHBkR2hrY21GM1gzSmxjWFZsYzNSeklqcGJYU3dpYzNSaGRHVmZjbTl2ZENJNld6RTNNQ3d5TXpRc01qUTNMREl6TERJME9Dd3hORFVzTWpRd0xETXdMRGcxTERRd0xERXlOQ3d5TURnc01UVTVMREV4TkN3eE5EVXNNeXd4TURrc01qZ3NOaXd4TmpFc01UVXdMREl5T1N3MU1pdzROaXd4T1Rjc01UTXdMREV6T1N3eU1ETXNNakF6TERVM0xETTNMREV6WFgwPQ=="
+```
+
 
 Note that in production we will either use the wasm module on the co-processor to obtain that trusted root, or verify the proof in the circuit.
 The light client proof verification should ideally always happen in a trustless environment.
