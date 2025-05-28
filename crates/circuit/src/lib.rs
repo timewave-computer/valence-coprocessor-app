@@ -1,8 +1,8 @@
 use common_merkle_proofs::merkle::types::MerkleVerifiable;
-use ethereum_merkle_proofs::merkle_lib::{
-    types::{EthereumAccount, EthereumProofType},
-    RlpDecodable,
+use ethereum_merkle_proofs::merkle_lib::types::{
+    EthereumAccount, EthereumProofType, RlpDecodable as MerkleProofRlpDecodable,
 };
+use types::ethereum::RlpDecodable;
 use types::{CircuitOutput, CircuitWitness, WithdrawRequest};
 use valence_coprocessor::Witness;
 

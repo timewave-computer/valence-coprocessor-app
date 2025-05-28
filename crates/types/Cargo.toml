@@ -9,7 +9,11 @@ version.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 valence-coprocessor.workspace = true
-num-bigint = { version = "0.4.6", default-features = false }
+num-bigint = { version = "0.4.6", default-features = false, features = [
+    "serde",
+] }
 anyhow.workspace = true
-common-merkle-proofs = { package = "common", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false }
-ethereum-merkle-proofs = { package = "ethereum", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false }
+alloy-primitives = { version = "0.8.25", default-features = false, features = [
+    "rlp",
+] }
+alloy-rlp = { version = "0.3.12", default-features = false }

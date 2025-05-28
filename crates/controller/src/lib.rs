@@ -112,33 +112,38 @@ pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
 /// 1. Requests a storage proof for USDT total supply
 /// 2. Requests an account proof for a specific address
 /// 3. Validates the generated witnesses through the circuit
-#[tokio::test]
-async fn test_get_witnesses() {
-    use alloy_primitives::{keccak256, U256};
-    use alloy_sol_types::SolValue;
-    // tTese are the args to get one storage proof and one account proof.
-    // the first proof will be a storage proof for the smart contract
-    // with address 0xA4C6063b20fd2f878F1A50c9FDeAF3943F867E4e at slot 0
-    // (which is the vault contract that emits the WithdrawRequest event)
+#[cfg(test)]
+mod tests {
+    use crate::get_witnesses;
 
-    // the second proof will be an account proof for the account address
-    // 0x07ae8551be970cb1cca11dd7a11f47ae82e70e67
-    // both the contract and the account are on the mainnet network
+    #[tokio::test]
+    async fn test_get_witnesses() {
+        use alloy_primitives::{keccak256, U256};
+        use alloy_sol_types::SolValue;
+        // tTese are the args to get one storage proof and one account proof.
+        // the first proof will be a storage proof for the smart contract
+        // with address 0xA4C6063b20fd2f878F1A50c9FDeAF3943F867E4e at slot 0
+        // (which is the vault contract that emits the WithdrawRequest event)
 
-    // The WithdrawalRequest mapping is stored at slot 9
-    // we want to get the first WithdrawalRequest for the vault contract
-    // at index 0u64
-    let abi_key = (0u64, U256::from(9)).abi_encode();
-    let key_hash = hex::encode(keccak256(abi_key));
-    let args = serde_json::json!({
-        "keys": [
-            hex::encode(key_hash),
-            ""
-        ],
-        "addresses": [
-            "0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98",
-            "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"
-        ]
-    });
-    let _witness = get_witnesses(args).unwrap();
+        // the second proof will be an account proof for the account address
+        // 0x07ae8551be970cb1cca11dd7a11f47ae82e70e67
+        // both the contract and the account are on the mainnet network
+
+        // The WithdrawalRequest mapping is stored at slot 9
+        // we want to get the first WithdrawalRequest for the vault contract
+        // at index 0u64
+        let abi_key = (0u64, U256::from(9)).abi_encode();
+        let key_hash = hex::encode(keccak256(abi_key));
+        let args = serde_json::json!({
+            "keys": [
+                hex::encode(key_hash),
+                ""
+            ],
+            "addresses": [
+                "0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98",
+                "0x07ae8551be970cb1cca11dd7a11f47ae82e70e67"
+            ]
+        });
+        let _witness = get_witnesses(args).unwrap();
+    }
 }

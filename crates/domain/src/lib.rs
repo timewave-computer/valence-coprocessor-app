@@ -93,7 +93,8 @@ pub fn validate(
     // verify the wrapper proof from the Helios operator
     Groth16Verifier::verify(proof_bytes, public_values_bytes, vk_str, &GROTH16_VK_BYTES)?;
     // deserialize the public values
-    let wrapper_outputs: WrapperCircuitOutputs = borsh::from_slice(public_values_bytes)?;
+    let wrapper_outputs: WrapperCircuitOutputs =
+        borsh::from_slice(public_values_bytes).expect("Failed to deserialize public values");
     let verified_block = ValidatedBlock {
         number: wrapper_outputs.height,
         root: wrapper_outputs.root,

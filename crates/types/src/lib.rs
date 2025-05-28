@@ -1,8 +1,9 @@
 #![no_std]
+pub mod ethereum;
 extern crate alloc;
 use alloc::{string::String, vec::Vec};
 use anyhow::{Context, Result};
-use ethereum_merkle_proofs::merkle_lib::{rlp_decode_bytes, RlpDecodable};
+use ethereum::{rlp_decode_bytes, RlpDecodable};
 use num_bigint::BigUint;
 use serde::{Deserialize, Serialize};
 use valence_coprocessor::StateProof;
