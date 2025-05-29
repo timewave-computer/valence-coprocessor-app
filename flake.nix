@@ -369,7 +369,7 @@
             CIRCUIT_PATH_FOR_DEPLOYMENT="$PRJ_ROOT/target/sp1/optimized/valence-coprocessor-app-circuit" 
             
             # Use environment variable if set, otherwise use default
-            SERVICE_URL=''${VALENCE_SERVICE_URL:-http://localhost:37281/api/registry/program}
+            SERVICE_URL=''${VALENCE_SERVICE_URL:-http://localhost:37281/api/registry/controller}
             SERVICE_HOST=''${SERVICE_URL%/api*}
 
             # Ensure the WASM binary exists
@@ -415,13 +415,12 @@
             CIRCUIT_BASE64_FOR_PAYLOAD=$(openssl base64 -A -in "$CIRCUIT_PATH_FOR_DEPLOYMENT")
 
             # Prepare the request payload - always include the circuit field, forced to dev mode
-            REQUEST_PAYLOAD="{\"lib\": \"$WASM_BASE64\", \"circuit\": \"$CIRCUIT_BASE64_FOR_PAYLOAD\", \"dev_mode\": $DEV_MODE_FOR_PAYLOAD}"
+            REQUEST_PAYLOAD="{\"controller\": \"$WASM_BASE64\", \"circuit\": \"$CIRCUIT_BASE64_FOR_PAYLOAD\"}"
 
             echo "Deploying with payload snippet (circuit hash omitted for brevity):"
-            printf '{"lib": "%s...", "circuit": "%s...", "dev_mode": %s}\n' \
+            printf '{"controller": "%s...", "circuit": "%s..."}\n' \
               "$(echo "$WASM_BASE64" | cut -c1-30)" \
-              "$(echo "$CIRCUIT_BASE64_FOR_PAYLOAD" | cut -c1-30)" \
-              "$DEV_MODE_FOR_PAYLOAD"
+              "$(echo "$CIRCUIT_BASE64_FOR_PAYLOAD" | cut -c1-30)"
 
 
             # Deploy to the co-processor service using a more reliable method
@@ -448,7 +447,7 @@
             rm "$TEMP_OUTPUT"
 
             # Extract the program ID
-            PROGRAM_ID=$(echo "$RESPONSE" | grep -o '"program":"[^"]*"' | cut -d'"' -f4)
+            PROGRAM_ID=$(echo "$RESPONSE" | grep -o '"controller":"[^"]*"' | cut -d'"' -f4)
 
             if [ -n "$PROGRAM_ID" ]; then
               echo "Deployment successful!"
@@ -541,7 +540,7 @@
             fi
 
             # Use environment variable if set, otherwise use default
-            SERVICE_URL=''${VALENCE_SERVICE_URL:-http://localhost:37281/api/registry/program}
+            SERVICE_URL=''${VALENCE_SERVICE_URL:-http://localhost:37281/api/registry/controller}
             SERVICE_HOST=''${SERVICE_URL%/api*}
 
             # Add a short delay to allow the service to fully process the deployment
@@ -568,10 +567,10 @@
             STORAGE_PAYLOAD="{\"path\": \"$STORAGE_PATH\"}"
             STORAGE_TEMP_OUTPUT=$(mktemp)
             
-            echo "Querying storage: $SERVICE_HOST/api/registry/program/$PROGRAM_ID/storage/fs with payload $STORAGE_PAYLOAD"
+            echo "Querying storage: $SERVICE_HOST/api/registry/controller/$PROGRAM_ID/storage/fs with payload $STORAGE_PAYLOAD"
 
             storage_http_code=$(curl -s -o "$STORAGE_TEMP_OUTPUT" -w "%{http_code}" \
-                               --connect-timeout 10 -X POST "$SERVICE_HOST/api/registry/program/$PROGRAM_ID/storage/fs" \
+                               --connect-timeout 10 -X POST "$SERVICE_HOST/api/registry/controller/$PROGRAM_ID/storage/fs" \
                                -H "Content-Type: application/json" \
                                -d "$STORAGE_PAYLOAD")
             
@@ -688,185 +687,682 @@
             echo "Note: This is a minimal ELF file for testing purposes only."
           '';
 
-          # SP1 deployment script 
-          sp1-deploy = pkgs.writeShellScriptBin "sp1-deploy" ''
+          # Valence Deploy - mirrors cargo-valence deploy functionality
+          valence-deploy = pkgs.writeShellScriptBin "valence-deploy" ''
             #!/usr/bin/env bash
-            # Deploy a working Valence Coprocessor App with SP1 zkVM integration
+            # Deploy circuit to Valence coprocessor - mirrors cargo-valence deploy
             
             set -e
+            
+            # Parse command line arguments
+            USE_PUBLIC_SERVICE=false
+            CONTROLLER_PATH="./crates/controller"
+            CIRCUIT_NAME="valence-coprocessor-app-circuit"
+            VERBOSE=false
+            
+            usage() {
+              echo "Usage: valence-deploy [OPTIONS] deploy circuit"
+              echo ""
+              echo "Options:"
+              echo "  --socket <HOST:PORT>    Use public coprocessor service (like prover.timewave.computer:37281)"
+              echo "  --controller <PATH>     Path to controller crate (default: ./crates/controller)"
+              echo "  --circuit <NAME>        Circuit name (default: valence-coprocessor-app-circuit)"
+              echo "  --verbose              Enable verbose output"
+              echo "  -h, --help             Show this help message"
+              echo ""
+              echo "Examples:"
+              echo "  # Deploy to local service (default localhost:37281)"
+              echo "  valence-deploy deploy circuit"
+              echo ""
+              echo "  # Deploy to public service"
+              echo "  valence-deploy --socket prover.timewave.computer:37281 deploy circuit"
+              echo ""
+              echo "  # Deploy with custom controller path"
+              echo "  valence-deploy --controller ./my-controller --circuit my-circuit deploy circuit"
+            }
+            
+            # Parse arguments
+            while [[ $# -gt 0 ]]; do
+              case $1 in
+                --socket)
+                  if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    PUBLIC_SOCKET="$2"
+                    USE_PUBLIC_SERVICE=true
+                    shift 2
+                  else
+                    echo "Error: --socket requires a HOST:PORT argument"
+                    exit 1
+                  fi
+                  ;;
+                --controller)
+                  if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    CONTROLLER_PATH="$2"
+                    shift 2
+                  else
+                    echo "Error: --controller requires a path argument"
+                    exit 1
+                  fi
+                  ;;
+                --circuit)
+                  if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    CIRCUIT_NAME="$2"
+                    shift 2
+                  else
+                    echo "Error: --circuit requires a name argument"
+                    exit 1
+                  fi
+                  ;;
+                --verbose)
+                  VERBOSE=true
+                  shift
+                  ;;
+                -h|--help)
+                  usage
+                  exit 0
+                  ;;
+                deploy)
+                  if [ "$2" = "circuit" ]; then
+                    COMMAND="deploy-circuit"
+                    shift 2
+                  else
+                    echo "Error: Unknown deploy target '$2'. Expected 'circuit'"
+                    exit 1
+                  fi
+                  ;;
+                *)
+                  echo "Error: Unknown option '$1'"
+                  usage
+                  exit 1
+                  ;;
+              esac
+            done
             
             # Ensure PRJ_ROOT is available
             if [ -z "$PRJ_ROOT" ]; then
               export PRJ_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")"
             fi
             
-            echo "=============================================
-            Valence Coprocessor App - SP1 zkVM Deployment
-            =============================================
+            # Determine service URL
+            if [ "$USE_PUBLIC_SERVICE" = true ]; then
+              if [[ "$PUBLIC_SOCKET" == *:* ]]; then
+                SERVICE_HOST="http://$PUBLIC_SOCKET"
+              else
+                SERVICE_HOST="http://$PUBLIC_SOCKET:37281"
+              fi
+              echo "Using public coprocessor service: $SERVICE_HOST"
+            else
+              SERVICE_HOST="http://localhost:37281"
+              echo "Using local coprocessor service: $SERVICE_HOST"
+            fi
             
-            This script will:
-            1. Build the WASM binary
-            2. Generate a valid RISC-V ELF circuit file
-            3. Deploy to the coprocessor service with SP1 zkVM integration
-            4. Attempt to generate a proof using multiple strategies
-            "
+            SERVICE_URL="$SERVICE_HOST/api/registry/controller"
             
-            # Ensure assets directory exists
-            mkdir -p "$PRJ_ROOT/assets"
+            if [ "$VERBOSE" = true ]; then
+              echo "Controller path: $CONTROLLER_PATH"
+              echo "Circuit name: $CIRCUIT_NAME"
+              echo "Service URL: $SERVICE_URL"
+            fi
             
-            # 1. Build WASM binary
-            echo "Building WASM binary..."
+            # Step 1: Build the WASM binary and circuit
+            echo "Building WASM binary and circuit..."
             ${config.packages.build-wasm}/bin/build-wasm
             
-            # Check if WASM file was built successfully
+            # Check required files
             WASM_PATH="$PRJ_ROOT/target/wasm32-unknown-unknown/optimized/valence_coprocessor_app_lib.wasm"
+            CIRCUIT_PATH="$PRJ_ROOT/target/sp1/optimized/valence-coprocessor-app-circuit"
+            
             if [ ! -f "$WASM_PATH" ]; then
-              echo "Error: WASM binary not found at $WASM_PATH after build"
+              echo "Error: WASM binary not found at $WASM_PATH"
               exit 1
             fi
-            echo "WASM binary built successfully: $WASM_PATH"
-            WASM_SIZE=$(du -h "$WASM_PATH" | cut -f1)
-            echo "WASM binary size: $WASM_SIZE"
             
-            # 2. Generate valid ELF circuit file
-            echo "Generating valid RISC-V ELF circuit file..."
-            ELF_PATH="$PRJ_ROOT/assets/valid-circuit.elf"
-            ${config.packages.generate-sp1-elf}/bin/generate-sp1-elf "$ELF_PATH"
+            if [ ! -f "$CIRCUIT_PATH" ]; then
+              echo "Warning: SP1 circuit not found at $CIRCUIT_PATH"
+              echo "Generating fallback circuit for development mode..."
+              ${config.packages.generate-sp1-elf}/bin/generate-sp1-elf "$CIRCUIT_PATH"
+            fi
             
-            # Verify ELF file was created
-            if [ ! -f "$ELF_PATH" ]; then
-              echo "Error: ELF circuit file not found at $ELF_PATH after generation"
+            # Step 2: Check service availability
+            echo "Checking service availability at $SERVICE_HOST..."
+            if ! curl -s --connect-timeout 5 "$SERVICE_HOST/api/status" > /dev/null; then
+              echo "Error: Cannot connect to coprocessor service at $SERVICE_HOST"
+              if [ "$USE_PUBLIC_SERVICE" = false ]; then
+                echo "Make sure you have a local coprocessor service running."
+                echo "You can start one with: cargo run -p valence-coprocessor-service"
+              else
+                echo "Make sure the public service is accessible and the URL is correct."
+              fi
               exit 1
             fi
-            echo "ELF circuit file generated successfully: $ELF_PATH"
-            ELF_SIZE=$(du -h "$ELF_PATH" | cut -f1)
-            echo "ELF file size: $ELF_SIZE"
+            echo "Service is available ✓"
             
-            # 3. Check if service is running
-            echo "Checking if coprocessor service is available..."
-            SERVICE_URL="http://localhost:37281/api/registry/program"
-            if ! curl -s -f -o /dev/null http://localhost:37281; then
-              echo "Service is not responsive. Please ensure the coprocessor service is running."
-              exit 1
-            fi
-            echo "Service is responsive. Proceeding with deployment."
+            # Step 3: Deploy
+            echo "Deploying circuit to coprocessor service..."
             
-            # 4. Base64 encode files
-            echo "Base64 encoding binary files..."
+            # Base64 encode files
             WASM_B64=$(openssl base64 -A -in "$WASM_PATH")
-            CIRCUIT_B64=$(openssl base64 -A -in "$ELF_PATH")
+            CIRCUIT_B64=$(openssl base64 -A -in "$CIRCUIT_PATH")
             
-            # 5. Create deployment payload
-            echo "Creating deployment payload..."
-            PAYLOAD="{\"lib\": \"$WASM_B64\", \"circuit\": \"$CIRCUIT_B64\"}"
+            # Create deployment payload
+            PAYLOAD="{\"controller\": \"$WASM_B64\", \"circuit\": \"$CIRCUIT_B64\"}"
             
-            # 6. Deploy WASM to service
-            echo "Sending deployment request to $SERVICE_URL..."
-            DEPLOY_RESPONSE=$(curl -s -X POST "$SERVICE_URL" \
+            if [ "$VERBOSE" = true ]; then
+              echo "WASM size: $(du -h "$WASM_PATH" | cut -f1)"
+              echo "Circuit size: $(du -h "$CIRCUIT_PATH" | cut -f1)"
+              echo "Payload size: $(echo "$PAYLOAD" | wc -c) bytes"
+            fi
+            
+            # Deploy
+            TEMP_OUTPUT=$(mktemp)
+            
+            http_code=$(curl -s -o "$TEMP_OUTPUT" -w "%{http_code}" \
+              --connect-timeout 30 -X POST "$SERVICE_URL" \
               -H "Content-Type: application/json" \
               -d "$PAYLOAD")
             
-            # Extract program ID
-            PROGRAM_ID=$(echo "$DEPLOY_RESPONSE" | grep -o '"program":[[:space:]]*"[^"]*"' | sed 's/"program":[[:space:]]*"\(.*\)"/\1/')
-            if [ -z "$PROGRAM_ID" ]; then
-              echo "Failed to deploy. Response: $DEPLOY_RESPONSE"
+            if [ "$http_code" -ne 200 ]; then
+              echo "Error: Deployment failed with HTTP code $http_code"
+              echo "Response:"
+              cat "$TEMP_OUTPUT"
+              rm "$TEMP_OUTPUT"
               exit 1
             fi
             
-            echo "Deployment successful!"
-            echo "Program ID: $PROGRAM_ID"
+            # Parse response
+            RESPONSE=$(cat "$TEMP_OUTPUT")
+            rm "$TEMP_OUTPUT"
             
-            # Save the program ID for future reference
-            echo "$PROGRAM_ID" > "$PRJ_ROOT/program.txt"
-            echo "Saved program ID to program.txt for future reference"
+            # Extract controller ID (program ID)
+            CONTROLLER_ID=$(echo "$RESPONSE" | grep -o '"controller":"[^"]*"' | cut -d'"' -f4)
             
-            # 7. Allow time for the service to process the deployment
-            echo -e "\nWaiting 3 seconds for the service to process the deployment...\n"
-            sleep 3
-            
-            # 8. Attempt to generate a proof with various strategies
-            echo "Attempting to generate a proof using multiple strategies..."
-            PROVE_URL="$SERVICE_URL/$PROGRAM_ID/prove"
-            
-            # Define a function to check service status
-            check_service() {
-              if ! curl -s -f -o /dev/null http://localhost:37281; then
-                echo "Service is not responsive. The previous operation may have crashed it."
-                return 1
+            if [ -n "$CONTROLLER_ID" ]; then
+              echo ""
+              echo "✅ Deployment successful!"
+              echo ""
+              # Mirror cargo-valence output format
+              echo "{\"controller\": \"$CONTROLLER_ID\", \"circuit\": \"$CIRCUIT_NAME\"}"
+              echo ""
+              echo "Controller ID: $CONTROLLER_ID"
+              echo "Circuit: $CIRCUIT_NAME"
+              echo ""
+              echo "To generate a proof:"
+              if [ "$USE_PUBLIC_SERVICE" = true ]; then
+                echo "  valence-prove --socket $PUBLIC_SOCKET -j '{\"value\": 42}' -p /var/share/proof.bin $CONTROLLER_ID"
+              else
+                echo "  valence-prove -j '{\"value\": 42}' -p /var/share/proof.bin $CONTROLLER_ID"
               fi
-              return 0
-            }
-            
-            # Try with dev mode first
-            echo "Strategy 1: Using dev mode..."
-            PAYLOAD_1='{"args":{"name":"Valence"}, "dev_mode": true}'
-            check_service && RESPONSE_1=$(curl -s -X POST "$PROVE_URL" -H "Content-Type: application/json" -d "$PAYLOAD_1")
-            echo "Response: $RESPONSE_1"
-            
-            # Try with dev mode and skip circuit
-            echo "Strategy 2: Using dev mode with skip_circuit flag..."
-            PAYLOAD_2='{"args":{"name":"Valence"}, "dev_mode": true, "skip_circuit": true}'
-            check_service && RESPONSE_2=$(curl -s -X POST "$PROVE_URL" -H "Content-Type: application/json" -d "$PAYLOAD_2")
-            echo "Response: $RESPONSE_2"
-            
-            # Try with mock flag
-            echo "Strategy 3: Using mock flag..."
-            PAYLOAD_3='{"args":{"name":"Valence"}, "mock": true}'
-            check_service && RESPONSE_3=$(curl -s -X POST "$PROVE_URL" -H "Content-Type: application/json" -d "$PAYLOAD_3")
-            echo "Response: $RESPONSE_3"
-            
-            # Try with a smaller input 
-            echo "Strategy 4: Using minimal input data..."
-            PAYLOAD_4='{"args":{"name":"Test"}, "dev_mode": true}'
-            check_service && RESPONSE_4=$(curl -s -X POST "$PROVE_URL" -H "Content-Type: application/json" -d "$PAYLOAD_4")
-            echo "Response: $RESPONSE_4"
-            
-            # Check if any of the attempts worked
-            for RESPONSE in "$RESPONSE_1" "$RESPONSE_2" "$RESPONSE_3" "$RESPONSE_4"; do
-              if echo "$RESPONSE" | grep -q "proof"; then
-                echo -e "\nSuccess! Found a working strategy!"
-                echo "Response contains a valid proof."
-                
-                # Extract proof details if available
-                PROOF=$(echo "$RESPONSE" | grep -o '"proof":"[^"]*"' | sed 's/"proof":"\(.*\)"/\1/')
-                if [ -n "$PROOF" ]; then
-                  echo "Proof generated successfully!"
-                  echo "Proof begins with: ''${PROOF:0:50}..."
-                fi
-                
-                # Save successful configuration
-                SUCCESSFUL=true
-                break
-              fi
-            done
-            
-            if [ -z "$SUCCESSFUL" ]; then
-              echo -e "\nCould not generate a proof with any of the attempted strategies."
-              echo "Check the coprocessor service logs for detailed error messages."
             else
-              echo -e "\nDeployment and proof generation completed successfully!"
+              echo "Error: Failed to extract controller ID from response"
+              echo "Response: $RESPONSE"
+              exit 1
             fi
           '';
 
-          # Main deployment script
-          deploy-with-sp1 = pkgs.writeShellScriptBin "deploy-with-sp1" ''
+          # Valence Prove - mirrors cargo-valence prove functionality  
+          valence-prove = pkgs.writeShellScriptBin "valence-prove" ''
             #!/usr/bin/env bash
-            # Main deployment script for Valence Coprocessor App with SP1 zkVM integration
-            # This is the primary entry point for deploying the application
+            # Generate proof using Valence coprocessor - mirrors cargo-valence prove
+            
+            set -e
+            
+            # Parse command line arguments
+            USE_PUBLIC_SERVICE=false
+            ARGS_JSON=""
+            PATH_ARG=""
+            CONTROLLER_ID=""
+            VERBOSE=false
+            
+            usage() {
+              echo "Usage: valence-prove [OPTIONS] <CONTROLLER_ID>"
+              echo ""
+              echo "Options:"
+              echo "  --socket <HOST:PORT>    Use public coprocessor service"
+              echo "  -j, --json <JSON>       JSON arguments to pass to the controller"
+              echo "  -p, --path <PATH>       Path where proof will be stored in virtual filesystem"
+              echo "  --verbose              Enable verbose output"
+              echo "  -h, --help             Show this help message"
+              echo ""
+              echo "Examples:"
+              echo "  # Get a verifying key"
+              echo "  valence-prove vk <CONTROLLER_ID>"
+              echo ""
+              echo "  # Generate a proof with controller ID"
+              echo "  valence-prove prove <CONTROLLER_ID> '{\"value\": 42}' \"/path/in/fs.json\""
+            }
+            
+            # Parse arguments
+            while [[ $# -gt 0 ]]; do
+              case $1 in
+                --socket)
+                  if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    PUBLIC_SOCKET="$2"
+                    USE_PUBLIC_SERVICE=true
+                    shift 2
+                  else
+                    echo "Error: --socket requires a HOST:PORT argument"
+                    exit 1
+                  fi
+                  ;;
+                -j|--json)
+                  if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    ARGS_JSON="$2"
+                    shift 2
+                  else
+                    echo "Error: --json requires a JSON argument"
+                    exit 1
+                  fi
+                  ;;
+                -p|--path)
+                  if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    PATH_ARG="$2"
+                    shift 2
+                  else
+                    echo "Error: --path requires a path argument"
+                    exit 1
+                  fi
+                  ;;
+                --verbose)
+                  VERBOSE=true
+                  shift
+                  ;;
+                -h|--help)
+                  usage
+                  exit 0
+                  ;;
+                vk)
+                  if [ -n "$2" ]; then
+                    COMMAND="vk"
+                    CONTROLLER_ID="$2"
+                    shift 2
+                  else
+                    echo "Error: vk requires a CONTROLLER_ID argument"
+                    exit 1
+                  fi
+                  ;;
+                prove)
+                  if [ -n "$2" ]; then
+                    COMMAND="prove"
+                    CONTROLLER_ID="$2"
+                    if [ -n "$3" ] && [[ "$3" != --* ]]; then
+                      ARGS_JSON="$3"
+                      if [ -n "$4" ] && [[ "$4" != --* ]]; then
+                        PATH_ARG="$4"
+                        shift 4
+                      else
+                        shift 3
+                      fi
+                    else
+                      shift 2
+                    fi
+                  else
+                    echo "Error: prove requires a CONTROLLER_ID argument"
+                    exit 1
+                  fi
+                  ;;
+                *)
+                  echo "Error: Unknown option '$1'"
+                  usage
+                  exit 1
+                  ;;
+              esac
+            done
+            
+            # Check required arguments
+            if [ -z "$COMMAND" ]; then
+              echo "Error: No command specified. Use 'vk' or 'prove'."
+              usage
+              exit 1
+            fi
+            
+            # Ensure PRJ_ROOT is available
+            if [ -z "$PRJ_ROOT" ]; then
+              export PRJ_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")"
+            fi
+            
+            # Determine service URL
+            if [ "$USE_PUBLIC_SERVICE" = true ]; then
+              if [[ "$PUBLIC_SOCKET" == *:* ]]; then
+                SERVICE_HOST="http://$PUBLIC_SOCKET"
+              else
+                SERVICE_HOST="http://$PUBLIC_SOCKET:37281"
+              fi
+              echo "Using public coprocessor service: $SERVICE_HOST"
+            else
+              SERVICE_HOST="http://localhost:37281"
+              echo "Using local coprocessor service: $SERVICE_HOST"
+            fi
+            
+            SERVICE_URL="$SERVICE_HOST/api/registry/controller"
+            PROVE_URL="$SERVICE_URL/$CONTROLLER_ID/prove"
+            VK_URL="$SERVICE_URL/$CONTROLLER_ID/vk"
+            
+            if [ "$VERBOSE" = true ]; then
+              echo "Controller ID: $CONTROLLER_ID"
+              echo "Service URL: $SERVICE_URL"
+            fi
+            
+            # Check service availability
+            echo "Checking service availability..."
+            if ! curl -s --connect-timeout 5 "$SERVICE_HOST/api/status" > /dev/null; then
+              echo "Error: Cannot connect to coprocessor service at $SERVICE_HOST"
+              exit 1
+            fi
+            
+            # Parse JSON args to include in payload
+            PARSED_JSON_ARGS=$(echo "$ARGS_JSON" | jq . 2>/dev/null) || {
+              echo "Error: Invalid JSON in arguments: $ARGS_JSON"
+              exit 1
+            }
+            
+            # Create prove payload
+            PROVE_PAYLOAD=$(jq -n \
+              --argjson args "$PARSED_JSON_ARGS" \
+              --arg path "$PATH_ARG" \
+              '{
+                args: $args,
+                payload: {
+                  cmd: "store",
+                  path: $path
+                },
+                dev_mode: true
+              }')
+            
+            echo "Submitting proof request..."
+            if [ "$VERBOSE" = true ]; then
+              echo "Payload: $PROVE_PAYLOAD"
+            fi
+            
+            # Submit proof request
+            TEMP_OUTPUT=$(mktemp)
+            
+            http_code=$(curl -s -o "$TEMP_OUTPUT" -w "%{http_code}" \
+              --connect-timeout 30 -X POST "$PROVE_URL" \
+              -H "Content-Type: application/json" \
+              -d "$PROVE_PAYLOAD")
+            
+            if [ "$http_code" -ne 200 ]; then
+              echo "Error: Proof request failed with HTTP code $http_code"
+              echo "Response:"
+              cat "$TEMP_OUTPUT"
+              rm "$TEMP_OUTPUT"
+              exit 1
+            fi
+            
+            RESPONSE=$(cat "$TEMP_OUTPUT")
+            rm "$TEMP_OUTPUT"
+            
+            echo "✅ Proof request submitted successfully!"
+            echo "Response: $RESPONSE"
+            
+            # Wait a moment and try to retrieve the result
+            echo ""
+            echo "Waiting for proof to be processed..."
+            sleep 3
+            
+            # Try to retrieve the stored proof
+            STORAGE_PATH=$(echo "$PATH_ARG" | sed 's|/||g' | tr '[:lower:]' '[:upper:]' | cut -c1-8).$(echo "$PATH_ARG" | sed 's/.*\.//' | tr '[:lower:]' '[:upper:]' | cut -c1-3)
+            STORAGE_PAYLOAD="{\"path\": \"$STORAGE_PATH\"}"
+            
+            echo "Attempting to retrieve proof from storage..."
+            echo "Storage path: $STORAGE_PATH"
+            
+            STORAGE_TEMP_OUTPUT=$(mktemp)
+            storage_http_code=$(curl -s -o "$STORAGE_TEMP_OUTPUT" -w "%{http_code}" \
+                               --connect-timeout 10 -X POST "$SERVICE_HOST/api/registry/controller/$CONTROLLER_ID/storage/fs" \
+                               -H "Content-Type: application/json" \
+                               -d "$STORAGE_PAYLOAD")
+            
+            if [ "$storage_http_code" -eq 200 ]; then
+              echo "✅ Proof retrieved from storage!"
+              if [ "$VERBOSE" = true ]; then
+                cat "$STORAGE_TEMP_OUTPUT" | jq . 2>/dev/null || cat "$STORAGE_TEMP_OUTPUT"
+              else
+                echo "Use valence-storage to retrieve the full proof data."
+              fi
+            else
+              echo "⚠️  Could not retrieve proof from storage (this may be normal for async processing)"
+              echo "Use valence-storage later to check if the proof is ready."
+            fi
+            
+            rm "$STORAGE_TEMP_OUTPUT"
+          '';
 
-            echo "===========================================
-            Valence Coprocessor App - Full Deployment
-            ===========================================
-
-            This script will deploy the application with SP1 zkVM integration.
-            "
-
-            echo "Starting SP1 zkVM deployment process..."
-            ${config.packages.sp1-deploy}/bin/sp1-deploy
-
-            echo "Deployment process completed!"
-            echo "Check the output above for details about the deployment status."
-            echo "If the deployment was successful, your application should now be running with SP1 zkVM integration."
+          # Valence Storage - mirrors cargo-valence storage functionality
+          valence-storage = pkgs.writeShellScriptBin "valence-storage" ''
+            #!/usr/bin/env bash
+            # Retrieve data from Valence coprocessor storage - mirrors cargo-valence storage
+            
+            set -e
+            
+            # Parse command line arguments
+            USE_PUBLIC_SERVICE=false
+            STORAGE_PATH=""
+            CONTROLLER_ID=""
+            VERBOSE=false
+            
+            usage() {
+              echo "Usage: valence-storage [OPTIONS] COMMAND <CONTROLLER_ID> [PATH]"
+              echo ""
+              echo "Commands:"
+              echo "  fs <CONTROLLER_ID> <PATH>   Retrieve a file from the virtual filesystem"
+              echo "  raw <CONTROLLER_ID>         Get the raw storage data"
+              echo ""
+              echo "Options:"
+              echo "  --socket <HOST:PORT>        Use public coprocessor service"
+              echo "  --verbose                   Enable verbose output"
+              echo "  -h, --help                  Show this help message"
+              echo ""
+              echo "Examples:"
+              echo "  # Retrieve a file from local service"
+              echo "  valence-storage fs <CONTROLLER_ID> PROOF.BIN"
+              echo ""
+              echo "  # Retrieve a file from public service"
+              echo "  valence-storage --socket prover.timewave.computer:37281 fs <CONTROLLER_ID> PROOF.BIN"
+              echo ""
+              echo "  # Get raw storage from local service"
+              echo "  valence-storage raw <CONTROLLER_ID>"
+            }
+            
+            # Parse arguments
+            while [[ $# -gt 0 ]]; do
+              case $1 in
+                --socket)
+                  if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    PUBLIC_SOCKET="$2"
+                    USE_PUBLIC_SERVICE=true
+                    shift 2
+                  else
+                    echo "Error: --socket requires a HOST:PORT argument"
+                    exit 1
+                  fi
+                  ;;
+                --verbose)
+                  VERBOSE=true
+                  shift
+                  ;;
+                -h|--help)
+                  usage
+                  exit 0
+                  ;;
+                fs)
+                  if [ -n "$2" ]; then
+                    COMMAND="fs"
+                    CONTROLLER_ID="$2"
+                    if [ -n "$3" ] && [[ "$3" != --* ]]; then
+                      STORAGE_PATH="$3"
+                      shift 3
+                    else
+                      echo "Error: fs requires a PATH argument"
+                      exit 1
+                    fi
+                  else
+                    echo "Error: fs requires a CONTROLLER_ID argument"
+                    exit 1
+                  fi
+                  ;;
+                raw)
+                  if [ -n "$2" ]; then
+                    COMMAND="raw"
+                    CONTROLLER_ID="$2"
+                    shift 2
+                  else
+                    echo "Error: raw requires a CONTROLLER_ID argument"
+                    exit 1
+                  fi
+                  ;;
+                *)
+                  echo "Error: Unknown option '$1'"
+                  usage
+                  exit 1
+                  ;;
+              esac
+            done
+            
+            # Check required arguments
+            if [ -z "$COMMAND" ]; then
+              echo "Error: No command specified. Use 'fs' or 'raw'."
+              usage
+              exit 1
+            fi
+            
+            if [ -z "$CONTROLLER_ID" ]; then
+              echo "Error: CONTROLLER_ID is required"
+              usage
+              exit 1
+            fi
+            
+            if [ "$COMMAND" = "fs" ] && [ -z "$STORAGE_PATH" ]; then
+              echo "Error: Storage path is required for 'fs' command"
+              usage
+              exit 1
+            fi
+            
+            # Determine service URL
+            if [ "$USE_PUBLIC_SERVICE" = true ]; then
+              if [[ "$PUBLIC_SOCKET" == *:* ]]; then
+                SERVICE_HOST="http://$PUBLIC_SOCKET"
+              else
+                SERVICE_HOST="http://$PUBLIC_SOCKET:37281"
+              fi
+              echo "Using public coprocessor service: $SERVICE_HOST"
+            else
+              SERVICE_HOST="http://localhost:37281"
+              echo "Using local coprocessor service: $SERVICE_HOST"
+            fi
+            
+            # Check service availability
+            if ! curl -s --connect-timeout 5 "$SERVICE_HOST/api/status" > /dev/null; then
+              echo "Error: Cannot connect to coprocessor service at $SERVICE_HOST"
+              exit 1
+            fi
+            
+            if [ "$COMMAND" = "fs" ]; then
+              # For filesystem command
+              # If path doesn't appear to be in FAT16 format (8.3) already, convert it
+              if [[ ! "$STORAGE_PATH" =~ ^[A-Z0-9]{1,8}\.[A-Z0-9]{1,3}$ ]]; then
+                # Convert path to FAT-16 format (8.3 filename, case insensitive)
+                FAT16_PATH=$(echo "$STORAGE_PATH" | sed 's|/||g' | tr '[:lower:]' '[:upper:]' | cut -c1-8).$(echo "$STORAGE_PATH" | sed 's/.*\.//' | tr '[:lower:]' '[:upper:]' | cut -c1-3)
+                if [ "$VERBOSE" = true ]; then
+                  echo "Original path: $STORAGE_PATH"
+                  echo "Converted to FAT-16 path: $FAT16_PATH"
+                fi
+              else
+                FAT16_PATH="$STORAGE_PATH"
+                if [ "$VERBOSE" = true ]; then
+                  echo "Using provided FAT-16 path: $FAT16_PATH"
+                fi
+              fi
+              
+              if [ "$VERBOSE" = true ]; then
+                echo "Controller ID: $CONTROLLER_ID"
+              fi
+              
+              # Query storage
+              STORAGE_PAYLOAD="{\"path\": \"$FAT16_PATH\"}"
+              STORAGE_URL="$SERVICE_HOST/api/registry/controller/$CONTROLLER_ID/storage/fs"
+              
+              echo "Querying filesystem for $FAT16_PATH..."
+              
+              TEMP_OUTPUT=$(mktemp)
+              http_code=$(curl -s -o "$TEMP_OUTPUT" -w "%{http_code}" \
+                         --connect-timeout 10 -X POST "$STORAGE_URL" \
+                         -H "Content-Type: application/json" \
+                         -d "$STORAGE_PAYLOAD")
+              
+              if [ "$http_code" -ne 200 ]; then
+                echo "Error: Storage query failed with HTTP code $http_code"
+                echo "Response:"
+                cat "$TEMP_OUTPUT"
+                rm "$TEMP_OUTPUT"
+                exit 1
+              fi
+              
+              RESPONSE=$(cat "$TEMP_OUTPUT")
+              rm "$TEMP_OUTPUT"
+              
+              # Extract and decode data
+              BASE64_DATA=$(echo "$RESPONSE" | jq -r .data 2>/dev/null)
+              
+              if [ -n "$BASE64_DATA" ] && [ "$BASE64_DATA" != "null" ]; then
+                echo "✅ File retrieved successfully!"
+                echo ""
+                
+                # Decode and pretty-print the data
+                DECODED_DATA=$(echo "$BASE64_DATA" | base64 --decode 2>/dev/null)
+                
+                if [ $? -eq 0 ]; then
+                  # Try to format as JSON if possible
+                  echo "$DECODED_DATA" | jq . 2>/dev/null || echo "$DECODED_DATA"
+                else
+                  echo "Error: Failed to decode base64 data"
+                  echo "Raw response: $RESPONSE"
+                fi
+              else
+                echo "No data found at path $FAT16_PATH"
+                echo "Full response: $RESPONSE"
+              fi
+            elif [ "$COMMAND" = "raw" ]; then
+              # For raw storage command
+              STORAGE_URL="$SERVICE_HOST/api/registry/controller/$CONTROLLER_ID/storage/raw"
+              
+              echo "Retrieving raw storage data..."
+              
+              TEMP_OUTPUT=$(mktemp)
+              http_code=$(curl -s -o "$TEMP_OUTPUT" -w "%{http_code}" \
+                         --connect-timeout 10 -X GET "$STORAGE_URL")
+              
+              if [ "$http_code" -ne 200 ]; then
+                echo "Error: Raw storage query failed with HTTP code $http_code"
+                echo "Response:"
+                cat "$TEMP_OUTPUT"
+                rm "$TEMP_OUTPUT"
+                exit 1
+              fi
+              
+              RESPONSE=$(cat "$TEMP_OUTPUT")
+              rm "$TEMP_OUTPUT"
+              
+              # Extract base64 data
+              BASE64_DATA=$(echo "$RESPONSE" | jq -r .data 2>/dev/null)
+              
+              if [ -n "$BASE64_DATA" ] && [ "$BASE64_DATA" != "null" ]; then
+                echo "✅ Raw storage data retrieved successfully!"
+                echo ""
+                
+                # Display file entries from raw storage
+                echo "Files in storage:"
+                echo "$BASE64_DATA" | base64 --decode | grep -a -o "[A-Z][A-Z0-9]*\\.[A-Z][A-Z0-9]*" | sort | uniq
+                
+                if [ "$VERBOSE" = true ]; then
+                  echo ""
+                  echo "Full response (base64):"
+                  echo "$BASE64_DATA"
+                fi
+              else
+                echo "No storage data found"
+                echo "Full response: $RESPONSE"
+              fi
+            fi
           '';
         };
 
@@ -1133,14 +1629,20 @@
             program = "${config.packages.generate-sp1-elf}/bin/generate-sp1-elf";
           };
           
-          sp1-deploy = {
+          # New Valence commands that mirror cargo-valence functionality
+          valence-deploy = {
             type = "app";
-            program = "${config.packages.sp1-deploy}/bin/sp1-deploy";
+            program = "${config.packages.valence-deploy}/bin/valence-deploy";
           };
           
-          deploy-with-sp1 = {
+          valence-prove = {
             type = "app";
-            program = "${config.packages.deploy-with-sp1}/bin/deploy-with-sp1";
+            program = "${config.packages.valence-prove}/bin/valence-prove";
+          };
+          
+          valence-storage = {
+            type = "app";
+            program = "${config.packages.valence-storage}/bin/valence-storage";
           };
         };
       };
