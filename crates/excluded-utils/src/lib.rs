@@ -41,7 +41,7 @@ async fn test_get_latest_helios_block() {
 
 #[test]
 fn test_decode_public_values() {
-    let proof_base64 = "2gFcRWJhZ25TcS9yNGVzZFZCWXRYdXFBWEVkZWt5KzgyZ3VXK2V4ZTdDbHZiNDR4Tk1KTDgrQk5WeUwrak9hUURna0RLRmlaWDdSMndsc1VJaGR0Sy9tZ2V2ZVRlQUZla2VUaUxCNkJpaHNxNU1xUEZ3YkxubzkzYWpNVVYxcS85dXJjQlIwWkNZN3hUcmhxc0pzdi8rSDk0cmtWSnlPMDgrSndEWWFsbkdiSUMvamRLRW1FanU2NUJsM1Vjb1VpdnhrL01halFMWHlLRk0wdHErbkFaYkNXQ1grTCtzZ3VzSE5lOHhpbzZITTErQkZuaWk0WHlocWtwTXNKMTA2T2xIajBzbmh2UUt6K1E0RDNtalUrQzYzbUx6WFU0WGIwaDZ4SHZzU3dzZzArTk0raGx0OEpHeG53S214MVlqL1FMekJLbnNabkdzdWRkSS9HVGhhMnl0bTNic2Vhalk92gGoQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQjdJbmRwZEdoa2NtRjNYM0psY1hWbGMzUnpJanBiZXlKcFpDSTZNQ3dpYjNkdVpYSWlPaUl3ZUdRNVFUSXpZalU0WlRZNE5FSTVPRFZHTmpZeFEyVTNNREExUVVFNFJURXdOak13TVRVd1l6RWlMQ0p5WldSbGJYQjBhVzl1WDNKaGRHVWlPbHN4TURBd01EQXdNREFzTVRNeVhTd2ljMmhoY21WelgyRnRiM1Z1ZENJNld6RXdNRjBzSW5KbFkyVnBkbVZ5SWpvaUluMWRMQ0p6ZEdGMFpWOXliMjkwSWpwYk1UY3dMREl6TkN3eU5EY3NNak1zTWpRNExERTBOU3d5TkRBc016QXNPRFVzTkRBc01USTBMREl3T0N3eE5Ua3NNVEUwTERFME5Td3pMREV3T1N3eU9DdzJMREUyTVN3eE5UQXNNakk1TERVeUxEZzJMREU1Tnl3eE16QXNNVE01TERJd015d3lNRE1zTlRjc016Y3NNVE5kZlE9PQ==";
+    let proof_base64 = "2gFcRWJhZ25SSnNJWmRUUWpHelphb01aUUZzUXRpTjFsYnI3aEZFd0NmWm5JRGFuem1XSFFQWlFtbkwvOU5WSnJ6NXRsYUZ6VHBtazBTcXRvWFFVSDBPZC9ocTFqOFkwbTh5eDVjLyt0RTU0YTcyUStmOEhTRFpEMTB1WVNoTElrclhUSGtUcWdsVnVtMThuMTBybnhaWldVR0VScTQzYkMxckl6NmUwVUpJRHBZWEZFcCtIYXJaM3dLeG5zSEVtS1RIcVBFTk8veE5jMW5JTk1QOWh5ZWR2ZUxqZkx3TXY3WEpKK3N3MGRBR3Naa2VuVzdUM29CeTdXVmJnZTJub3hhMmt5WDVnd0NXZ21XVnJjZXlUa3ZhZXFoNHo0ZDB5aFc0SkloeHhuTTNQWmhGQkp5dUE2WnJ5b1dUUjZxb0syVlM5aGkwTTdHT0ExZXV1T3pGSFJaK1YvcEdZYWM92gGgQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQjdJbmRwZEdoa2NtRjNYM0psY1hWbGMzUnpJanBiZXlKcFpDSTZNQ3dpYjNkdVpYSWlPaUl3ZUdRNVFUSXpZalU0WlRZNE5FSTVPRFZHTmpZeFEyVTNNREExUVVFNFJURXdOak13TVRVd1l6RWlMQ0p5WldSbGJYQjBhVzl1WDNKaGRHVWlPbHN4TURBd01EQXdNREJkTENKemFHRnlaWE5mWVcxdmRXNTBJanBiTVRBd1hTd2ljbVZqWldsMlpYSWlPaUlpZlYwc0luTjBZWFJsWDNKdmIzUWlPbHN4TnpBc01qTTBMREkwTnl3eU15d3lORGdzTVRRMUxESTBNQ3d6TUN3NE5TdzBNQ3d4TWpRc01qQTRMREUxT1N3eE1UUXNNVFExTERNc01UQTVMREk0TERZc01UWXhMREUxTUN3eU1qa3NOVElzT0RZc01UazNMREV6TUN3eE16a3NNakF6TERJd015dzFOeXd6Tnl3eE0xMTk=";
     let proof = valence_coprocessor::Proof::try_from_base64(proof_base64).unwrap();
     let (_, public_values) = proof.decode().unwrap();
     let output: CircuitOutput = serde_json::from_slice(&public_values[32..]).unwrap();
@@ -52,7 +52,7 @@ fn test_decode_public_values() {
 async fn test_get_state_proof() -> Result<(), anyhow::Error> {
     use common_merkle_proofs::merkle::types::MerkleVerifiable;
     let client = reqwest::Client::new();
-    let base_key = "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6c";
+    let base_key = "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6d";
 
     let response = client
         .post("http://165.1.70.239:7777/")
@@ -74,6 +74,11 @@ async fn test_get_state_proof() -> Result<(), anyhow::Error> {
 
     match &proof {
         EthereumProofType::Simple(storage_proof) => {
+            let stored_value = storage_proof.get_stored_value()[0..].to_vec();
+            println!(
+                "Stored value: {:?}",
+                U256::from_str_radix(&hex::encode(stored_value), 16).unwrap()
+            );
             let redemption_rate = &U256::from_be_slice(&storage_proof.get_stored_value());
             println!("Redemption rate: {:?}", redemption_rate);
             let is_valid = storage_proof.clone().verify(

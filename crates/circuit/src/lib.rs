@@ -1,13 +1,11 @@
 use core::panic;
 
+use alloy_primitives::{Address, U256};
 use common_merkle_proofs::merkle::types::MerkleVerifiable;
-use ethereum_merkle_proofs::merkle_lib::types::{
-    EthereumAccount, EthereumProofType, RlpDecodable as MerkleProofRlpDecodable,
-};
+use ethereum_merkle_proofs::merkle_lib::types::EthereumProofType;
 use num_bigint::BigUint;
-use types::ethereum::RlpDecodable;
 use types::{CircuitOutput, CircuitWitness, WithdrawRequest};
-use valence_coprocessor::Witness;
+use valence_coprocessor::{StateProof, Witness};
 
 /// Main circuit function that processes and verifies Ethereum state proofs.
 ///
@@ -40,38 +38,105 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
         ),
     }
 
+    let mut id: u64 = 0;
+    let mut owner: String = "".to_string();
+    let mut redemption_rate: BigUint = BigUint::from(0u64);
+    let mut shares_amount: BigUint = BigUint::from(0u64);
+    let mut receiver: String = "".to_string();
+
     // Deserialize the CircuitWitness from the input data
     let input: CircuitWitness = serde_json::from_slice(&circuit_input_serialized).unwrap();
 
     let mut withdraw_requests: Vec<WithdrawRequest> = Vec::new();
 
-    // Verify all Ethereum proofs against the state root
-    for proof in input.state_proofs {
-        let proof: EthereumProofType = serde_json::from_slice(&proof.proof).unwrap();
-        match &proof {
-            EthereumProofType::Account(account_proof) => {
-                // Decode and print the account state for debugging
-                let _decoded_account = EthereumAccount::rlp_decode(&account_proof.value).unwrap();
-            }
-            EthereumProofType::Simple(storage_proof) => {
-                // todo: decode the values and populate the WithdrawRequest instance
-
-                let withdraw_request = WithdrawRequest {
-                    id: 0,
-                    owner: "".to_string(),
-                    redemption_rate: BigUint::from(0u64),
-                    shares_amount: BigUint::from(0u64),
-                    receiver: "".to_string(),
-                };
-                withdraw_requests.push(withdraw_request);
-            }
-            _ => {
-                panic!("Unexpected proof type");
-            }
-        }
-        // Verify the proof against the state root
-        assert!(proof.verify(&input.state_root).unwrap());
+    let id_and_owner_proof = input.state_proofs.first().unwrap();
+    let redemption_rate_proof = input.state_proofs.get(1).unwrap();
+    let shares_amount_proof = input.state_proofs.get(2).unwrap();
+    let mut receiver_proofs: Vec<StateProof> = Vec::new();
+    for i in 3..input.state_proofs.len() {
+        receiver_proofs.push(input.state_proofs.get(i).unwrap().clone());
     }
+
+    let id_and_owner_proof_type: EthereumProofType =
+        serde_json::from_slice(&id_and_owner_proof.proof).unwrap();
+
+    match &id_and_owner_proof_type {
+        EthereumProofType::Simple(storage_proof) => {
+            let stored_value = storage_proof.get_stored_value();
+            let id_bytes = &stored_value[stored_value.len() - 8..];
+            id = u64::from_be_bytes(id_bytes.try_into().unwrap());
+
+            // Address is the 20 bytes before the index (last 8 bytes)
+            let address_start = stored_value.len() - 8 - 20;
+            let address_end = stored_value.len() - 8;
+            owner = Address::from_slice(&stored_value[address_start..address_end]).to_string();
+
+            assert!(storage_proof.verify(&input.state_root).unwrap());
+        }
+        _ => {}
+    }
+
+    let redemption_rate_proof_type: EthereumProofType =
+        serde_json::from_slice(&redemption_rate_proof.proof).unwrap();
+    match &redemption_rate_proof_type {
+        EthereumProofType::Simple(storage_proof) => {
+            let redemption_rate_rlp = &storage_proof.get_stored_value();
+            if redemption_rate_rlp.len() > 1 {
+                // drop the first byte from rlp
+                redemption_rate = BigUint::from_bytes_be(
+                    &U256::from_be_slice(&storage_proof.get_stored_value()[1..])
+                        .to_be_bytes::<32>(),
+                );
+            } else {
+                // just one byte, use as is
+                redemption_rate = BigUint::from_bytes_be(
+                    &U256::from_be_slice(&storage_proof.get_stored_value()).to_be_bytes::<32>(),
+                );
+            }
+            assert!(storage_proof.verify(&input.state_root).unwrap());
+        }
+        _ => {}
+    }
+
+    let shares_amount_proof_type: EthereumProofType =
+        serde_json::from_slice(&shares_amount_proof.proof).unwrap();
+    match &shares_amount_proof_type {
+        EthereumProofType::Simple(storage_proof) => {
+            let shares_rlp = &storage_proof.get_stored_value();
+            if shares_rlp.len() > 1 {
+                shares_amount = BigUint::from_bytes_be(
+                    &U256::from_be_slice(&storage_proof.get_stored_value()[1..])
+                        .to_be_bytes::<32>(),
+                );
+            } else {
+                shares_amount = BigUint::from_bytes_be(
+                    &U256::from_be_slice(&storage_proof.get_stored_value()).to_be_bytes::<32>(),
+                );
+            }
+            assert!(storage_proof.verify(&input.state_root).unwrap());
+        }
+        _ => {}
+    }
+
+    for proof in receiver_proofs {
+        let proof_type: EthereumProofType = serde_json::from_slice(&proof.proof).unwrap();
+        match &proof_type {
+            EthereumProofType::Simple(storage_proof) => {
+                assert!(storage_proof.verify(&input.state_root).unwrap());
+            }
+            _ => {}
+        }
+    }
+
+    // todo: decode the values and populate the WithdrawRequest instance
+    let withdraw_request = WithdrawRequest {
+        id,
+        owner,
+        redemption_rate,
+        shares_amount,
+        receiver,
+    };
+    withdraw_requests.push(withdraw_request);
 
     // commit the verified withdraw requests and the root that was used as an output
     let output = CircuitOutput {

@@ -45,22 +45,19 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
         "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6b",
         "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6c",
         "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6d",
-        "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6e",
     ]);
-    let string_key = keys.last().unwrap();
+    let string_key = "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6e";
 
     let mut ethereum_state_proofs: Vec<StateProof> = Vec::new();
     // get the state proofs for non-dynamic data
     // this is straightforward, we just get the state proofs for the keys
-    for (idx, key) in keys.iter().enumerate() {
-        if idx < key.len() {
-            let state_proof =
-                get_state_proof(contract_address, key, validated_height, MAINNET_RPC_URL)?;
-            ethereum_state_proofs.push(state_proof);
-        }
+    for key in keys {
+        let state_proof =
+            get_state_proof(contract_address, key, validated_height, MAINNET_RPC_URL)?;
+        ethereum_state_proofs.push(state_proof);
     }
 
-    let hashed_slot = Keccak256::digest(&string_key);
+    let hashed_slot = Keccak256::digest(&hex::decode(string_key).unwrap());
     let current_slot = U256::from_be_slice(&hashed_slot);
     let chunks = 2;
     for i in 0..chunks {

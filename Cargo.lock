@@ -300,7 +300,7 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 [[package]]
 name = "common"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/zk-merkle-proofs#d40ab9310e18a21434d29994d4c5e2b3cd17f8af"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs#870a904d72a1b6ec88f19bff0d650cf008d41cb1"
 dependencies = [
  "anyhow",
  "serde",
@@ -478,7 +478,7 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 [[package]]
 name = "ethereum"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/zk-merkle-proofs#d40ab9310e18a21434d29994d4c5e2b3cd17f8af"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs#870a904d72a1b6ec88f19bff0d650cf008d41cb1"
 dependencies = [
  "anyhow",
  "arrayvec",
@@ -492,6 +492,7 @@ dependencies = [
  "plain_hasher",
  "serde",
  "serde_json",
+ "sha3",
  "tiny-keccak",
  "tracing",
  "tracing-subscriber",
@@ -1732,8 +1733,10 @@ dependencies = [
 name = "valence-coprocessor-app-circuit"
 version = "0.1.0"
 dependencies = [
+ "alloy-primitives",
  "common",
  "ethereum",
+ "hex",
  "num-bigint",
  "serde_json",
  "types",
