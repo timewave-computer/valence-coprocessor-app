@@ -8,15 +8,10 @@ use valence_coprocessor::Witness;
 use valence_coprocessor_wasm::abi;
 
 pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
-    abi::log!(
-        "received a proof request with arguments {}",
-        serde_json::to_string(&args).unwrap_or_default()
-    )?;
+    let withdrawal_request_id = args["withdrawal_request_id"].as_u64().unwrap();
+    let withdrawal_request_id = withdrawal_request_id.to_le_bytes().to_vec();
 
-    let value = args["value"].as_u64().unwrap();
-    let value = value.to_le_bytes().to_vec();
-
-    Ok([Witness::Data(value)].to_vec())
+    Ok([Witness::Data(withdrawal_request_id)].to_vec())
 }
 
 pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
