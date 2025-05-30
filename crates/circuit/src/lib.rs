@@ -42,7 +42,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let mut owner: String = "".to_string();
     let mut redemption_rate: BigUint = BigUint::from(0u64);
     let mut shares_amount: BigUint = BigUint::from(0u64);
-    let mut receiver: String = "".to_string();
+    let mut receiver: Vec<u8> = Vec::new();
 
     // Deserialize the CircuitWitness from the input data
     let input: CircuitWitness = serde_json::from_slice(&circuit_input_serialized).unwrap();
@@ -122,11 +122,18 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
         let proof_type: EthereumProofType = serde_json::from_slice(&proof.proof).unwrap();
         match &proof_type {
             EthereumProofType::Simple(storage_proof) => {
+                // the first byte indicates the length of this sub-string
+                // we want all sub-strings concatenated to get the full receiver string
+                // from the list of storage proofs
+                receiver.extend_from_slice(&storage_proof.get_stored_value()[1..]);
                 assert!(storage_proof.verify(&input.state_root).unwrap());
             }
             _ => {}
         }
     }
+
+    // decode receiver from rlp-decoded bytes
+    let receiver: String = String::from_utf8_lossy(&truncate_hex_string(receiver)).to_string();
 
     // todo: decode the values and populate the WithdrawRequest instance
     let withdraw_request = WithdrawRequest {
@@ -144,4 +151,16 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
         state_root: input.state_root,
     };
     serde_json::to_vec(&output).expect("Failed to serialize circuit output")
+}
+
+// only use this when confident that the trailing zeros are not part of the data
+// if they are or could be part of the data, you need to pass the exact string
+// length and truncate accordingly
+// in the case of the receiver, we know that it is a hex string therefore we
+// can use this method to strip the trailing zeros from the rlp data
+fn truncate_hex_string(mut data: Vec<u8>) -> Vec<u8> {
+    while data.last() == Some(&0x00) {
+        data.pop();
+    }
+    data
 }

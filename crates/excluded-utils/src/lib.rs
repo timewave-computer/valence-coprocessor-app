@@ -41,7 +41,7 @@ async fn test_get_latest_helios_block() {
 
 #[test]
 fn test_decode_public_values() {
-    let proof_base64 = "2gFcRWJhZ25SSnNJWmRUUWpHelphb01aUUZzUXRpTjFsYnI3aEZFd0NmWm5JRGFuem1XSFFQWlFtbkwvOU5WSnJ6NXRsYUZ6VHBtazBTcXRvWFFVSDBPZC9ocTFqOFkwbTh5eDVjLyt0RTU0YTcyUStmOEhTRFpEMTB1WVNoTElrclhUSGtUcWdsVnVtMThuMTBybnhaWldVR0VScTQzYkMxckl6NmUwVUpJRHBZWEZFcCtIYXJaM3dLeG5zSEVtS1RIcVBFTk8veE5jMW5JTk1QOWh5ZWR2ZUxqZkx3TXY3WEpKK3N3MGRBR3Naa2VuVzdUM29CeTdXVmJnZTJub3hhMmt5WDVnd0NXZ21XVnJjZXlUa3ZhZXFoNHo0ZDB5aFc0SkloeHhuTTNQWmhGQkp5dUE2WnJ5b1dUUjZxb0syVlM5aGkwTTdHT0ExZXV1T3pGSFJaK1YvcEdZYWM92gGgQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQjdJbmRwZEdoa2NtRjNYM0psY1hWbGMzUnpJanBiZXlKcFpDSTZNQ3dpYjNkdVpYSWlPaUl3ZUdRNVFUSXpZalU0WlRZNE5FSTVPRFZHTmpZeFEyVTNNREExUVVFNFJURXdOak13TVRVd1l6RWlMQ0p5WldSbGJYQjBhVzl1WDNKaGRHVWlPbHN4TURBd01EQXdNREJkTENKemFHRnlaWE5mWVcxdmRXNTBJanBiTVRBd1hTd2ljbVZqWldsMlpYSWlPaUlpZlYwc0luTjBZWFJsWDNKdmIzUWlPbHN4TnpBc01qTTBMREkwTnl3eU15d3lORGdzTVRRMUxESTBNQ3d6TUN3NE5TdzBNQ3d4TWpRc01qQTRMREUxT1N3eE1UUXNNVFExTERNc01UQTVMREk0TERZc01UWXhMREUxTUN3eU1qa3NOVElzT0RZc01UazNMREV6TUN3eE16a3NNakF6TERJd015dzFOeXd6Tnl3eE0xMTk=";
+    let proof_base64 = "2gFcRWJhZ25TS09zU2FQZit4bXVRRXZTY0tDenBuTnk4Zk1ZMmxqSkFKazl3SWsra3l4Q1A0T05FckdzdWY4ZEZyTXlOZzFYOFFMaHhqOXVlcTlLU3Nld09oVkZjZ3JYU1FnclkrVjVoR3hTdE56K1pRN1FkVWRLaXF3eFcyNUNNeGV0SmpTYXhDNUNQRzBnSXVXRDJLamltWTM1RUlXbmM1cm1Yd2RQdDVRNFJDc2gvUjBNRklEMmhhRVM0QlRXUG9TK0VqdUVEWG5tTlkreGcwTzF3Ukgxb0EvOWJjTHlzOHpmaG5teVQ2OWFHQXBoaWxtTkRlc0NYTjBjNTNiamovdnFvMFVJd3FzS2N2Y05PNGdKSC9qVU4zRVdMUlR6UnNFbkJtdnEyQ093cmRJVjhFdUNWNmlPQ0ZIbFcwSmRUOHRDcVdGVDhueUppYUxNbS95TnNkdEFvU1RFa1U92gHgQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQjdJbmRwZEdoa2NtRjNYM0psY1hWbGMzUnpJanBiZXlKcFpDSTZNQ3dpYjNkdVpYSWlPaUl3ZUdRNVFUSXpZalU0WlRZNE5FSTVPRFZHTmpZeFEyVTNNREExUVVFNFJURXdOak13TVRVd1l6RWlMQ0p5WldSbGJYQjBhVzl1WDNKaGRHVWlPbHN4TURBd01EQXdNREJkTENKemFHRnlaWE5mWVcxdmRXNTBJanBiTVRBd1hTd2ljbVZqWldsMlpYSWlPaUp1WlhWMGNtOXVNVFJ0YkhCa05EaHJOWFpyWlhObGREUjROMlkzT0cxNWVqTnRORGRxWTJGNE0zbHphbXR3SW4xZExDSnpkR0YwWlY5eWIyOTBJanBiTVRNd0xERTRNeXd5TWpZc05qVXNOamtzTVRneExERTVOQ3d4TXl3eU5EUXNNVGd5TERNd0xERTNMREU1TWl3Mk15dzFNQ3d5TkRjc01UQTRMREV4Tnl3eU16VXNPVEFzTVRJNUxERTNOQ3d4TURFc01UWXhMRGc0TERRMUxERXNNamdzTVRZNUxESXhOeXczTnl3eE5EWmRmUT09";
     let proof = valence_coprocessor::Proof::try_from_base64(proof_base64).unwrap();
     let (_, public_values) = proof.decode().unwrap();
     let output: CircuitOutput = serde_json::from_slice(&public_values[32..]).unwrap();
@@ -52,7 +52,7 @@ fn test_decode_public_values() {
 async fn test_get_state_proof() -> Result<(), anyhow::Error> {
     use common_merkle_proofs::merkle::types::MerkleVerifiable;
     let client = reqwest::Client::new();
-    let base_key = "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6d";
+    let base_key = "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6e";
 
     let response = client
         .post("http://165.1.70.239:7777/")
@@ -60,7 +60,7 @@ async fn test_get_state_proof() -> Result<(), anyhow::Error> {
         .json(&json!({
             "address": "0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98",
             "ethereum_url": "https://erigon-tw-rpc.polkachu.com",
-            "height": 22580997,
+            "height": 22594523,
             "key": base_key
         }))
         .send()
@@ -82,7 +82,7 @@ async fn test_get_state_proof() -> Result<(), anyhow::Error> {
             let redemption_rate = &U256::from_be_slice(&storage_proof.get_stored_value());
             println!("Redemption rate: {:?}", redemption_rate);
             let is_valid = storage_proof.clone().verify(
-                hex::decode("aaeaf717f891f01e55287cd09f7291036d1c06a196e53456c5828bcbcb39250d")
+                hex::decode("15d0e4fe0c56cae4cb084743e629f986b68d972d09c9734583e32ec477a96c64")
                     .unwrap()
                     .as_slice(),
             )?;

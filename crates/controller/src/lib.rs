@@ -2,6 +2,7 @@
 extern crate alloc;
 use alloc::{format, string::ToString, vec::Vec};
 use alloy_primitives::U256;
+use ethereum_merkle_proofs::merkle_lib::types::EthereumProofType;
 use serde_json::Value;
 use sha3::{Digest, Keccak256};
 use types::CircuitWitness;
@@ -59,8 +60,9 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
 
     let hashed_slot = Keccak256::digest(&hex::decode(string_key).unwrap());
     let current_slot = U256::from_be_slice(&hashed_slot);
-    let chunks = 2;
-    for i in 0..chunks {
+    let mut string_slot_index = 2;
+    // this loop will get us the merkle proofs for the string values
+    for i in 0..string_slot_index {
         let chunk_slot = current_slot + U256::from(i);
         let chunk_slot_hex = format!("{:064x}", chunk_slot);
         let string_chunk_proof = get_state_proof(
@@ -69,7 +71,22 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
             validated_height,
             MAINNET_RPC_URL,
         )?;
+        let simple_proof: EthereumProofType = serde_json::from_slice(&string_chunk_proof.proof)?;
+        match simple_proof {
+            EthereumProofType::Simple(storage_proof) => {
+                // check if the next chunk slot contains a merkle proof for an empty value
+                if storage_proof.get_stored_value().is_empty() {
+                    // at this point we have the full receiver string
+                    break;
+                }
+            }
+            _ => {
+                abi::log!("Invalid proof type for chunk of receiver string!")?;
+            }
+        }
+
         ethereum_state_proofs.push(string_chunk_proof);
+        string_slot_index += 1;
     }
 
     // the final witness for our state proof circuit :D

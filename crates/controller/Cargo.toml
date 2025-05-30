@@ -20,6 +20,7 @@ types.workspace = true
 
 sha3 = { version = "0.10", default-features = false }
 alloy-primitives = { version = "0.8.25", default-features = false }
+ethereum-merkle-proofs = { package = "ethereum", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false }
 
 [dev-dependencies]
 alloy-sol-types = { version = "0.8.23", default-features = false }

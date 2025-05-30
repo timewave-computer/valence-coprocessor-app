@@ -29,7 +29,7 @@ curl http://127.0.0.1:37281/api/stats
 Initially, we execute the program, which will build the crates located in `./crates/program` and `./crates/circuit`, followed by submitting these built components to the coprocessor. Ultimately, the assigned Program ID will be returned for your reference.
 
 ```sh
-cargo run -- deploy program
+cargo-valence --socket prover.timewave.computer:37281   deploy circuit   --controller ./crates/controller   --circuit valence-coprocessor-app-circuit
 ```
 
 Upon successful deployment, you should observe the generated ID:
@@ -55,17 +55,17 @@ cargo test test_get_latest_helios_block -- --nocapture
 
 Example output, note that it is recommended to obtain a more recent root when testing:
 ```sh
-Validated block root: "aaeaf717f891f01e55287cd09f7291036d1c06a196e53456c5828bcbcb39250d"
-Validated block height: 22580997
+Validated block root: "82b7e24145b5c20df4b61e11c03f32f76c75eb5a81ae65a1582d011ca9d94d92"
+Validated block height: 22595316
 ```
 
 Now we can use this trusted block root and height to prove the program at that point in time:
 
 ```sh
 cargo-valence --socket prover.timewave.computer:37281 \
-  prove -j '{"height":22580997, "root":"aaeaf717f891f01e55287cd09f7291036d1c06a196e53456c5828bcbcb39250d"}' \
+  prove -j '{"height":22595316, "root":"82b7e24145b5c20df4b61e11c03f32f76c75eb5a81ae65a1582d011ca9d94d92"}' \
   -p /var/share/proof.bin \
-  2dd314a023d93f69688bed1d0425c31ac3d74da03612a5b8d4265f265e53f464
+  96d83b2300d83ecc413687e866338a5cb3522a1007460e7c90121c94a5ecb5e6
 ```
 
 To get the proof:
@@ -73,13 +73,13 @@ To get the proof:
 cargo-valence --socket prover.timewave.computer:37281 \
   storage \
   -p /var/share/proof.bin \
-  2dd314a023d93f69688bed1d0425c31ac3d74da03612a5b8d4265f265e53f464 | jq -r '.data' | base64 -d | jq
+  96d83b2300d83ecc413687e866338a5cb3522a1007460e7c90121c94a5ecb5e6 | jq -r '.data' | base64 -d | jq
 ```
 
 Example Proof:
 
 ```json
-"proof": "2gFcRWJhZ25TODZOL0VqcUlJSHVMNzJmUnNVdEFBNmlrODU1QVRjbnluUVVXc1J1RHQ3RTl1WUxXUktCRFdHejA0NDN0Q09wUWU0RnRWR05hL0xSOVNQVEd1Q25Ka0gvT2g2TkZjK29wVEdJVmJBQU1TYWlPbWVyallEbVliSlBwdFg2RFBSNVEvbGRlQ3AxcGxZblkvbm9DSUhoZWlBcDd2dno1T1BXSnJJMlNGdm9LYmREVDZ4OE1iRjFpN1dkZU9XTVBrbW55UFg5eHRSWndyaHRkRTBxdzd0VkNJU1ZwcnJicjdNcUwxWnlIbVdZUk9JSkFRRkFPWS9OVnRjLzlWTjJWODliQTl5RjcreG5xMlNGZk1ITloveEVFNk5rN01SZXVNb00yMERhWWpjL09KckdLVTc4Z1dPd3BYRTFaMDRLVzJrQUxvTS9YQ2lqZ3g5YnBnaHd3SEh1NGM92fhBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFCN0luZHBkR2hrY21GM1gzSmxjWFZsYzNSeklqcGJYU3dpYzNSaGRHVmZjbTl2ZENJNld6RTNNQ3d5TXpRc01qUTNMREl6TERJME9Dd3hORFVzTWpRd0xETXdMRGcxTERRd0xERXlOQ3d5TURnc01UVTVMREV4TkN3eE5EVXNNeXd4TURrc01qZ3NOaXd4TmpFc01UVXdMREl5T1N3MU1pdzROaXd4T1Rjc01UTXdMREV6T1N3eU1ETXNNakF6TERVM0xETTNMREV6WFgwPQ=="
+"proof": "2gFcRWJhZ25TSDBsazFZUjY3ZTlrSzY5Y1NnbXpkTnJkL0tmMllRWDlIdjBZcjc4R0UwSzRnVWpocUsyajJPNzlEOGdMcTdRRjh1N29sOUkyUEFPcFhJdmYwZzcyNEl1ajBmcVpic2NCcmFXYWZFa1VzdW11VVhBTEFFRm5lMTJJVXBzbmN1dVM1aWZMM1phSG43YU9DbUlUVmxKdHhUREg2b2pTRlRnTFJONGkwMDQyUFVEZHl6b0NmT1pZVnRQalpnYm1vTjJPeTh6K1BXTnBiaDl6Y0ozOG9XLytvSUQ2UXN0WlRZTlZRSDQ4Z1lIU28vTDE4aEpCVjR0cW9jRlJ4MlFOUHVzZ3BHcnIwZlJuampPb214NnZERFlKN09zVTFObXMwUDQ3U3k4K3ljaGF1SkpoY2g2REJ6NnVpOUVoQ3IwSFU2N2svNFJndnQvV1dJRTJKSmYxUVplTVE92gQsQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQjdJbmRwZEdoa2NtRjNYM0psY1hWbGMzUnpJanBiZXlKcFpDSTZNQ3dpYjNkdVpYSWlPaUl3ZUdRNVFUSXpZalU0WlRZNE5FSTVPRFZHTmpZeFEyVTNNREExUVVFNFJURXdOak13TVRVd1l6RWlMQ0p5WldSbGJYQjBhVzl1WDNKaGRHVWlPbHN4TURBd01EQXdNREJkTENKemFHRnlaWE5mWVcxdmRXNTBJanBiTVRBd1hTd2ljbVZqWldsMlpYSWlPaUpHNzcrOVJGeDFNREF3TWUrL3ZlKy92ZSsvdlhnbmRlKy92ZSsvdlR4dzc3KzllVngxTURBeFpGeDFNREF4Wm4vdnY3M3Z2NzFjZFRBd01URmQ3Nys5NzcrOVZPKy92ZSsvdmUrL3ZTbnZ2NzNhbXUrL3ZWSXg3Nys5NzcrOVFPKy92ZSsvdmUrL3ZTL3Z2NzFiNzcrOVcrKy92ZFNQYisrL3ZUM3Z2NzN2djcxY2RUQXdNRFR2djczTXFHa2hYSFV3TURBeTc3KzlaM1R2djcxY2REMXhhZSsvdlc1bGRYUnliMjR4Tkcxc2NHUTBPR3MxZG10bGMyVjBOSGczWmpjNGJYbDZSdSsvdlVSY2RUQXdNREh2djczdnY3M3Z2NzE0SjNYdnY3M3Z2NzA4Y08rL3ZYbGNkVEF3TVdSY2RUQXdNV1ovNzcrOTc3KzlYSFV3TURFeFhlKy92ZSsvdlZUdnY3M3Z2NzN2djcwcDc3KzkycHJ2djcxU01lKy92ZSsvdlVEdnY3M3Z2NzN2djcwdjc3KzlXKysvdlZ2dnY3M1VqMi92djcwOTc3Kzk3Nys5WEhVd01EQTA3Nys5ektocElWeDFNREF3TXUrL3ZXZDA3Nys5WEhROWNXbnZ2NzB6YlRRM2FtTmhlRE41YzJwcmNGeDFNREF3TUZ4MU1EQXdNRngxTURBd01GeDFNREF3TUZ4MU1EQXdNRngxTURBd01GeDFNREF3TUZ4MU1EQXdNRngxTURBd01GeDFNREF3TUZ4MU1EQXdNRngxTURBd01GeDFNREF3TUZ4MU1EQXdNRngxTURBd01GeDFNREF3TUZ4MU1EQXdNRngxTURBd01DSjlYU3dpYzNSaGRHVmZjbTl2ZENJNld6WTVMREV3TWl3eU1EQXNNemdzTWpJM0xERXdNeXcxTERFek1Dd3hOVGtzTVRNMUxERTFNQ3d4TVRJc01UZzNMREV5TXl3eE1EY3NNVFUzTERFeU15d3lNRGdzTVRjM0xESXpOeXd4TURBc01UYzVMREUyTkN3eE1ETXNNalF3TERFNE9Td3hNemNzTVRFNExERXpMREU0T1N3NExERTVPRjE5"
 ```
 
 
