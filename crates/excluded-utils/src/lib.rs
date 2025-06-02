@@ -52,7 +52,7 @@ fn test_decode_public_values() {
 async fn test_get_state_proof() -> Result<(), anyhow::Error> {
     use common_merkle_proofs::merkle::types::MerkleVerifiable;
     let client = reqwest::Client::new();
-    let base_key = "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6e";
+    let base_key = "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6c";
 
     let response = client
         .post("http://165.1.70.239:7777/")
@@ -60,7 +60,7 @@ async fn test_get_state_proof() -> Result<(), anyhow::Error> {
         .json(&json!({
             "address": "0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98",
             "ethereum_url": "https://erigon-tw-rpc.polkachu.com",
-            "height": 22594523,
+            "height": 22616191,
             "key": base_key
         }))
         .send()
@@ -82,7 +82,7 @@ async fn test_get_state_proof() -> Result<(), anyhow::Error> {
             let redemption_rate = &U256::from_be_slice(&storage_proof.get_stored_value());
             println!("Redemption rate: {:?}", redemption_rate);
             let is_valid = storage_proof.clone().verify(
-                hex::decode("15d0e4fe0c56cae4cb084743e629f986b68d972d09c9734583e32ec477a96c64")
+                hex::decode("ad242daa9f4e7d20187f9122d32a7aa49a3d7bf46ff306b64961e7d21fdd90ee")
                     .unwrap()
                     .as_slice(),
             )?;

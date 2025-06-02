@@ -11,10 +11,13 @@ serde_json.workspace = true
 valence-coprocessor.workspace = true
 valence-coprocessor-wasm.workspace = true
 types.workspace = true
-recursion-types = { git = "https://github.com/timewave-computer/valence-helios" }
+recursion-types = { git = "https://github.com/timewave-computer/valence-helios", default-features = false }
 sp1-verifier = { git = "https://github.com/timewave-computer/sp1", branch = "jonas/fix-4.1.7-syscall", default-features = false }
 hex = { package = "const-hex", version = "1.14", default-features = false, features = [
     "alloc",
     "core-error",
 ] }
 borsh.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

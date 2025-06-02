@@ -27,3 +27,10 @@ serde_json = { version = "1.0.140", default-features = false, features = [
 ] }
 valence-coprocessor = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.13", default-features = false }
 valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.1.13", default-features = false }
+tokio = { version = "1.45.0", features = [
+  "sync",
+  "macros",
+  "io-util",
+  "rt",
+  "time",
+], default-features = false }

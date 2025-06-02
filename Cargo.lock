@@ -1541,6 +1541,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75ef51a33ef1da925cea3e4eb122833cb377c61439ca401b770f54902b806779"
 dependencies = [
  "backtrace",
+ "bytes",
  "pin-project-lite",
  "tokio-macros",
 ]
@@ -1740,6 +1741,7 @@ dependencies = [
  "recursion-types",
  "serde_json",
  "sp1-verifier",
+ "tokio",
  "types",
  "valence-coprocessor",
  "valence-coprocessor-wasm",

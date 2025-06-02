@@ -35,7 +35,7 @@ cargo-valence --socket prover.timewave.computer:37281   deploy circuit   --contr
 Upon successful deployment, you should observe the generated ID:
 
 ```
-130292224d2c0678d0bafe642d5129d08b3dfd51dd1900a398f27f94a2a6bc77
+96d83b2300d83ecc413687e866338a5cb3522a1007460e7c90121c94a5ecb5e6
 ```
 
 >[!NOTE]
@@ -55,15 +55,15 @@ cargo test test_get_latest_helios_block -- --nocapture
 
 Example output, note that it is recommended to obtain a more recent root when testing:
 ```sh
-Validated block root: "82b7e24145b5c20df4b61e11c03f32f76c75eb5a81ae65a1582d011ca9d94d92"
-Validated block height: 22595316
+Validated block root: "ad242daa9f4e7d20187f9122d32a7aa49a3d7bf46ff306b64961e7d21fdd90ee"
+Validated block height: 22616191
 ```
 
 Now we can use this trusted block root and height to prove the program at that point in time:
 
 ```sh
 cargo-valence --socket prover.timewave.computer:37281 \
-  prove -j '{"height":22595316, "root":"82b7e24145b5c20df4b61e11c03f32f76c75eb5a81ae65a1582d011ca9d94d92"}' \
+  prove -j '{"height":22616191, "root":"ad242daa9f4e7d20187f9122d32a7aa49a3d7bf46ff306b64961e7d21fdd90ee"}' \
   -p /var/share/proof.bin \
   96d83b2300d83ecc413687e866338a5cb3522a1007460e7c90121c94a5ecb5e6
 ```

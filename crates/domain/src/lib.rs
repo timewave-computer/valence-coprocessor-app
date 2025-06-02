@@ -6,13 +6,15 @@
 //! - Retrieving and verifying Ethereum state proofs (account and storage proofs)
 //! - Working with Ethereum merkle proofs for both account and storage data
 
+use anyhow::Context;
 use recursion_types::WrapperCircuitOutputs;
-use serde_json::json;
+use serde_json::{json, Value};
 use sp1_verifier::{Groth16Verifier, GROTH16_VK_BYTES};
 use valence_coprocessor::{StateProof, ValidatedBlock};
 
 extern crate alloc;
 use alloc::{str, vec::Vec};
+use hex;
 use valence_coprocessor_wasm::abi;
 
 /// Validates an Ethereum block using a Groth16 zero-knowledge proof.
@@ -34,21 +36,42 @@ use valence_coprocessor_wasm::abi;
 /// * Any required fields are missing or invalid
 /// * Proof verification fails
 /// * Public values cannot be deserialized
-pub fn validate_block(
-    proof_bytes: &[u8],
-    public_values_bytes: &[u8],
-    vk_str: &str,
-) -> anyhow::Result<ValidatedBlock> {
-    let valid_block = validate(proof_bytes, public_values_bytes, vk_str)?;
+pub fn validate_block(args: Value) -> anyhow::Result<ValidatedBlock> {
+    let proof_hex = args["proof"]
+        .as_str()
+        .context("Failed to get proof from args")?;
+    let public_values_hex = args["public_values"]
+        .as_str()
+        .context("Failed to get public_values from args")?;
+    let vk_str = args["vk"]
+        .as_str()
+        .context("Failed to get verifying key from args")?;
+
+    // Convert hex strings to bytes
+    let proof_bytes =
+        hex::decode(proof_hex).map_err(|_| anyhow::anyhow!("Failed to decode proof hex"))?;
+    let public_values_bytes = hex::decode(public_values_hex)
+        .map_err(|_| anyhow::anyhow!("Failed to decode public_values hex"))?;
+
+    let valid_block = validate(&proof_bytes, &public_values_bytes, vk_str)?;
     Ok(valid_block)
 }
 
-pub fn get_state_proof(
-    address: &str,
-    key: &str,
-    height: u64,
-    ethereum_url: &str,
-) -> anyhow::Result<StateProof> {
+pub fn get_state_proof(args: Value) -> anyhow::Result<StateProof> {
+    // Extract parameters from args
+    let address = args["address"]
+        .as_str()
+        .context("Failed to get address from args")?;
+    let key = args["key"]
+        .as_str()
+        .context("Failed to get key from args")?;
+    let height = args["height"]
+        .as_u64()
+        .context("Failed to get height from args")?;
+    let ethereum_url = args["ethereum_url"]
+        .as_str()
+        .context("Failed to get ethereum_url from args")?;
+
     let state_proof_request = json!({
         "method": "POST",
         "url": "http://165.1.70.239:7777/",
