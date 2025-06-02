@@ -65,7 +65,7 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
             "ethereum_url": MAINNET_RPC_URL
         });
         // use the abi call to get the state proof from our ethereum-alpha domain
-        let state_proof = get_state_proof(state_proof_args)?;
+        let state_proof = abi::get_state_proof("ethereum-alpha", &state_proof_args)?;
         ethereum_state_proofs.push(state_proof);
     }
 
@@ -82,13 +82,14 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
             "height": validated_height,
             "ethereum_url": MAINNET_RPC_URL
         });
-        let string_chunk_proof = match get_state_proof(string_chunk_proof_args) {
-            Ok(proof) => proof,
-            Err(_) => {
-                // the proof does not exist, stop reading the string
-                break;
-            }
-        };
+        let string_chunk_proof =
+            match abi::get_state_proof("ethereum-alpha", &string_chunk_proof_args) {
+                Ok(proof) => proof,
+                Err(_) => {
+                    // the proof does not exist, stop reading the string
+                    break;
+                }
+            };
         let simple_proof: EthereumProofType = serde_json::from_slice(&string_chunk_proof.proof)?;
         match simple_proof {
             EthereumProofType::Simple(storage_proof) => {
