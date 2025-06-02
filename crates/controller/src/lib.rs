@@ -37,13 +37,12 @@ const MAINNET_RPC_URL: &str = "https://erigon-tw-rpc.polkachu.com";
 /// * If required fields are missing or invalid
 /// * If Helios proof validation fails
 /// * If state proof retrieval fails
-pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
-    let validated_state_root_hex = args["root"].as_str().unwrap();
-    let validated_state_root = <[u8; 32]>::try_from(hex::decode(validated_state_root_hex).unwrap())
-        .expect("Invalid State Root");
-
-    let validated_height = args["height"].as_u64().unwrap();
-    let validated_state_root = validated_state_root;
+pub fn get_witnesses(_args: Value) -> anyhow::Result<Vec<Witness>> {
+    let block = abi::get_latest_block("ethereum-alpha")?.expect("Failed to get block");
+    //let validated_height = args["height"].as_u64().unwrap();
+    //let validated_state_root = validated_state_root;
+    let validated_height = block.number;
+    let validated_state_root = block.root;
 
     let contract_address = "0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98";
     let keys = Vec::from([

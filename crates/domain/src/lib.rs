@@ -65,11 +65,9 @@ pub fn get_state_proof(args: Value) -> anyhow::Result<StateProof> {
     let key = args["key"]
         .as_str()
         .context("Failed to get key from args")?;
-    /*let height = args["height"]
-    .as_u64()
-    .context("Failed to get height from args")?;*/
-    let block = abi::get_latest_block("ethereum-alpha")?.expect("Failed to get block");
-    let height = block.number;
+    let height = args["height"]
+        .as_u64()
+        .context("Failed to get height from args")?;
     let ethereum_url = args["ethereum_url"]
         .as_str()
         .context("Failed to get ethereum_url from args")?;
