@@ -16,9 +16,9 @@ use valence_clearing_queue::msg::{FunctionMsgs, LibraryConfigUpdate};
 use valence_coprocessor::Witness;
 use valence_library_utils::{msg::ExecuteMsg, LibraryAccountType};
 
-const INITIAL_REDEMPTION_RATE: u128 = 100000000;
+const SCALE_FACTOR: u128 = 100000000;
 const CLEARING_QUEUE_LIBRARY_ADDRESS: &str = "neutron...";
-const SUPERVAULT_LP_TOKEN: &str = "factory...";
+const TOKEN_DENOM: &str = "factory...?";
 
 pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let withdrawal_request_id = witnesses[0].as_data().unwrap();
@@ -34,12 +34,12 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     // Calculate the amounts to be paid out by doing (shares × current_redemption_rate) / initial_redemption_rate
     let withdrawal_request_amount = (withdrawal_request_shares_amount
         * withdrawal_request_redemption_rate)
-        / INITIAL_REDEMPTION_RATE;
+        / SCALE_FACTOR;
 
     let clearing_queue_msg: ExecuteMsg<FunctionMsgs, LibraryConfigUpdate> =
         ExecuteMsg::ProcessFunction(FunctionMsgs::RegisterObligation {
             recipient: withdrawal_request_recipient,
-            payout_coins: coins(withdrawal_request_amount, SUPERVAULT_LP_TOKEN),
+            payout_coins: coins(withdrawal_request_amount, TOKEN_DENOM),
             id: Uint64::from(withdrawal_request_id),
         });
     let processor_msg = ProcessorMessage::CosmwasmExecuteMsg {

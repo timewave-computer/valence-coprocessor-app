@@ -1,12 +1,16 @@
 [package]
-name = "valence-coprocessor-app-controller"
+name              = "valence-coprocessor-app-controller"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
-description = "The Valence co-processor controller definition."
+description       = "The Valence co-processor controller definition."
 
 [dependencies]
-anyhow.workspace = true
-serde_json.workspace = true
-valence-coprocessor.workspace = true
+anyhow.workspace                   = true
+serde_json.workspace               = true
+valence-coprocessor.workspace      = true
 valence-coprocessor-wasm.workspace = true
+alloy-sol-types                    = { version = "0.8.25", default-features = false }
+alloy-primitives                   = { version = "0.8.25", default-features = false }
+ethereum-merkle-proofs             = { package = "ethereum", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false }
+hex                                = { version = "0.4", default-features = false, features = ["alloc"] }
