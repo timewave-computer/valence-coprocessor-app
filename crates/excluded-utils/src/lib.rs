@@ -62,6 +62,7 @@ mod tests {
     }
 
     #[tokio::test]
+    // note that this is using an outdated version of our contract
     async fn test_get_state_proof() -> Result<(), anyhow::Error> {
         let encoded = (1, 9).abi_encode();
         let contract_address = "0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98";
