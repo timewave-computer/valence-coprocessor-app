@@ -93,7 +93,7 @@ echo
 
 # Run the test
 echo "Running production SP1 proving flow test..."
-echo "   This may take 60+ seconds for SP1 proof generation..."
+echo "   This may take 120+ seconds for SP1 proof generation..."
 echo
 
 cd e2e

@@ -30,7 +30,7 @@ pub struct ProductionFlowConfig {
     pub expected_destination: String,
     /// Fee threshold in wei (1.89 USD equivalent)
     pub fee_threshold: u64,
-    /// Timeout for SP1 proof generation (default: 60 seconds)
+    /// Timeout for SP1 proof generation (default: 120 seconds)
     pub proof_timeout: Duration,
 }
 
@@ -42,7 +42,7 @@ impl Default for ProductionFlowConfig {
             controller_id: "2a326a320c2a4269241d2f39a6c8e253ae14b9bccb5e7f141d9d1e4223e485bb".to_string(),
             expected_destination: "cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2".to_string(),
             fee_threshold: 1890000000000000, // 0.00189 LBTC = ~$1.89 USD
-            proof_timeout: Duration::from_secs(60),
+            proof_timeout: Duration::from_secs(120),
         }
     }
 }
