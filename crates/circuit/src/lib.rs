@@ -11,11 +11,13 @@ use common_merkle_proofs::merkle::types::MerkleVerifiable;
 use ethereum_merkle_proofs::merkle_lib::types::EthereumProofType;
 use num_bigint::BigUint;
 use types::{CircuitOutput, CircuitWitness, WithdrawRequest};
-use valence_coprocessor::{StateProof, Witness};
-
 use utils::{storage_key, string_slot_key};
-
+use valence_coprocessor::{StateProof, Witness};
 mod helper;
+
+pub const ADDRESS_SIZE: usize = 20;
+pub const U64_SIZE: usize = 8;
+pub const BOOL_INDEX: usize = 1;
 
 /// Processes witness data to extract and verify withdraw requests from Ethereum state proofs.
 ///
@@ -106,18 +108,20 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
                 storage_key(event_idx, 0)
             );
 
-            let stored_value = storage_proof.get_stored_value();
-
-            is_receiver_contract = stored_value[stored_value.len() - 29] != 0;
+            let mut stored_value = storage_proof.get_stored_value();
+            // drop the first byte because it indicates that we are working with rlp bytes
+            stored_value = stored_value[1..].to_vec();
+            // check if the boolean is true (in which case the receiver is a contract)
+            is_receiver_contract = stored_value[BOOL_INDEX] != 0;
 
             // Extract ID from the last 8 bytes of the stored value
-            let id_bytes = &stored_value[stored_value.len() - 8..];
+            let id_bytes = &stored_value[stored_value.len() - U64_SIZE..];
             id = u64::from_be_bytes(id_bytes.try_into().unwrap());
 
             // Extract owner address from the 20 bytes before the ID
-            // Address is the 20 bytes before the index (last 8 bytes)
-            let address_start = stored_value.len() - 8 - 20;
-            let address_end = stored_value.len() - 8;
+            // Address is the 20 bytes before the index (which itself spans the last 8 bytes)
+            let address_start = stored_value.len() - U64_SIZE - ADDRESS_SIZE;
+            let address_end = stored_value.len() - U64_SIZE;
             owner = Address::from_slice(&stored_value[address_start..address_end]).to_string();
 
             // Verify this proof against the provided state root

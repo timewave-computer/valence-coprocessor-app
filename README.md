@@ -38,7 +38,7 @@ cargo-valence --socket prover.timewave.computer:37281 deploy circuit --controlle
 
 Upon successful deployment, you'll receive a Program ID similar to:
 ```
-5626e512cea47eadb49623c0f1c19f7825e09094959332833075d912e7a4ab48
+98fc5fcaf907e257e65f9c9a3c1b2728b2adde88c9338ff35bea0fdd10daf16d
 ```
 
 > [!NOTE]
@@ -52,7 +52,7 @@ Submit a proof request with JSON arguments:
 cargo-valence --socket prover.timewave.computer:37281 \
   prove -j '{"event_idx":0}' \
   -p /var/share/proof.bin \
-  5626e512cea47eadb49623c0f1c19f7825e09094959332833075d912e7a4ab48
+  98fc5fcaf907e257e65f9c9a3c1b2728b2adde88c9338ff35bea0fdd10daf16d
 ```
 
 Retrieve the generated proof:
@@ -61,7 +61,7 @@ Retrieve the generated proof:
 cargo-valence --socket prover.timewave.computer:37281 \
   storage \
   -p /var/share/proof.bin \
-  5626e512cea47eadb49623c0f1c19f7825e09094959332833075d912e7a4ab48 | jq -r '.data' | base64 -d | jq
+  98fc5fcaf907e257e65f9c9a3c1b2728b2adde88c9338ff35bea0fdd10daf16d | jq -r '.data' | base64 -d | jq
 ```
 
 #### How Proof Generation Works
