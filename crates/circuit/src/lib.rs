@@ -100,10 +100,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
             // the address used in the merkle proof must equal the
             // contract address without 0x prefix and all lowercase
             let should_be_contract_address = storage_proof.get_address();
-            assert_eq!(
-                hex::encode(should_be_contract_address),
-                "0b3b3a2c11d6676816fe214b7f23446d12d762ff"
-            );
+            assert_contract_address(&should_be_contract_address);
             assert_eq!(
                 hex::encode(storage_proof.get_key()),
                 storage_key(event_idx, 0)
@@ -137,10 +134,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
             // the address used in the merkle proof must equal the
             // contract address without 0x prefix and all lowercase
             let should_be_contract_address = storage_proof.get_address();
-            assert_eq!(
-                hex::encode(should_be_contract_address),
-                "0b3b3a2c11d6676816fe214b7f23446d12d762ff"
-            );
+            assert_contract_address(&should_be_contract_address);
             assert_eq!(
                 hex::encode(storage_proof.get_key()),
                 storage_key(event_idx, 1)
@@ -174,10 +168,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
             // the address used in the merkle proof must equal the
             // contract address without 0x prefix and all lowercase
             let should_be_contract_address = storage_proof.get_address();
-            assert_eq!(
-                hex::encode(should_be_contract_address),
-                "0b3b3a2c11d6676816fe214b7f23446d12d762ff"
-            );
+            assert_contract_address(&should_be_contract_address);
             assert_eq!(
                 hex::encode(storage_proof.get_key()),
                 storage_key(event_idx, 2)
@@ -213,10 +204,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
                 // the address used in the merkle proof must equal the
                 // contract address without 0x prefix and all lowercase
                 let should_be_contract_address = storage_proof.get_address();
-                assert_eq!(
-                    hex::encode(should_be_contract_address),
-                    "0b3b3a2c11d6676816fe214b7f23446d12d762ff"
-                );
+                assert_contract_address(&should_be_contract_address);
                 // the key used in this merkle proof
                 // should match the expected key for the string slot
                 let expected_key = string_slot_key(&storage_key(event_idx, 3), idx);
@@ -255,4 +243,11 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
         state_root: input.state_root,
     };
     serde_json::to_vec(&output).expect("Failed to serialize circuit output")
+}
+
+fn assert_contract_address(address: &[u8]) {
+    assert_eq!(
+        hex::encode(address),
+        "0b3b3a2c11d6676816fe214b7f23446d12d762ff"
+    );
 }
