@@ -13,6 +13,7 @@ use valence_coprocessor::StateProof;
 pub struct CircuitWitness {
     /// Vector of state proofs that need to be verified
     pub state_proofs: Vec<StateProof>,
+    /// The event index used to calculate storage slot keys
     pub event_idx: u64,
     /// The Merkle root of the Ethereum state tree that proofs are verified against
     pub state_root: [u8; 32],
