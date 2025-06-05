@@ -1129,7 +1129,6 @@
 
           # Valence Storage - mirrors cargo-valence storage functionality
           valence-storage = pkgs.writeShellScriptBin "valence-storage" ''
-            #!/usr/bin/env bash
             # Retrieve data from Valence coprocessor storage - mirrors cargo-valence storage
             
             set -e
@@ -1552,10 +1551,27 @@
           packages = [
             pkgs.curl
             pkgs.jq
+            rustStableWithWasmTarget  # Add stable Rust for general development
             config.packages.install-cargo-prove
             config.packages.build-wasm
             config.packages.deploy-to-service
             config.packages.full-pipeline
+          ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+            pkgs.libiconv
+            pkgs.darwin.apple_sdk.frameworks.Security
+            pkgs.darwin.apple_sdk.frameworks.CoreFoundation
+          ];
+          
+          # Add environment variables for Darwin
+          env = pkgs.lib.optionals pkgs.stdenv.isDarwin [
+            {
+              name = "MACOSX_DEPLOYMENT_TARGET";
+              value = "11.0";
+            }
+            {
+              name = "LIBRARY_PATH";
+              value = "${pkgs.libiconv}/lib";
+            }
           ];
           
           commands = [
@@ -1599,6 +1615,17 @@
             echo "  build-wasm          - Build the WASM binary"
             echo "  deploy-to-service   - Deploy to the coprocessor service"
             echo "  full-pipeline       - Run complete pipeline (build, deploy, proof)"
+            
+            # Set up Rust environment properly
+            if [ "$(uname -s)" = "Darwin" ]; then
+              export MACOSX_DEPLOYMENT_TARGET=11.0
+              export LIBRARY_PATH="${pkgs.libiconv}/lib"
+            fi
+            
+            # Ensure PRJ_ROOT is available
+            if [ -z "$PRJ_ROOT" ]; then
+              export PRJ_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")"
+            fi
           '';
         };
 
