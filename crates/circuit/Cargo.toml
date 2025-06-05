@@ -7,3 +7,5 @@ description = "The Valence co-processor circuit definition."
 
 [dependencies]
 valence-coprocessor.workspace = true
+alloy-sol-types.workspace = true
+alloy-primitives.workspace = true

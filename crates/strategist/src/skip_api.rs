@@ -2,7 +2,7 @@
 
 use anyhow::{Result, anyhow};
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tracing::{info, warn, error, debug};
 
 use crate::types::{TransferRequest, SkipApiResponse};

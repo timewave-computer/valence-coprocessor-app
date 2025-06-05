@@ -2,13 +2,110 @@
 
 extern crate alloc;
 
-use alloc::{vec, vec::Vec, format};
+use alloc::{vec::Vec, format};
 use valence_coprocessor::Witness;
+use alloy_sol_types::{sol, SolValue};
+use alloy_primitives::{Address, Bytes};
+
+#[cfg(test)]
+use alloc::vec;
+
+// Define Valence contract types using alloy-sol-types
+sol! {
+    /// Duration type for Valence messages
+    enum DurationType {
+        Height,
+        Time
+    }
+
+    /// Duration structure
+    struct Duration {
+        DurationType durationType;
+        uint64 value;
+    }
+
+    /// Retry times type
+    enum RetryTimesType {
+        NoRetry,
+        Indefinitely,
+        Amount
+    }
+
+    /// Retry times structure
+    struct RetryTimes {
+        RetryTimesType retryType;
+        uint64 amount;
+    }
+
+    /// Retry logic structure
+    struct RetryLogic {
+        RetryTimes times;
+        Duration interval;
+    }
+
+    /// Atomic function structure
+    struct AtomicFunction {
+        address contractAddress;
+    }
+
+    /// Atomic subroutine structure
+    struct AtomicSubroutine {
+        AtomicFunction[] functions;
+        RetryLogic retryLogic;
+    }
+
+    /// Subroutine type
+    enum SubroutineType {
+        Atomic,
+        NonAtomic
+    }
+
+    /// Subroutine structure
+    struct Subroutine {
+        SubroutineType subroutineType;
+        bytes subroutine;
+    }
+
+    /// Priority enum
+    enum Priority {
+        Medium,
+        High
+    }
+
+    /// SendMsgs structure
+    struct SendMsgs {
+        uint64 executionId;
+        Priority priority;
+        Subroutine subroutine;
+        uint64 expirationTime;
+        bytes[] messages;
+    }
+
+    /// ProcessorMessage type enum
+    enum ProcessorMessageType {
+        Pause,
+        Resume,
+        EvictMsgs,
+        SendMsgs,
+        InsertMsgs
+    }
+
+    /// ProcessorMessage structure
+    struct ProcessorMessage {
+        ProcessorMessageType messageType;
+        bytes message;
+    }
+
+    /// ZkMessage structure for Valence Authorization
+    struct ZkMessage {
+        uint64 registry;
+        uint64 blockNumber;
+        address authorizationContract;
+        ProcessorMessage processorMessage;
+    }
+}
 
 // Hardcoded constants from Phase 1 discovery
-/// Expected route hash for LBTC IBC Eureka transfers
-const EXPECTED_ROUTE_HASH: &str = "a041afeb1546e275ec0038183732036ce653b197e8129748da95cf6c7de43abf";
-
 /// Expected destination address (cosmos1...)
 const EXPECTED_DESTINATION: &str = "cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2";
 
@@ -17,14 +114,12 @@ const FEE_THRESHOLD_LBTC_WEI: u64 = 1890000000000000;
 
 /// Expected route components for LBTC IBC Eureka
 const EXPECTED_SOURCE_CHAIN: &str = "1";
-const EXPECTED_DEST_CHAIN: &str = "cosmoshub-4";
 const EXPECTED_BRIDGE_ID: &str = "EUREKA";
+/// Expected entry contract address (IBCEurekaTransfer)
 const EXPECTED_ENTRY_CONTRACT: &str = "0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C";
 
-/// Simple hash function for route validation (using sum for now, would use SHA3 in production)
-fn simple_hash(input: &[u8]) -> u64 {
-    input.iter().map(|&b| b as u64).sum()
-}
+/// Registry ID for LBTC transfer messages
+const LBTC_TRANSFER_REGISTRY_ID: u64 = 1001;
 
 /// Validate that route string contains expected components
 fn validate_route_components(route_string: &str) -> bool {
@@ -34,15 +129,86 @@ fn validate_route_components(route_string: &str) -> bool {
     route_string.contains(&format!("entry_contract:{}", EXPECTED_ENTRY_CONTRACT))
 }
 
+/// Generate ZkMessage for Valence Authorization contract
+fn generate_zk_message(fee_amount: u64, block_number: u64) -> ZkMessage {
+    // Create the transfer function call with validated fees and empty memo
+    let transfer_call = alloc::vec![
+        fee_amount.to_be_bytes().to_vec(),  // fees as bytes
+        alloc::vec![]  // empty memo
+    ];
+
+    // Create AtomicFunction for IBCEurekaTransfer
+    let entry_contract_address = EXPECTED_ENTRY_CONTRACT.parse::<Address>()
+        .expect("Invalid entry contract address");
+    
+    let atomic_function = AtomicFunction {
+        contractAddress: entry_contract_address,
+    };
+
+    // Create retry logic with NoRetry for atomic execution
+    let retry_logic = RetryLogic {
+        times: RetryTimes {
+            retryType: RetryTimesType::NoRetry,
+            amount: 0,
+        },
+        interval: Duration {
+            durationType: DurationType::Height,
+            value: 0,
+        },
+    };
+
+    // Create AtomicSubroutine
+    let atomic_subroutine = AtomicSubroutine {
+        functions: alloc::vec![atomic_function],
+        retryLogic: retry_logic,
+    };
+
+    // Encode the atomic subroutine
+    let encoded_subroutine = atomic_subroutine.abi_encode();
+
+    // Create Subroutine wrapper
+    let subroutine = Subroutine {
+        subroutineType: SubroutineType::Atomic,
+        subroutine: Bytes::from(encoded_subroutine),
+    };
+
+    // Create SendMsgs message
+    let send_msgs = SendMsgs {
+        executionId: 1, // Generated execution ID
+        priority: Priority::Medium,
+        subroutine,
+        expirationTime: 0, // No expiration
+        messages: transfer_call.into_iter().map(|call| Bytes::from(call)).collect(),
+    };
+
+    // Encode SendMsgs
+    let encoded_send_msgs = send_msgs.abi_encode();
+
+    // Create ProcessorMessage
+    let processor_message = ProcessorMessage {
+        messageType: ProcessorMessageType::SendMsgs,
+        message: Bytes::from(encoded_send_msgs),
+    };
+
+    // Create final ZkMessage
+    ZkMessage {
+        registry: LBTC_TRANSFER_REGISTRY_ID,
+        blockNumber: block_number,
+        authorizationContract: Address::ZERO, // Valid for any contract
+        processorMessage: processor_message,
+    }
+}
+
 /// Main circuit function for LBTC transfer validation
 pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     // Ensure we have the expected number of witnesses
-    assert_eq!(witnesses.len(), 3, "Expected 3 witnesses: fees, route, destination");
+    assert_eq!(witnesses.len(), 4, "Expected 4 witnesses: fees, route, destination, memo");
 
     // Extract witness data
     let fee_bytes = witnesses[0].as_data().expect("Failed to get fee data");
     let route_bytes = witnesses[1].as_data().expect("Failed to get route data");
     let destination_bytes = witnesses[2].as_data().expect("Failed to get destination data");
+    let memo_bytes = witnesses[3].as_data().expect("Failed to get memo data");
 
     // Parse fee amount (LBTC wei)
     let fee_amount = u64::from_le_bytes(
@@ -58,6 +224,10 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let destination_address = core::str::from_utf8(destination_bytes)
         .expect("Destination data must be valid UTF-8");
 
+    // Parse memo
+    let memo = core::str::from_utf8(memo_bytes)
+        .expect("Memo data must be valid UTF-8");
+
     // Validation 1: Route Components Check
     let route_valid = validate_route_components(route_string);
 
@@ -67,21 +237,36 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     // Validation 3: Fee Threshold Check
     let fees_within_limit = fee_amount <= FEE_THRESHOLD_LBTC_WEI;
 
+    // Validation 4: Memo Validation (must be empty)
+    let memo_valid = memo.is_empty();
+
     // Overall validation result
-    let validation_passed = route_valid && destination_valid && fees_within_limit;
+    let validation_passed = route_valid && destination_valid && fees_within_limit && memo_valid;
 
-    // Generate structured output
-    let validation_result = ValidationResult {
-        validation_passed,
-        route_valid,
-        destination_valid,
-        fees_within_limit,
-        actual_fee_lbtc_wei: fee_amount,
-        fee_threshold_lbtc_wei: FEE_THRESHOLD_LBTC_WEI,
-    };
-
-    // Serialize result (simple format for now)
-    serialize_validation_result(&validation_result)
+    // If all validations pass, generate ZkMessage; otherwise return error
+    if validation_passed {
+        // Generate block number (using execution ID for now, would get from context in production)
+        let block_number = 1u64;
+        
+        // Generate ZkMessage
+        let zk_message = generate_zk_message(fee_amount, block_number);
+        
+        // Return ABI-encoded ZkMessage
+        zk_message.abi_encode()
+    } else {
+        // Return validation result for debugging
+        let validation_result = ValidationResult {
+            validation_passed,
+            route_valid,
+            destination_valid,
+            fees_within_limit,
+            memo_valid,
+            actual_fee_lbtc_wei: fee_amount,
+            fee_threshold_lbtc_wei: FEE_THRESHOLD_LBTC_WEI,
+        };
+        
+        serialize_validation_result(&validation_result)
+    }
 }
 
 /// Validation result structure
@@ -90,6 +275,7 @@ struct ValidationResult {
     route_valid: bool,
     destination_valid: bool,
     fees_within_limit: bool,
+    memo_valid: bool,
     actual_fee_lbtc_wei: u64,
     fee_threshold_lbtc_wei: u64,
 }
@@ -102,7 +288,8 @@ fn serialize_validation_result(result: &ValidationResult) -> Vec<u8> {
     let flags = (result.validation_passed as u8) |
                 ((result.route_valid as u8) << 1) |
                 ((result.destination_valid as u8) << 2) |
-                ((result.fees_within_limit as u8) << 3);
+                ((result.fees_within_limit as u8) << 3) |
+                ((result.memo_valid as u8) << 4);
     
     output.push(flags);
     
@@ -127,15 +314,22 @@ mod tests {
             Witness::Data(fee_amount.to_le_bytes().to_vec()),
             Witness::Data(route_string.as_bytes().to_vec()),
             Witness::Data(destination.as_bytes().to_vec()),
+            Witness::Data(b"".to_vec()),
         ];
 
         let result = circuit(witnesses);
         
-        // Check that validation passed (first bit set)
-        assert_eq!(result[0] & 0x01, 1, "Overall validation should pass");
-        assert_eq!(result[0] & 0x02, 2, "Route validation should pass");
-        assert_eq!(result[0] & 0x04, 4, "Destination validation should pass");
-        assert_eq!(result[0] & 0x08, 8, "Fee validation should pass");
+        // When all validations pass, we should get an ABI-encoded ZkMessage (longer than validation result)
+        assert!(result.len() > 17, "Should return ABI-encoded ZkMessage, not validation result");
+        
+        // Try to decode the ZkMessage to verify it's valid
+        let decoded_result = ZkMessage::abi_decode(&result, false);
+        assert!(decoded_result.is_ok(), "Should be able to decode ZkMessage");
+        
+        let zk_message = decoded_result.unwrap();
+        assert_eq!(zk_message.registry, LBTC_TRANSFER_REGISTRY_ID, "Registry ID should match");
+        assert_eq!(zk_message.blockNumber, 1, "Block number should be 1");
+        assert_eq!(zk_message.authorizationContract, Address::ZERO, "Authorization contract should be zero");
     }
 
     #[test]
@@ -148,6 +342,7 @@ mod tests {
             Witness::Data(fee_amount.to_le_bytes().to_vec()),
             Witness::Data(route_string.as_bytes().to_vec()),
             Witness::Data(destination.as_bytes().to_vec()),
+            Witness::Data(b"".to_vec()),
         ];
 
         let result = circuit(witnesses);
@@ -167,6 +362,7 @@ mod tests {
             Witness::Data(fee_amount.to_le_bytes().to_vec()),
             Witness::Data(route_string.as_bytes().to_vec()),
             Witness::Data(destination.as_bytes().to_vec()),
+            Witness::Data(b"".to_vec()),
         ];
 
         let result = circuit(witnesses);
@@ -186,6 +382,7 @@ mod tests {
             Witness::Data(fee_amount.to_le_bytes().to_vec()),
             Witness::Data(route_string.as_bytes().to_vec()),
             Witness::Data(destination.as_bytes().to_vec()),
+            Witness::Data(b"".to_vec()),
         ];
 
         let result = circuit(witnesses);
@@ -193,5 +390,26 @@ mod tests {
         // Check that validation failed due to wrong destination
         assert_eq!(result[0] & 0x01, 0, "Overall validation should fail");
         assert_eq!(result[0] & 0x04, 0, "Destination validation should fail");
+    }
+
+    #[test]
+    fn test_circuit_non_empty_memo() {
+        let fee_amount = 957u64;
+        let route_string = "source_chain:1|dest_chain:cosmoshub-4|bridge_type:eureka_transfer|bridge_id:EUREKA|entry_contract:0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C";
+        let destination = EXPECTED_DESTINATION;
+        let memo = "unauthorized_memo";
+
+        let witnesses = vec![
+            Witness::Data(fee_amount.to_le_bytes().to_vec()),
+            Witness::Data(route_string.as_bytes().to_vec()),
+            Witness::Data(destination.as_bytes().to_vec()),
+            Witness::Data(memo.as_bytes().to_vec()),
+        ];
+
+        let result = circuit(witnesses);
+        
+        // Check that validation failed due to non-empty memo
+        assert_eq!(result[0] & 0x01, 0, "Overall validation should fail");
+        assert_eq!(result[0] & 0x10, 0, "Memo validation should fail");
     }
 }
