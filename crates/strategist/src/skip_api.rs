@@ -5,15 +5,14 @@ use reqwest::Client;
 use serde::Serialize;
 use tracing::{info, warn, error, debug};
 
+use crate::constants::*;
 use crate::types::{TransferRequest, SkipApiResponse};
-
-/// LBTC contract address on Ethereum
-pub const LBTC_CONTRACT_ADDRESS: &str = "0x8236a87084f8B84306f72007F36F2618A5634494";
 
 /// Skip API client for route and message discovery
 pub struct SkipApiClient {
     client: Client,
     base_url: String,
+    _api_key: Option<String>,
 }
 
 /// Skip API route request
@@ -38,24 +37,39 @@ struct MessagesRequest {
 }
 
 impl SkipApiClient {
-    /// Creates a new Skip API client
-    pub fn new() -> Self {
-        Self {
-            client: Client::new(),
-            base_url: "https://api.skip.build".to_string(),
+    /// Creates a new Skip API client with configuration
+    pub fn new(base_url: &str, api_key: Option<&str>) -> Result<Self> {
+        let mut client_builder = Client::builder();
+        
+        // Add API key to default headers if provided
+        if let Some(key) = api_key {
+            let mut headers = reqwest::header::HeaderMap::new();
+            headers.insert(
+                reqwest::header::HeaderName::from_static("x-api-key"),
+                reqwest::header::HeaderValue::from_str(key)
+                    .map_err(|e| anyhow!("Invalid API key format: {}", e))?,
+            );
+            client_builder = client_builder.default_headers(headers);
         }
+
+        Ok(Self {
+            client: client_builder.build()
+                .map_err(|e| anyhow!("Failed to create HTTP client: {}", e))?,
+            base_url: base_url.to_string(),
+            _api_key: api_key.map(|s| s.to_string()),
+        })
     }
 
-    /// Get messages for LBTC transfer (this is what we'll actually use)
+    /// Get messages for token transfer (this is what we'll actually use)
     pub async fn get_messages(&self, request: &TransferRequest) -> Result<SkipApiResponse> {
-        info!("Requesting Skip API messages for LBTC transfer");
+        info!("Requesting Skip API messages for token transfer");
 
         let messages_request = MessagesRequest {
             amount_in: request.amount.to_string(),
-            source_asset_denom: LBTC_CONTRACT_ADDRESS.to_string(),
-            source_asset_chain_id: "1".to_string(),
-            dest_asset_denom: LBTC_COSMOS_HUB_DENOM.to_string(),
-            dest_asset_chain_id: "cosmoshub-4".to_string(),
+            source_asset_denom: TOKEN_CONTRACT_ADDRESS.to_string(),
+            source_asset_chain_id: EXPECTED_SOURCE_CHAIN.to_string(),
+            dest_asset_denom: TOKEN_COSMOS_HUB_DENOM.to_string(),
+            dest_asset_chain_id: EXPECTED_DEST_CHAIN.to_string(),
             address_list: vec![
                 request.source_address.clone(),
                 request.destination.clone(),
@@ -92,14 +106,14 @@ impl SkipApiClient {
 
     /// Get route information (for discovery/validation purposes)
     pub async fn get_route(&self, request: &TransferRequest) -> Result<SkipApiResponse> {
-        info!("Requesting Skip API route for LBTC transfer");
+        info!("Requesting Skip API route for token transfer");
 
         let route_request = RouteRequest {
             amount_in: request.amount.to_string(),
-            source_asset_denom: LBTC_CONTRACT_ADDRESS.to_string(),
-            source_asset_chain_id: "1".to_string(),
-            dest_asset_denom: LBTC_COSMOS_HUB_DENOM.to_string(),
-            dest_asset_chain_id: "cosmoshub-4".to_string(),
+            source_asset_denom: TOKEN_CONTRACT_ADDRESS.to_string(),
+            source_asset_chain_id: EXPECTED_SOURCE_CHAIN.to_string(),
+            dest_asset_denom: TOKEN_COSMOS_HUB_DENOM.to_string(),
+            dest_asset_chain_id: EXPECTED_DEST_CHAIN.to_string(),
         };
 
         debug!("Route request: {:?}", route_request);
@@ -142,8 +156,8 @@ impl SkipApiClient {
 
         // Check fee threshold
         let total_fees = response.total_fees();
-        if total_fees > FEE_THRESHOLD_LBTC_WEI {
-            warn!("Fees exceed threshold: {} > {}", total_fees, FEE_THRESHOLD_LBTC_WEI);
+        if total_fees > FEE_THRESHOLD_TOKEN_WEI {
+            warn!("Fees exceed threshold: {} > {}", total_fees, FEE_THRESHOLD_TOKEN_WEI);
             return Err(anyhow!("Fees exceed maximum threshold"));
         }
 
@@ -152,19 +166,18 @@ impl SkipApiClient {
     }
 }
 
-// Hardcoded constants for LBTC transfers
-const LBTC_COSMOS_HUB_DENOM: &str = "ibc/DBD9E339E1B093A052D76BECFFDE8435EAC114CF2133346B4D691F3F2068C957";
-const EXPECTED_ROUTE_HASH: &str = "a041afeb1546e275ec0038183732036ce653b197e8129748da95cf6c7de43abf";
-const FEE_THRESHOLD_LBTC_WEI: u64 = 1890000000000000; // 0.0000189 LBTC
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[tokio::test]
     async fn test_skip_api_client_creation() {
-        let client = SkipApiClient::new();
-        assert_eq!(client.base_url, "https://api.skip.build");
+        let client = SkipApiClient::new(SKIP_API_BASE_URL, None).unwrap();
+        assert_eq!(client.base_url, SKIP_API_BASE_URL);
+        assert!(client._api_key.is_none());
+
+        let client_with_key = SkipApiClient::new(SKIP_API_BASE_URL, Some("test-key")).unwrap();
+        assert_eq!(client_with_key._api_key, Some("test-key".to_string()));
     }
 
     // Note: These tests would require network access and valid API responses

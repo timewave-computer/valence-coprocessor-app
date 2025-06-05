@@ -1,38 +1,31 @@
-//! Type definitions for LBTC transfer operations
+//! Type definitions for token transfer operations
 
 use serde::{Deserialize, Serialize};
 use anyhow::{Result, anyhow};
 
-/// Environment configuration
-#[derive(Debug, Clone)]
-pub enum Environment {
-    Local,
-    Production,
-}
-
-/// Transfer request from user
+/// Transfer request for IBC Eureka transfers
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferRequest {
-    /// Amount of LBTC to transfer (in wei)
+    /// Amount of tokens to transfer (in wei)
     pub amount: u64,
-    /// Source Ethereum address
+    /// Source address on Ethereum (0x...)
     pub source_address: String,
-    /// Destination Cosmos Hub address
+    /// Destination address on Cosmos Hub (cosmos1...)
     pub destination: String,
-    /// Maximum acceptable fee (in LBTC wei)
+    /// Maximum acceptable fee (in token wei)
     pub max_fee: Option<u64>,
 }
 
-/// Result of transfer execution
+/// Result of a completed transfer
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferResult {
     /// Ethereum transaction hash
     pub transaction_hash: String,
-    /// ZK proof hash for verification
+    /// Coprocessor proof hash
     pub proof_hash: String,
     /// Estimated transfer duration in seconds
-    pub estimated_duration: u64,
-    /// Total fees paid (in LBTC wei)
+    pub estimated_duration: u32,
+    /// Total fees paid (in token wei)
     pub fees_paid: u64,
 }
 
@@ -75,7 +68,7 @@ pub enum Operation {
     Transfer(TransferOperation),
 }
 
-/// EVM swap operation (LBTC conversion)
+/// EVM swap operation (token conversion)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvmSwapOperation {
     pub input_token: String,
@@ -192,17 +185,17 @@ impl RouteData {
 /// Fee data for ZK circuit validation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FeeData {
-    pub total_fee_lbtc_wei: u64,
+    pub total_fee_token_wei: u64,
     pub fee_breakdown: Vec<Fee>,
 }
 
 impl FeeData {
     /// Extract fee data from Skip API response
     pub fn from_skip_response(response: &SkipApiResponse) -> Result<Self> {
-        let total_fee_lbtc_wei = response.total_fees();
+        let total_fee_token_wei = response.total_fees();
         
         Ok(FeeData {
-            total_fee_lbtc_wei,
+            total_fee_token_wei,
             fee_breakdown: response.estimated_fees.clone(),
         })
     }

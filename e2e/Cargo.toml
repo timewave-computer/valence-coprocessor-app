@@ -1,15 +1,19 @@
 [package]
-name = "strategist"
+name = "e2e"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
+license.workspace = true
 
 [dependencies]
-# HTTP client for Skip API
+# Local crates
+strategist = { path = "../crates/strategist" }
+
+# HTTP client for Skip API and other RPC calls
 reqwest = { version = "0.12", features = ["json"] }
 
 # Async runtime
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1.0", features = ["full", "test-util"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -23,9 +27,15 @@ thiserror = "1.0"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 
+# Testing
+uuid = "1.0"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Ethereum client
+ethers = "2.0"
+
 # Crypto for hashing
 sha3 = "0.10"
-hex = "0.4"
-
-# Environment variables
-dotenvy = "0.15" 
+hex = "0.4" 

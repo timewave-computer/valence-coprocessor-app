@@ -2,13 +2,51 @@
 
 extern crate alloc;
 
-use alloc::{vec::Vec, format};
+use alloc::{vec::Vec, format, string::String};
 use valence_coprocessor::Witness;
 use alloy_sol_types::{sol, SolValue};
 use alloy_primitives::{Address, Bytes};
 
 #[cfg(test)]
 use alloc::vec;
+
+/// Configuration parameters for the token transfer circuit
+#[derive(Debug, Clone)]
+pub struct CircuitConfig {
+    /// Expected destination address for transfers
+    pub expected_destination: String,
+    /// Maximum fee threshold in wei
+    pub fee_threshold: u64,
+    /// Expected source chain ID
+    pub expected_source_chain: String,
+    /// Expected bridge ID
+    pub expected_bridge_id: String,
+    /// Expected entry contract address
+    pub expected_entry_contract: String,
+    /// Token transfer registry ID
+    pub token_transfer_registry_id: u64,
+}
+
+impl CircuitConfig {
+    /// Create a new circuit configuration
+    pub fn new(
+        expected_destination: String,
+        fee_threshold: u64,
+        expected_source_chain: String,
+        expected_bridge_id: String,
+        expected_entry_contract: String,
+        token_transfer_registry_id: u64,
+    ) -> Self {
+        Self {
+            expected_destination,
+            fee_threshold,
+            expected_source_chain,
+            expected_bridge_id,
+            expected_entry_contract,
+            token_transfer_registry_id,
+        }
+    }
+}
 
 // Define Valence contract types using alloy-sol-types
 sol! {
@@ -105,32 +143,16 @@ sol! {
     }
 }
 
-// Hardcoded constants from Phase 1 discovery
-/// Expected destination address (cosmos1...)
-const EXPECTED_DESTINATION: &str = "cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2";
-
-/// Fee threshold in LBTC wei (0.0000189 LBTC = $2.00 equivalent)
-const FEE_THRESHOLD_LBTC_WEI: u64 = 1890000000000000;
-
-/// Expected route components for LBTC IBC Eureka
-const EXPECTED_SOURCE_CHAIN: &str = "1";
-const EXPECTED_BRIDGE_ID: &str = "EUREKA";
-/// Expected entry contract address (IBCEurekaTransfer)
-const EXPECTED_ENTRY_CONTRACT: &str = "0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C";
-
-/// Registry ID for LBTC transfer messages
-const LBTC_TRANSFER_REGISTRY_ID: u64 = 1001;
-
 /// Validate that route string contains expected components
-fn validate_route_components(route_string: &str) -> bool {
-    route_string.contains(&format!("source_chain:{}", EXPECTED_SOURCE_CHAIN)) &&
+fn validate_route_components(route_string: &str, config: &CircuitConfig) -> bool {
+    route_string.contains(&format!("source_chain:{}", config.expected_source_chain)) &&
     route_string.contains("bridge_type:eureka_transfer") &&
-    route_string.contains(&format!("bridge_id:{}", EXPECTED_BRIDGE_ID)) &&
-    route_string.contains(&format!("entry_contract:{}", EXPECTED_ENTRY_CONTRACT))
+    route_string.contains(&format!("bridge_id:{}", config.expected_bridge_id)) &&
+    route_string.contains(&format!("entry_contract:{}", config.expected_entry_contract))
 }
 
 /// Generate ZkMessage for Valence Authorization contract
-fn generate_zk_message(fee_amount: u64, block_number: u64) -> ZkMessage {
+fn generate_zk_message(fee_amount: u64, config: &CircuitConfig) -> ZkMessage {
     // Create the transfer function call with validated fees and empty memo
     let transfer_call = alloc::vec![
         fee_amount.to_be_bytes().to_vec(),  // fees as bytes
@@ -138,7 +160,7 @@ fn generate_zk_message(fee_amount: u64, block_number: u64) -> ZkMessage {
     ];
 
     // Create AtomicFunction for IBCEurekaTransfer
-    let entry_contract_address = EXPECTED_ENTRY_CONTRACT.parse::<Address>()
+    let entry_contract_address = config.expected_entry_contract.parse::<Address>()
         .expect("Invalid entry contract address");
     
     let atomic_function = AtomicFunction {
@@ -178,7 +200,7 @@ fn generate_zk_message(fee_amount: u64, block_number: u64) -> ZkMessage {
         priority: Priority::Medium,
         subroutine,
         expirationTime: 0, // No expiration
-        messages: transfer_call.into_iter().map(|call| Bytes::from(call)).collect(),
+        messages: transfer_call.into_iter().map(Bytes::from).collect(),
     };
 
     // Encode SendMsgs
@@ -192,15 +214,15 @@ fn generate_zk_message(fee_amount: u64, block_number: u64) -> ZkMessage {
 
     // Create final ZkMessage
     ZkMessage {
-        registry: LBTC_TRANSFER_REGISTRY_ID,
-        blockNumber: block_number,
+        registry: config.token_transfer_registry_id,
+        blockNumber: 0, // Constant for now
         authorizationContract: Address::ZERO, // Valid for any contract
         processorMessage: processor_message,
     }
 }
 
-/// Main circuit function for LBTC transfer validation
-pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
+/// Main circuit function for token transfer validation
+pub fn circuit(witnesses: Vec<Witness>, config: &CircuitConfig) -> Vec<u8> {
     // Ensure we have the expected number of witnesses
     assert_eq!(witnesses.len(), 4, "Expected 4 witnesses: fees, route, destination, memo");
 
@@ -210,7 +232,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let destination_bytes = witnesses[2].as_data().expect("Failed to get destination data");
     let memo_bytes = witnesses[3].as_data().expect("Failed to get memo data");
 
-    // Parse fee amount (LBTC wei)
+    // Parse fee amount
     let fee_amount = u64::from_le_bytes(
         <[u8; 8]>::try_from(fee_bytes)
             .expect("Fee data must be exactly 8 bytes")
@@ -229,13 +251,13 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
         .expect("Memo data must be valid UTF-8");
 
     // Validation 1: Route Components Check
-    let route_valid = validate_route_components(route_string);
+    let route_valid = validate_route_components(route_string, config);
 
     // Validation 2: Destination Address Check
-    let destination_valid = destination_address == EXPECTED_DESTINATION;
+    let destination_valid = destination_address == config.expected_destination;
 
     // Validation 3: Fee Threshold Check
-    let fees_within_limit = fee_amount <= FEE_THRESHOLD_LBTC_WEI;
+    let fees_within_limit = fee_amount <= config.fee_threshold;
 
     // Validation 4: Memo Validation (must be empty)
     let memo_valid = memo.is_empty();
@@ -245,11 +267,8 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
 
     // If all validations pass, generate ZkMessage; otherwise return error
     if validation_passed {
-        // Generate block number (using execution ID for now, would get from context in production)
-        let block_number = 1u64;
-        
         // Generate ZkMessage
-        let zk_message = generate_zk_message(fee_amount, block_number);
+        let zk_message = generate_zk_message(fee_amount, config);
         
         // Return ABI-encoded ZkMessage
         zk_message.abi_encode()
@@ -261,8 +280,8 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
             destination_valid,
             fees_within_limit,
             memo_valid,
-            actual_fee_lbtc_wei: fee_amount,
-            fee_threshold_lbtc_wei: FEE_THRESHOLD_LBTC_WEI,
+            actual_fee: fee_amount,
+            fee_threshold: config.fee_threshold,
         };
         
         serialize_validation_result(&validation_result)
@@ -276,8 +295,8 @@ struct ValidationResult {
     destination_valid: bool,
     fees_within_limit: bool,
     memo_valid: bool,
-    actual_fee_lbtc_wei: u64,
-    fee_threshold_lbtc_wei: u64,
+    actual_fee: u64,
+    fee_threshold: u64,
 }
 
 /// Serialize validation result to bytes (simple binary format)
@@ -294,8 +313,8 @@ fn serialize_validation_result(result: &ValidationResult) -> Vec<u8> {
     output.push(flags);
     
     // Add fee amounts
-    output.extend_from_slice(&result.actual_fee_lbtc_wei.to_le_bytes());
-    output.extend_from_slice(&result.fee_threshold_lbtc_wei.to_le_bytes());
+    output.extend_from_slice(&result.actual_fee.to_le_bytes());
+    output.extend_from_slice(&result.fee_threshold.to_le_bytes());
     
     output
 }
@@ -306,9 +325,18 @@ mod tests {
 
     #[test]
     fn test_circuit_valid_transfer() {
+        let config = CircuitConfig::new(
+            String::from("cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2"),
+            1890000000000000,
+            String::from("1"),
+            String::from("EUREKA"),
+            String::from("0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C"),
+            1001,
+        );
+        
         let fee_amount = 957u64; // Valid fee below threshold
         let route_string = "source_chain:1|dest_chain:cosmoshub-4|bridge_type:eureka_transfer|bridge_id:EUREKA|entry_contract:0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C";
-        let destination = EXPECTED_DESTINATION;
+        let destination = &config.expected_destination;
 
         let witnesses = vec![
             Witness::Data(fee_amount.to_le_bytes().to_vec()),
@@ -317,7 +345,7 @@ mod tests {
             Witness::Data(b"".to_vec()),
         ];
 
-        let result = circuit(witnesses);
+        let result = circuit(witnesses, &config);
         
         // When all validations pass, we should get an ABI-encoded ZkMessage (longer than validation result)
         assert!(result.len() > 17, "Should return ABI-encoded ZkMessage, not validation result");
@@ -327,16 +355,25 @@ mod tests {
         assert!(decoded_result.is_ok(), "Should be able to decode ZkMessage");
         
         let zk_message = decoded_result.unwrap();
-        assert_eq!(zk_message.registry, LBTC_TRANSFER_REGISTRY_ID, "Registry ID should match");
-        assert_eq!(zk_message.blockNumber, 1, "Block number should be 1");
+        assert_eq!(zk_message.registry, config.token_transfer_registry_id, "Registry ID should match");
+        assert_eq!(zk_message.blockNumber, 0, "Block number should be 0");
         assert_eq!(zk_message.authorizationContract, Address::ZERO, "Authorization contract should be zero");
     }
 
     #[test]
     fn test_circuit_excessive_fees() {
+        let config = CircuitConfig::new(
+            String::from("cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2"),
+            1890000000000000,
+            String::from("1"),
+            String::from("EUREKA"),
+            String::from("0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C"),
+            1001,
+        );
+        
         let fee_amount = 2000000000000000u64; // Excessive fee above threshold
         let route_string = "source_chain:1|dest_chain:cosmoshub-4|bridge_type:eureka_transfer|bridge_id:EUREKA|entry_contract:0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C";
-        let destination = EXPECTED_DESTINATION;
+        let destination = &config.expected_destination;
 
         let witnesses = vec![
             Witness::Data(fee_amount.to_le_bytes().to_vec()),
@@ -345,7 +382,7 @@ mod tests {
             Witness::Data(b"".to_vec()),
         ];
 
-        let result = circuit(witnesses);
+        let result = circuit(witnesses, &config);
         
         // Check that validation failed due to excessive fees
         assert_eq!(result[0] & 0x01, 0, "Overall validation should fail");
@@ -354,9 +391,18 @@ mod tests {
 
     #[test]
     fn test_circuit_invalid_route() {
+        let config = CircuitConfig::new(
+            String::from("cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2"),
+            1890000000000000,
+            String::from("1"),
+            String::from("EUREKA"),
+            String::from("0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C"),
+            1001,
+        );
+        
         let fee_amount = 957u64;
         let route_string = "source_chain:INVALID|dest_chain:cosmoshub-4|bridge_type:invalid|bridge_id:INVALID";
-        let destination = EXPECTED_DESTINATION;
+        let destination = &config.expected_destination;
 
         let witnesses = vec![
             Witness::Data(fee_amount.to_le_bytes().to_vec()),
@@ -365,7 +411,7 @@ mod tests {
             Witness::Data(b"".to_vec()),
         ];
 
-        let result = circuit(witnesses);
+        let result = circuit(witnesses, &config);
         
         // Check that validation failed due to invalid route
         assert_eq!(result[0] & 0x01, 0, "Overall validation should fail");
@@ -374,6 +420,15 @@ mod tests {
 
     #[test]
     fn test_circuit_wrong_destination() {
+        let config = CircuitConfig::new(
+            String::from("cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2"),
+            1890000000000000,
+            String::from("1"),
+            String::from("EUREKA"),
+            String::from("0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C"),
+            1001,
+        );
+        
         let fee_amount = 957u64;
         let route_string = "source_chain:1|dest_chain:cosmoshub-4|bridge_type:eureka_transfer|bridge_id:EUREKA|entry_contract:0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C";
         let destination = "cosmos1wrongaddress1234567890123456789012345678901234567890";
@@ -385,7 +440,7 @@ mod tests {
             Witness::Data(b"".to_vec()),
         ];
 
-        let result = circuit(witnesses);
+        let result = circuit(witnesses, &config);
         
         // Check that validation failed due to wrong destination
         assert_eq!(result[0] & 0x01, 0, "Overall validation should fail");
@@ -394,9 +449,18 @@ mod tests {
 
     #[test]
     fn test_circuit_non_empty_memo() {
+        let config = CircuitConfig::new(
+            String::from("cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2"),
+            1890000000000000,
+            String::from("1"),
+            String::from("EUREKA"),
+            String::from("0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C"),
+            1001,
+        );
+        
         let fee_amount = 957u64;
         let route_string = "source_chain:1|dest_chain:cosmoshub-4|bridge_type:eureka_transfer|bridge_id:EUREKA|entry_contract:0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C";
-        let destination = EXPECTED_DESTINATION;
+        let destination = &config.expected_destination;
         let memo = "unauthorized_memo";
 
         let witnesses = vec![
@@ -406,7 +470,7 @@ mod tests {
             Witness::Data(memo.as_bytes().to_vec()),
         ];
 
-        let result = circuit(witnesses);
+        let result = circuit(witnesses, &config);
         
         // Check that validation failed due to non-empty memo
         assert_eq!(result[0] & 0x01, 0, "Overall validation should fail");

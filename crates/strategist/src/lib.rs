@@ -1,6 +1,6 @@
-//! LBTC IBC Eureka Transfer Strategist
+//! Token IBC Eureka Transfer Strategist
 //! 
-//! Orchestrates LBTC transfers from Ethereum to Cosmos Hub using:
+//! Orchestrates token transfers from Ethereum to Cosmos Hub using:
 //! - Skip API for route discovery and message construction
 //! - Coprocessor for ZK proof generation and validation
 //! - Ethereum client for transaction submission
@@ -8,16 +8,25 @@
 use anyhow::{Result, anyhow};
 use tracing::{info, warn};
 
+mod constants;
+mod config;
 mod skip_api;
 mod types;
 mod clients;
 
+pub use constants::*;
+pub use config::{StrategistConfig, Environment};
 pub use skip_api::SkipApiClient;
 pub use types::*;
 pub use clients::*;
 
-/// Main strategist for orchestrating LBTC transfers via IBC Eureka
-pub struct LbtcTransferStrategist {
+/// Backward compatibility alias
+pub type LbtcTransferStrategist = TokenTransferStrategist;
+
+/// Main strategist for orchestrating token transfers via IBC Eureka
+pub struct TokenTransferStrategist {
+    /// Configuration loaded from environment
+    _config: StrategistConfig,
     /// Coprocessor client for ZK proof generation
     coprocessor: CoprocessorClient,
     /// Ethereum client for transaction submission
@@ -26,31 +35,67 @@ pub struct LbtcTransferStrategist {
     skip_api: SkipApiClient,
 }
 
-impl LbtcTransferStrategist {
-    /// Creates a new LBTC transfer strategist
-    pub fn new(
-        coprocessor_url: &str,
-        ethereum_rpc_url: &str,
-        mnemonic: &str,
-        environment: Environment,
-    ) -> Result<Self> {
-        info!("Initializing LBTC Transfer Strategist for {:?}", environment);
+impl TokenTransferStrategist {
+    /// Creates a new token transfer strategist from environment configuration
+    pub fn from_env() -> Result<Self> {
+        let config = StrategistConfig::from_env()?;
+        config.validate()?;
+        
+        info!("Initializing Token Transfer Strategist for {:?}", config.environment);
 
-        // Initialize domain clients
-        let coprocessor = CoprocessorClient::new(coprocessor_url)?;
-        let ethereum = EthereumClient::new(ethereum_rpc_url, mnemonic)?;
-        let skip_api = SkipApiClient::new();
+        // Initialize domain clients using configuration
+        let coprocessor = CoprocessorClient::new(&config.coprocessor_url())?;
+        let ethereum = EthereumClient::new(&config.ethereum_rpc_url, &config.mnemonic)?;
+        let skip_api = SkipApiClient::new(&config.skip_api_base_url(), config.skip_api_key.as_deref())?;
 
         Ok(Self {
+            _config: config,
             coprocessor,
             ethereum,
             skip_api,
         })
     }
 
-    /// Executes a complete LBTC transfer flow
+    /// Creates a new token transfer strategist with custom configuration
+    pub fn new(config: StrategistConfig) -> Result<Self> {
+        config.validate()?;
+        
+        info!("Initializing Token Transfer Strategist for {:?}", config.environment);
+
+        // Initialize domain clients using configuration
+        let coprocessor = CoprocessorClient::new(&config.coprocessor_url())?;
+        let ethereum = EthereumClient::new(&config.ethereum_rpc_url, &config.mnemonic)?;
+        let skip_api = SkipApiClient::new(&config.skip_api_base_url(), config.skip_api_key.as_deref())?;
+
+        Ok(Self {
+            _config: config,
+            coprocessor,
+            ethereum,
+            skip_api,
+        })
+    }
+
+    /// Legacy constructor for backward compatibility (deprecated)
+    #[deprecated(note = "Use from_env() or new(config) instead")]
+    pub fn new_legacy(
+        _coprocessor_url: &str,
+        ethereum_rpc_url: &str,
+        mnemonic: &str,
+        environment: Environment,
+    ) -> Result<Self> {
+        let config = StrategistConfig {
+            ethereum_rpc_url: ethereum_rpc_url.to_string(),
+            skip_api_key: None,
+            mnemonic: mnemonic.to_string(),
+            environment,
+        };
+        
+        Self::new(config)
+    }
+
+    /// Executes a complete token transfer flow
     pub async fn execute_transfer(&self, request: TransferRequest) -> Result<TransferResult> {
-        info!("Starting LBTC transfer execution for amount: {}", request.amount);
+        info!("Starting token transfer execution for amount: {}", request.amount);
 
         // Step 1: Get Skip API messages with route and fee information
         let messages = self.skip_api.get_messages(&request).await?;
@@ -68,7 +113,7 @@ impl LbtcTransferStrategist {
         Ok(TransferResult {
             transaction_hash: tx_hash,
             proof_hash: proof.hash,
-            estimated_duration: messages.estimated_route_duration_seconds,
+            estimated_duration: messages.estimated_route_duration_seconds as u32,
             fees_paid: messages.total_fees(),
         })
     }
@@ -87,7 +132,7 @@ impl LbtcTransferStrategist {
             route_data,
             fee_data,
             destination_address: request.destination.clone(),
-            expected_route_hash: HARDCODED_ROUTE_HASH.to_string(),
+            expected_route_hash: EXPECTED_ROUTE_HASH.to_string(),
         })
     }
 
@@ -97,10 +142,10 @@ impl LbtcTransferStrategist {
 
         // Create a test transfer request for a small amount
         let test_request = TransferRequest {
-            amount: 1000, // Small test amount (0.000000000000001 LBTC)
+            amount: 1000, // Small test amount (0.000000000000001 tokens)
             source_address: "0x742d35Cc6634C0532925a3b8F78B86B95a7e0C18".to_string(), // Test address
-            destination: HARDCODED_DESTINATION.to_string(),
-            max_fee: Some(FEE_THRESHOLD_LBTC_WEI),
+            destination: EXPECTED_DESTINATION.to_string(),
+            max_fee: Some(FEE_THRESHOLD_TOKEN_WEI),
         };
 
         // Test route discovery
@@ -121,8 +166,8 @@ impl LbtcTransferStrategist {
         }
 
         let total_fees = messages_response.total_fees();
-        if total_fees > FEE_THRESHOLD_LBTC_WEI {
-            return Err(anyhow!("Real API fees {} exceed threshold {}", total_fees, FEE_THRESHOLD_LBTC_WEI));
+        if total_fees > FEE_THRESHOLD_TOKEN_WEI {
+            return Err(anyhow!("Real API fees {} exceed threshold {}", total_fees, FEE_THRESHOLD_TOKEN_WEI));
         }
 
         info!("✅ Real Skip API integration test passed - fees: {} wei", total_fees);
@@ -155,14 +200,14 @@ impl LbtcTransferStrategist {
             }
         }
 
-        // Test 3: LBTC contract verification
-        info!("Verifying LBTC contract on mainnet");
-        let contract_check = self.ethereum.verify_lbtc_contract().await;
+        // Test 3: Token contract verification
+        info!("Verifying token contract on mainnet");
+        let contract_check = self.ethereum.verify_token_contract().await;
         match contract_check {
-            Ok(_) => info!("✅ LBTC contract verified on mainnet"),
+            Ok(_) => info!("✅ Token contract verified on mainnet"),
             Err(e) => {
-                warn!("⚠️  LBTC contract verification failed: {}", e);
-                return Err(anyhow!("LBTC contract verification failed: {}", e));
+                warn!("⚠️  Token contract verification failed: {}", e);
+                return Err(anyhow!("Token contract verification failed: {}", e));
             }
         }
 
@@ -171,8 +216,8 @@ impl LbtcTransferStrategist {
         let test_request = TransferRequest {
             amount: 1000,
             source_address: "0x742d35Cc6634C0532925a3b8F78B86B95a7e0C18".to_string(),
-            destination: HARDCODED_DESTINATION.to_string(),
-            max_fee: Some(FEE_THRESHOLD_LBTC_WEI),
+            destination: EXPECTED_DESTINATION.to_string(),
+            max_fee: Some(FEE_THRESHOLD_TOKEN_WEI),
         };
 
         // Get Skip API messages for transaction building
@@ -198,12 +243,12 @@ impl LbtcTransferStrategist {
 
         // Test 1: Skip API unavailability simulation
         info!("Testing Skip API unavailability handling");
-        let invalid_skip_client = SkipApiClient::new(); // This would use invalid URL in production
+        let invalid_skip_client = SkipApiClient::new("http://invalid-skip-api:9999", None)?; // This would use invalid URL in production
         let test_request = TransferRequest {
             amount: 1000,
             source_address: "0x742d35Cc6634C0532925a3b8F78B86B95a7e0C18".to_string(),
-            destination: HARDCODED_DESTINATION.to_string(),
-            max_fee: Some(FEE_THRESHOLD_LBTC_WEI),
+            destination: EXPECTED_DESTINATION.to_string(),
+            max_fee: Some(FEE_THRESHOLD_TOKEN_WEI),
         };
 
         // This should fail gracefully when Skip API is unavailable
@@ -246,7 +291,7 @@ impl LbtcTransferStrategist {
         let high_fee_request = TransferRequest {
             amount: 1000,
             source_address: "0x742d35Cc6634C0532925a3b8F78B86B95a7e0C18".to_string(),
-            destination: HARDCODED_DESTINATION.to_string(),
+            destination: EXPECTED_DESTINATION.to_string(),
             max_fee: Some(100), // Very low threshold to trigger failure
         };
 
@@ -262,7 +307,7 @@ impl LbtcTransferStrategist {
             amount: 1000,
             source_address: "invalid_ethereum_address".to_string(),
             destination: "invalid_cosmos_address".to_string(),
-            max_fee: Some(FEE_THRESHOLD_LBTC_WEI),
+            max_fee: Some(FEE_THRESHOLD_TOKEN_WEI),
         };
 
         match self.validate_transfer_request(&invalid_address_request) {
@@ -281,7 +326,7 @@ impl LbtcTransferStrategist {
             return Err(anyhow!("Transfer amount cannot be zero"));
         }
 
-        if request.amount > 1_000_000_000_000_000_000 { // 1 LBTC in wei
+        if request.amount > 1_000_000_000_000_000_000 { // 1 token in wei
             return Err(anyhow!("Transfer amount exceeds maximum limit"));
         }
 
@@ -316,8 +361,8 @@ impl LbtcTransferStrategist {
         let test_request = TransferRequest {
             amount: 1000,
             source_address: "0x742d35Cc6634C0532925a3b8F78B86B95a7e0C18".to_string(),
-            destination: HARDCODED_DESTINATION.to_string(),
-            max_fee: Some(FEE_THRESHOLD_LBTC_WEI),
+            destination: EXPECTED_DESTINATION.to_string(),
+            max_fee: Some(FEE_THRESHOLD_TOKEN_WEI),
         };
 
         // Simulate proof generation with mock data
@@ -413,7 +458,7 @@ impl LbtcTransferStrategist {
         let _proof = self.coprocessor.generate_proof(proof_request).await?;
         
         // Step 3: Transaction building (simulated)
-        let _tx_hash = self.ethereum.build_transaction(&messages).await?;
+        self.ethereum.build_transaction(&messages).await?;
         
         Ok(())
     }
@@ -448,15 +493,6 @@ impl LbtcTransferStrategist {
     }
 }
 
-/// Hardcoded route hash for LBTC Eureka transfers
-const HARDCODED_ROUTE_HASH: &str = "a041afeb1546e275ec0038183732036ce653b197e8129748da95cf6c7de43abf";
-
-/// Hardcoded destination address for testing
-const HARDCODED_DESTINATION: &str = "cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2";
-
-/// Fee threshold in LBTC wei (0.0000189 LBTC = $2.00 equivalent)
-const FEE_THRESHOLD_LBTC_WEI: u64 = 1890000000000000;
-
 #[cfg(test)]
 mod integration_tests {
     use super::*;
@@ -466,12 +502,15 @@ mod integration_tests {
     #[ignore] // Use --ignored to run this test with real API
     async fn test_real_skip_api_integration() {
         // Initialize strategist with test configuration
-        let strategist = LbtcTransferStrategist::new(
-            "http://localhost:3000", // Mock coprocessor URL
-            "http://localhost:8545", // Mock Ethereum URL
-            "test mnemonic phrase", // Mock mnemonic
-            Environment::Local,
-        ).expect("Failed to create strategist");
+        let config = StrategistConfig {
+            ethereum_rpc_url: "http://localhost:8545".to_string(),
+            skip_api_key: None,
+            mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(),
+            environment: Environment::Local,
+        };
+
+        let strategist = TokenTransferStrategist::new(config)
+            .expect("Failed to create strategist");
 
         // Test real Skip API integration
         let result = strategist.validate_real_skip_api().await;
@@ -493,12 +532,15 @@ mod integration_tests {
     #[ignore] // Use --ignored to run production tests
     async fn test_production_environment_connectivity() {
         // Initialize strategist with production configuration
-        let strategist = LbtcTransferStrategist::new(
-            "https://coprocessor.example.com", // Production coprocessor URL
-            "https://eth-mainnet.alchemyapi.io/v2/your-api-key", // Mainnet RPC
-            "test mnemonic phrase", // Mock mnemonic
-            Environment::Production,
-        ).expect("Failed to create strategist");
+        let config = StrategistConfig {
+            ethereum_rpc_url: "https://eth-mainnet.alchemyapi.io/v2/your-api-key".to_string(),
+            skip_api_key: None,
+            mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(),
+            environment: Environment::Mainnet,
+        };
+
+        let strategist = TokenTransferStrategist::new(config)
+            .expect("Failed to create strategist");
 
         // Test production environment
         let result = strategist.test_production_environment().await;
@@ -518,12 +560,15 @@ mod integration_tests {
     #[tokio::test]
     async fn test_comprehensive_error_handling() {
         // Initialize strategist with test configuration
-        let strategist = LbtcTransferStrategist::new(
-            "http://localhost:3000", // Mock coprocessor URL
-            "http://localhost:8545", // Mock Ethereum URL
-            "test mnemonic phrase", // Mock mnemonic
-            Environment::Local,
-        ).expect("Failed to create strategist");
+        let config = StrategistConfig {
+            ethereum_rpc_url: "http://localhost:8545".to_string(),
+            skip_api_key: None,
+            mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(),
+            environment: Environment::Local,
+        };
+
+        let strategist = TokenTransferStrategist::new(config)
+            .expect("Failed to create strategist");
 
         // Test comprehensive error handling
         let result = strategist.test_error_handling().await;
@@ -543,12 +588,15 @@ mod integration_tests {
     #[tokio::test]
     async fn test_performance_validation() {
         // Initialize strategist with test configuration
-        let strategist = LbtcTransferStrategist::new(
-            "http://localhost:3000", // Mock coprocessor URL
-            "http://localhost:8545", // Mock Ethereum URL
-            "test mnemonic phrase", // Mock mnemonic
-            Environment::Local,
-        ).expect("Failed to create strategist");
+        let config = StrategistConfig {
+            ethereum_rpc_url: "http://localhost:8545".to_string(),
+            skip_api_key: None,
+            mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(),
+            environment: Environment::Local,
+        };
+
+        let strategist = TokenTransferStrategist::new(config)
+            .expect("Failed to create strategist");
 
         // Test performance validation
         let result = strategist.validate_performance().await;

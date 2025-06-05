@@ -40,7 +40,7 @@ impl CoprocessorClient {
         
         // Create a simple HTTP client to test connectivity
         let client = reqwest::Client::new();
-        let response = client.get(&format!("{}/health", self.url))
+        let response = client.get(format!("{}/health", self.url))
             .timeout(std::time::Duration::from_secs(10))
             .send()
             .await;
@@ -125,17 +125,17 @@ impl EthereumClient {
         }
     }
 
-    /// Verify LBTC contract exists on mainnet
-    pub async fn verify_lbtc_contract(&self) -> Result<()> {
-        info!("Verifying LBTC contract on Ethereum mainnet");
+    /// Verify token contract exists on mainnet
+    pub async fn verify_token_contract(&self) -> Result<()> {
+        info!("Verifying token contract on Ethereum mainnet");
         
         let client = reqwest::Client::new();
-        let lbtc_address = "0x8236a87084f8B84306f72007F36F2618A5634494";
+        let token_address = "0x8236a87084f8B84306f72007F36F2618A5634494";
         
         let eth_request = serde_json::json!({
             "jsonrpc": "2.0",
             "method": "eth_getCode",
-            "params": [lbtc_address, "latest"],
+            "params": [token_address, "latest"],
             "id": 1
         });
 
@@ -148,13 +148,13 @@ impl EthereumClient {
         let json: serde_json::Value = response.json().await?;
         if let Some(code) = json.get("result").and_then(|v| v.as_str()) {
             if code != "0x" && code.len() > 2 {
-                info!("LBTC contract verified on mainnet");
+                info!("Token contract verified on mainnet");
                 Ok(())
             } else {
-                Err(anyhow!("LBTC contract not found at expected address"))
+                Err(anyhow!("Token contract not found at expected address"))
             }
         } else {
-            Err(anyhow!("Failed to verify LBTC contract"))
+            Err(anyhow!("Failed to verify token contract"))
         }
     }
 

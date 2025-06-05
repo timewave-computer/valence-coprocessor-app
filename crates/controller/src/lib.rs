@@ -22,12 +22,12 @@ fn extract_fee_data(skip_response: &Value) -> anyhow::Result<u64> {
         if let Some(amount_str) = fee["amount"].as_str() {
             if let Ok(amount) = amount_str.parse::<u64>() {
                 total_fees = total_fees.wrapping_add(amount);
-                abi::log!("Found fee: {} LBTC wei", amount)?;
+                abi::log!("Found fee: {} token wei", amount)?;
             }
         }
     }
     
-    abi::log!("Total fees extracted: {} LBTC wei", total_fees)?;
+    abi::log!("Total fees extracted: {} token wei", total_fees)?;
     Ok(total_fees)
 }
 
@@ -74,7 +74,7 @@ fn extract_destination_address(args: &Value) -> anyhow::Result<String> {
 
 pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     abi::log!(
-        "received a proof request with LBTC transfer arguments {}",
+        "received a proof request with token transfer arguments {}",
         serde_json::to_string(&args).unwrap_or_default()
     )?;
 
@@ -84,7 +84,7 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
         return Err(anyhow::anyhow!("No skip_response found in arguments"));
     }
 
-    // Extract fee data (in LBTC wei)
+    // Extract fee data (in token wei)
     let total_fees = extract_fee_data(skip_response)?;
     
     // Extract route data
@@ -98,7 +98,7 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
 
     // Prepare witness data for circuit
     let witnesses = [
-        Witness::Data(total_fees.to_le_bytes().to_vec()),           // Witness 0: Total fees in LBTC wei
+        Witness::Data(total_fees.to_le_bytes().to_vec()),          // Witness 0: Total fees in token wei
         Witness::Data(route_string.as_bytes().to_vec()),           // Witness 1: Route string for hashing
         Witness::Data(destination.as_bytes().to_vec()),            // Witness 2: Destination address
     ].to_vec();
@@ -108,7 +108,7 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
 
 pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
     abi::log!(
-        "received an LBTC transfer entrypoint request with arguments {}",
+        "received a token transfer entrypoint request with arguments {}",
         serde_json::to_string(&args).unwrap_or_default()
     )?;
 
@@ -120,12 +120,11 @@ pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
             
             // Check if this is a validation result
             if let Some(validation_result) = args.get("validation_result") {
-                abi::log!("Storing LBTC transfer validation result to {}", path)?;
+                abi::log!("Storing token transfer validation result to {}", path)?;
                 
                 // Create structured validation response
                 let response = serde_json::json!({
-                    "transfer_type": "LBTC_IBC_EUREKA",
-                    "timestamp": "2025-01-31T00:00:00Z", // Placeholder - in real implementation would use actual time
+                    "transfer_type": "TOKEN_IBC_EUREKA",
                     "validation_result": validation_result,
                     "original_args": args
                 });
@@ -133,7 +132,7 @@ pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
                 let bytes = serde_json::to_vec(&response).unwrap();
                 abi::set_storage_file(&path, &bytes).unwrap();
                 
-                abi::log!("Successfully stored LBTC transfer validation result")?;
+                abi::log!("Successfully stored token transfer validation result")?;
             } else {
                 // Store the raw arguments as before for compatibility
                 abi::log!("Storing raw arguments to {}", path)?;
@@ -143,7 +142,7 @@ pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
         }
         
         "validate" => {
-            abi::log!("Processing LBTC transfer validation request")?;
+            abi::log!("Processing token transfer validation request")?;
             
             // Extract validation inputs
             let fees = args["fees"].as_u64().unwrap_or(0);
@@ -163,8 +162,7 @@ pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
                     "route_valid": route_valid,
                     "destination_valid": destination_valid,
                     "fees_within_limit": fees_within_limit,
-                    "total_fees_lbtc_wei": fees,
-                    "timestamp": "2025-01-31T00:00:00Z"
+                    "total_fees_token_wei": fees
                 });
                 
                 let bytes = serde_json::to_vec(&validation_response).unwrap();
@@ -183,9 +181,9 @@ pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
 }
 
 /// Generate mock Skip API response for testing
-pub fn generate_mock_skip_response(fees_lbtc_wei: u64, use_valid_route: bool) -> Value {
+pub fn generate_mock_skip_response(fees_token_wei: u64, use_valid_route: bool) -> Value {
     let (source_denom, dest_denom, bridge_id, entry_contract) = if use_valid_route {
-        // Valid LBTC Eureka route from Phase 1
+        // Valid token Eureka route from Phase 1
         (
             "0x8236a87084f8B84306f72007F36F2618A5634494",
             "ibc/DBD9E339E1B093A052D76BECFFDE8435EAC114CF2133346B4D691F3F2068C957",
@@ -226,13 +224,13 @@ pub fn generate_mock_skip_response(fees_lbtc_wei: u64, use_valid_route: bool) ->
                 "type": "swap",
                 "chain_id": "ledger-mainnet-1",
                 "denom_in": "ibc/EB19395F41C98C5F53420B7F8A96A02D075F86E5E8B90B88EE0D6C63A32F9040",
-                "denom_out": "lbtc"
+                "denom_out": "token"
             },
             {
                 "type": "transfer",
                 "from_chain_id": "ledger-mainnet-1",
                 "to_chain_id": "cosmoshub-4",
-                "denom_in": "lbtc",
+                "denom_in": "token",
                 "denom_out": dest_denom,
                 "bridge_id": "IBC"
             }
@@ -242,7 +240,7 @@ pub fn generate_mock_skip_response(fees_lbtc_wei: u64, use_valid_route: bool) ->
             {
                 "fee_type": "smart_relay",
                 "bridge_id": bridge_id,
-                "amount": fees_lbtc_wei.to_string(),
+                "amount": fees_token_wei.to_string(),
                 "chain_id": "1"
             }
         ]
