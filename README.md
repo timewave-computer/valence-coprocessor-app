@@ -1,48 +1,53 @@
-# Valence co-processor app template
+# Valence Co-processor App Template
 
-This is a template for a Valence app.
+This repository serves as a template for building Valence applications with Ethereum state proof verification capabilities.
 
-# Example Application with Ethereum state proofs
-This branch contains an example application that verifies Ethereum state proofs 
-for both stored values in Smart Contracts and Account data (e.g. ETH Balance, Nonce) on mainnet.
+## Overview
 
-The purpose of this branch is to provide not just a full Ethereum domain implementation, but also
-a re-usable example template for developers looking to write Valence ZK apps that target Ethereum.
+This example application demonstrates how to verify Ethereum state proofs for:
+- Stored values in Smart Contracts
+- Account data (ETH Balance, Nonce) on mainnet
 
+The template provides a complete Ethereum domain implementation and serves as a reusable foundation for developers building Valence ZK applications that interact with Ethereum.
 
-### Instructions
+## Getting Started
 
-First, start the co-processor. This can take a couple of minutes to compile. You can check the API interface via http://127.0.0.1:37281/
+### Running the Co-processor
+
+Start the co-processor service (compilation may take a few minutes):
 
 ```sh
 cargo run -- coprocessor
 ```
 
-You can check the status of the application via:
+Once running, you can access the API interface at http://127.0.0.1:37281/
+
+Check the application status:
 
 ```sh
 curl http://127.0.0.1:37281/api/stats
 ```
 
-### Deploy
+### Deployment
 
-Initially, we execute the program, which will build the crates located in `./crates/program` and `./crates/circuit`, followed by submitting these built components to the coprocessor. Ultimately, the assigned Program ID will be returned for your reference.
+Deploy your application by building and submitting the program and circuit components to the coprocessor:
 
 ```sh
-cargo-valence --socket prover.timewave.computer:37281   deploy circuit   --controller ./crates/controller   --circuit valence-coprocessor-app-circuit
+cargo-valence --socket prover.timewave.computer:37281 deploy circuit --controller ./crates/controller --circuit valence-coprocessor-app-circuit
 ```
 
-Upon successful deployment, you should observe the generated ID:
-
+Upon successful deployment, you'll receive a Program ID similar to:
 ```
 96d83b2300d83ecc413687e866338a5cb3522a1007460e7c90121c94a5ecb5e6
 ```
 
->[!NOTE]
+> [!NOTE]
 > When updating git dependencies, run `make clean` to ensure all lockfiles are properly updated.
 
+### Generating Proofs
 
-### Prove
+Submit a proof request with JSON arguments:
+
 ```sh
 cargo-valence --socket prover.timewave.computer:37281 \
   prove -j '{"event_idx":0}' \
@@ -50,7 +55,8 @@ cargo-valence --socket prover.timewave.computer:37281 \
   a9ddb689b1fd2d7884cb82f06245c448d65ae3a26895aefb709cbd3e52f65202
 ```
 
-To get the proof:
+Retrieve the generated proof:
+
 ```sh
 cargo-valence --socket prover.timewave.computer:37281 \
   storage \
@@ -58,19 +64,14 @@ cargo-valence --socket prover.timewave.computer:37281 \
   a9ddb689b1fd2d7884cb82f06245c448d65ae3a26895aefb709cbd3e52f65202 | jq -r '.data' | base64 -d | jq
 ```
 
-Example Proof:
+#### How Proof Generation Works
 
-```json
-"proof": "2gFcRWJhZ25TSDBsazFZUjY3ZTlrSzY5Y1NnbXpkTnJkL0tmMllRWDlIdjBZcjc4R0UwSzRnVWpocUsyajJPNzlEOGdMcTdRRjh1N29sOUkyUEFPcFhJdmYwZzcyNEl1ajBmcVpic2NCcmFXYWZFa1VzdW11VVhBTEFFRm5lMTJJVXBzbmN1dVM1aWZMM1phSG43YU9DbUlUVmxKdHhUREg2b2pTRlRnTFJONGkwMDQyUFVEZHl6b0NmT1pZVnRQalpnYm1vTjJPeTh6K1BXTnBiaDl6Y0ozOG9XLytvSUQ2UXN0WlRZTlZRSDQ4Z1lIU28vTDE4aEpCVjR0cW9jRlJ4MlFOUHVzZ3BHcnIwZlJuampPb214NnZERFlKN09zVTFObXMwUDQ3U3k4K3ljaGF1SkpoY2g2REJ6NnVpOUVoQ3IwSFU2N2svNFJndnQvV1dJRTJKSmYxUVplTVE92gQsQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQjdJbmRwZEdoa2NtRjNYM0psY1hWbGMzUnpJanBiZXlKcFpDSTZNQ3dpYjNkdVpYSWlPaUl3ZUdRNVFUSXpZalU0WlRZNE5FSTVPRFZHTmpZeFEyVTNNREExUVVFNFJURXdOak13TVRVd1l6RWlMQ0p5WldSbGJYQjBhVzl1WDNKaGRHVWlPbHN4TURBd01EQXdNREJkTENKemFHRnlaWE5mWVcxdmRXNTBJanBiTVRBd1hTd2ljbVZqWldsMlpYSWlPaUpHNzcrOVJGeDFNREF3TWUrL3ZlKy92ZSsvdlhnbmRlKy92ZSsvdlR4dzc3KzllVngxTURBeFpGeDFNREF4Wm4vdnY3M3Z2NzFjZFRBd01URmQ3Nys5NzcrOVZPKy92ZSsvdmUrL3ZTbnZ2NzNhbXUrL3ZWSXg3Nys5NzcrOVFPKy92ZSsvdmUrL3ZTL3Z2NzFiNzcrOVcrKy92ZFNQYisrL3ZUM3Z2NzN2djcxY2RUQXdNRFR2djczTXFHa2hYSFV3TURBeTc3KzlaM1R2djcxY2REMXhhZSsvdlc1bGRYUnliMjR4Tkcxc2NHUTBPR3MxZG10bGMyVjBOSGczWmpjNGJYbDZSdSsvdlVSY2RUQXdNREh2djczdnY3M3Z2NzE0SjNYdnY3M3Z2NzA4Y08rL3ZYbGNkVEF3TVdSY2RUQXdNV1ovNzcrOTc3KzlYSFV3TURFeFhlKy92ZSsvdlZUdnY3M3Z2NzN2djcwcDc3KzkycHJ2djcxU01lKy92ZSsvdlVEdnY3M3Z2NzN2djcwdjc3KzlXKysvdlZ2dnY3M1VqMi92djcwOTc3Kzk3Nys5WEhVd01EQTA3Nys5ektocElWeDFNREF3TXUrL3ZXZDA3Nys5WEhROWNXbnZ2NzB6YlRRM2FtTmhlRE41YzJwcmNGeDFNREF3TUZ4MU1EQXdNRngxTURBd01GeDFNREF3TUZ4MU1EQXdNRngxTURBd01GeDFNREF3TUZ4MU1EQXdNRngxTURBd01GeDFNREF3TUZ4MU1EQXdNRngxTURBd01GeDFNREF3TUZ4MU1EQXdNRngxTURBd01GeDFNREF3TUZ4MU1EQXdNRngxTURBd01DSjlYU3dpYzNSaGRHVmZjbTl2ZENJNld6WTVMREV3TWl3eU1EQXNNemdzTWpJM0xERXdNeXcxTERFek1Dd3hOVGtzTVRNMUxERTFNQ3d4TVRJc01UZzNMREV5TXl3eE1EY3NNVFUzTERFeU15d3lNRGdzTVRjM0xESXpOeXd4TURBc01UYzVMREUyTkN3eE1ETXNNalF3TERFNE9Td3hNemNzTVRFNExERXpMREU0T1N3NExERTVPRjE5"
-```
+1. The command sends a proof request to the coprocessor's worker nodes
+2. Once the proof is ready, it's delivered to the program's entrypoint
+3. The default implementation writes the proof to the specified path in the program's virtual filesystem
+4. The virtual filesystem uses FAT-16 structure with 3-character file extensions and case-insensitive paths
 
-
-Note that in production we will either use the wasm module on the co-processor to obtain that trusted root, or verify the proof in the circuit.
-The light client proof verification should ideally always happen in a trustless environment.
-
-The command sends a proof request to the coprocessor's worker nodes. Once the proof is ready, it will be delivered to the program's entrypoint. The default implementation will then write the proof to the specified path within the program's virtual filesystem. Note that the virtual filesystem follows a FAT-16 structure, with file extensions limited to 3 characters and case-insensitive paths.
-
-In conclusion, we can retrieve the proof from the virtual filesystem:
+You can also retrieve proofs directly from the virtual filesystem:
 
 ```sh
 cargo run -- storage \
@@ -79,12 +80,14 @@ cargo run -- storage \
   | base64 -d
 ```
 
-You should see the proof that was deployed to the program storage via the entrypoint function:
+### Example Proof Output
+
+The deployed proof will contain structured data like this:
 
 ```json
 {
   "args": {
-    "value": 42
+    "event_idx": 0
   },
   "log": [
     "received a proof request with arguments {\"value\":42}"
@@ -93,40 +96,51 @@ You should see the proof that was deployed to the program storage via the entryp
     "cmd": "store",
     "path": "/var/share/proof.bin"
   },
-  "proof": "AAAAAAAAAAAAAAAAKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACsAAAAAAAAACwAAAAAAAAB2NC4wLjAtcmMuMwA=",
+  "proof": "2gFcRWJhZ25RT2JFYWtzbGRHWjR5YncxVjVTMXZ5RCtPdjlmRVZJVDJRdndXcll5VG9lRE1rUllUUWJUSk9LUnZHY1NLdEhKcUJHYS9OTmVmRW0yVWlDU1QzajVSb3BhZjlEcXRQZndOWCtPNmRlN0VHaUVVTlhKSmdtMGdVYWV4QStXQ1RiRkI1WlB2ZHRWa0wrWERnUm5BWjhTZmRRRDlnajJCT2Y4REFNTlo4UXhIcTFLbGNjTXlnNWZQMW05ckdCZUJNWmd2SW1vN1FKclE2MHFDMGFMTUU4dUNJQnZoU1d3TCs2RVUvU1gzT3BZd2xvZ1ppdC9wK1RRRUQvdkt1UUJZN2tqaVBJY3dWaVBsalJoOEcxUkYrRE9EbkhDWlB3M0ZnRDhyS2ZXUEJiTTh5NkI1YkhJdlA3MU5SUmgxcjA0U0w0dHU2T0pSNEZSNlZLTE5KcVBsZHlLOHM92gIAYmpRTG5QK3plcGljcFVUbXUzZ0tMSGlRSFQrek56aDJoUkdqQmhldm9CMTdJbmRwZEdoa2NtRjNYM0psY1hWbGMzUnpJanBiZXlKcFpDSTZNU3dpYjNkdVpYSWlPaUl3ZUdRNVFUSXpZalU0WlRZNE5FSTVPRFZHTmpZeFEyVTNNREExUVVFNFJURXdOak13TVRVd1l6RWlMQ0p5WldSbGJYQjBhVzl1WDNKaGRHVWlPbHN4TURBd01EQXdNREJkTENKemFHRnlaWE5mWVcxdmRXNTBJanBiTlRCZExDSnlaV05sYVhabGNpSTZJbTVsZFhSeWIyNHhiVEpsYldNNU0yMDVaM0IzWjNOeWMyWXlkbmxzZGpsNGRtZHhhRFkxTkRZek1IWjNaR1p5YUhKcmJYSTFjMnhzZVRVemMzQm5PRFYzZGlKOVhTd2ljM1JoZEdWZmNtOXZkQ0k2V3pRMUxERTNOU3d4TURnc01UY3dMREV5T1N3eU1qQXNNVEk0TERFME9Td3hNRGtzTVRFeUxESTBOeXd4TWpVc016UXNPRGdzTVRFMExETXdMREU1TkN3eE9UQXNNVE16TERFek1Dd3lORFFzTVRnMkxEZzRMREkwTWl3M01Dd3lPQ3c0Tnl3eU16WXNNalEwTERJeU5Dd3lOVEFzTnpKZGZRPT0=",
   "success": true
 }
 ```
 
-### Structure
+> [!NOTE]
+> In production environments, use either the WASM module on the co-processor to obtain trusted roots, or verify proofs within the circuit. Light client proof verification should always occur in a trustless environment.
 
-#### `./crates/circuit`
+## Project Structure
 
-The Valence Zero-Knowledge circuit. It serves as a recipient for witness data (state proofs or data) from the associated program. It carries out assertions based on business logic and outputs a `Vec<u8>`, which is subsequently forwarded to on-chain applications.
+### `./crates/circuit`
+Contains the Valence Zero-Knowledge circuit implementation. This component:
+- Receives witness data (state proofs or data) from the associated program
+- Performs assertions based on business logic
+- Outputs a `Vec<u8>` that is forwarded to on-chain applications
 
-#### `./crates/domain`
+### `./crates/domain` 
+Defines the domain specification. This crate:
+- Generates state proofs from JSON arguments
+- Validates blocks integrated within the coprocessor
 
-A Definition for a domain. This crate will produce state proofs derived from JSON arguments, and validate blocks incorporated within the coprocessor.
+### `./crates/program`
+Houses the main Valence program that:
+- Computes circuit witnesses from provided JSON arguments
+- Features an entrypoint that handles user requests
+- Receives and processes proof computation results from the service
 
-#### `./crates/program`
+## Development Tools
 
-The Valence program. It will be used to compute the circuit witnesses from given JSON arguments. It features an entrypoint that accommodates user requests; it also receives the result of a proof computation by the service.
+### Light Client Testing
 
-### Excluded Utils
-Obtain a light client root and slot from the Co-processor. For testing we can run:
+To test light client functionality and obtain roots and slots from the co-processor:
 
 ```sh
 cd crates/excluded-utils
 cargo test test_get_latest_helios_block -- --nocapture
 ```
 
-Example output, note that it is recommended to obtain a more recent root when testing:
+Example output (use a more recent root for actual testing):
 ```sh
 Validated block root: "ad242daa9f4e7d20187f9122d32a7aa49a3d7bf46ff306b64961e7d21fdd90ee"
 Validated block height: 22616191
 ```
 
-### Requirements
+## Requirements
 
 - Docker
 - Rust
