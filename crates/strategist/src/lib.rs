@@ -20,13 +20,83 @@ pub use skip_api::SkipApiClient;
 pub use types::*;
 pub use clients::*;
 
-/// Backward compatibility alias
-pub type LbtcTransferStrategist = TokenTransferStrategist;
+/// Configuration parameters for token transfer operations
+#[derive(Debug, Clone)]
+pub struct StrategistParams {
+    /// Token contract address on source chain (Ethereum)
+    pub token_contract_address: String,
+    /// Token denomination on destination chain (Cosmos Hub IBC denom)
+    pub token_cosmos_hub_denom: String,
+    /// Expected route hash for validation
+    pub expected_route_hash: String,
+    /// Expected destination address for transfers
+    pub expected_destination: String,
+    /// Maximum fee threshold in token wei
+    pub fee_threshold_token_wei: u64,
+    /// Expected source chain ID
+    pub expected_source_chain: String,
+    /// Expected destination chain ID
+    pub expected_dest_chain: String,
+    /// Expected bridge ID
+    pub expected_bridge_id: String,
+    /// Expected entry contract address
+    pub expected_entry_contract: String,
+    /// Registry ID for token transfer messages
+    pub token_transfer_registry_id: u64,
+}
+
+impl StrategistParams {
+    /// Create a new strategist parameters configuration using a builder pattern
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        token_contract_address: String,
+        token_cosmos_hub_denom: String,
+        expected_route_hash: String,
+        expected_destination: String,
+        fee_threshold_token_wei: u64,
+        expected_source_chain: String,
+        expected_dest_chain: String,
+        expected_bridge_id: String,
+        expected_entry_contract: String,
+        token_transfer_registry_id: u64,
+    ) -> Self {
+        Self {
+            token_contract_address,
+            token_cosmos_hub_denom,
+            expected_route_hash,
+            expected_destination,
+            fee_threshold_token_wei,
+            expected_source_chain,
+            expected_dest_chain,
+            expected_bridge_id,
+            expected_entry_contract,
+            token_transfer_registry_id,
+        }
+    }
+
+    /// Create default parameters using the constants - convenient factory method
+    pub fn from_constants() -> Self {
+        Self::new(
+            TOKEN_CONTRACT_ADDRESS.to_string(),
+            TOKEN_COSMOS_HUB_DENOM.to_string(),
+            EXPECTED_ROUTE_HASH.to_string(),
+            EXPECTED_DESTINATION.to_string(),
+            FEE_THRESHOLD_TOKEN_WEI,
+            EXPECTED_SOURCE_CHAIN.to_string(),
+            EXPECTED_DEST_CHAIN.to_string(),
+            EXPECTED_BRIDGE_ID.to_string(),
+            EXPECTED_ENTRY_CONTRACT.to_string(),
+            TOKEN_TRANSFER_REGISTRY_ID,
+        )
+    }
+}
 
 /// Main strategist for orchestrating token transfers via IBC Eureka
 pub struct TokenTransferStrategist {
     /// Configuration loaded from environment
     _config: StrategistConfig,
+    /// Transfer parameters (token-specific constants)
+    params: StrategistParams,
     /// Coprocessor client for ZK proof generation
     coprocessor: CoprocessorClient,
     /// Ethereum client for transaction submission
@@ -39,6 +109,12 @@ impl TokenTransferStrategist {
     /// Creates a new token transfer strategist from environment configuration
     pub fn from_env() -> Result<Self> {
         let config = StrategistConfig::from_env()?;
+        let params = StrategistParams::from_constants();
+        Self::new_with_params(config, params)
+    }
+
+    /// Creates a new token transfer strategist with custom configuration and parameters
+    pub fn new_with_params(config: StrategistConfig, params: StrategistParams) -> Result<Self> {
         config.validate()?;
         
         info!("Initializing Token Transfer Strategist for {:?}", config.environment);
@@ -46,51 +122,15 @@ impl TokenTransferStrategist {
         // Initialize domain clients using configuration
         let coprocessor = CoprocessorClient::new(&config.coprocessor_url())?;
         let ethereum = EthereumClient::new(&config.ethereum_rpc_url, &config.mnemonic)?;
-        let skip_api = SkipApiClient::new(&config.skip_api_base_url(), config.skip_api_key.as_deref())?;
+        let skip_api = SkipApiClient::new(&config.skip_api_base_url(), config.skip_api_key.as_deref(), &params)?;
 
         Ok(Self {
             _config: config,
+            params,
             coprocessor,
             ethereum,
             skip_api,
         })
-    }
-
-    /// Creates a new token transfer strategist with custom configuration
-    pub fn new(config: StrategistConfig) -> Result<Self> {
-        config.validate()?;
-        
-        info!("Initializing Token Transfer Strategist for {:?}", config.environment);
-
-        // Initialize domain clients using configuration
-        let coprocessor = CoprocessorClient::new(&config.coprocessor_url())?;
-        let ethereum = EthereumClient::new(&config.ethereum_rpc_url, &config.mnemonic)?;
-        let skip_api = SkipApiClient::new(&config.skip_api_base_url(), config.skip_api_key.as_deref())?;
-
-        Ok(Self {
-            _config: config,
-            coprocessor,
-            ethereum,
-            skip_api,
-        })
-    }
-
-    /// Legacy constructor for backward compatibility (deprecated)
-    #[deprecated(note = "Use from_env() or new(config) instead")]
-    pub fn new_legacy(
-        _coprocessor_url: &str,
-        ethereum_rpc_url: &str,
-        mnemonic: &str,
-        environment: Environment,
-    ) -> Result<Self> {
-        let config = StrategistConfig {
-            ethereum_rpc_url: ethereum_rpc_url.to_string(),
-            skip_api_key: None,
-            mnemonic: mnemonic.to_string(),
-            environment,
-        };
-        
-        Self::new(config)
     }
 
     /// Executes a complete token transfer flow
@@ -132,7 +172,7 @@ impl TokenTransferStrategist {
             route_data,
             fee_data,
             destination_address: request.destination.clone(),
-            expected_route_hash: EXPECTED_ROUTE_HASH.to_string(),
+            expected_route_hash: self.params.expected_route_hash.clone(),
         })
     }
 
@@ -144,8 +184,8 @@ impl TokenTransferStrategist {
         let test_request = TransferRequest {
             amount: 1000, // Small test amount (0.000000000000001 tokens)
             source_address: "0x742d35Cc6634C0532925a3b8F78B86B95a7e0C18".to_string(), // Test address
-            destination: EXPECTED_DESTINATION.to_string(),
-            max_fee: Some(FEE_THRESHOLD_TOKEN_WEI),
+            destination: self.params.expected_destination.clone(),
+            max_fee: Some(self.params.fee_threshold_token_wei),
         };
 
         // Test route discovery
@@ -166,8 +206,8 @@ impl TokenTransferStrategist {
         }
 
         let total_fees = messages_response.total_fees();
-        if total_fees > FEE_THRESHOLD_TOKEN_WEI {
-            return Err(anyhow!("Real API fees {} exceed threshold {}", total_fees, FEE_THRESHOLD_TOKEN_WEI));
+        if total_fees > self.params.fee_threshold_token_wei {
+            return Err(anyhow!("Real API fees {} exceed threshold {}", total_fees, self.params.fee_threshold_token_wei));
         }
 
         info!("✅ Real Skip API integration test passed - fees: {} wei", total_fees);
@@ -216,8 +256,8 @@ impl TokenTransferStrategist {
         let test_request = TransferRequest {
             amount: 1000,
             source_address: "0x742d35Cc6634C0532925a3b8F78B86B95a7e0C18".to_string(),
-            destination: EXPECTED_DESTINATION.to_string(),
-            max_fee: Some(FEE_THRESHOLD_TOKEN_WEI),
+            destination: self.params.expected_destination.to_string(),
+            max_fee: Some(self.params.fee_threshold_token_wei),
         };
 
         // Get Skip API messages for transaction building
@@ -243,12 +283,24 @@ impl TokenTransferStrategist {
 
         // Test 1: Skip API unavailability simulation
         info!("Testing Skip API unavailability handling");
-        let invalid_skip_client = SkipApiClient::new("http://invalid-skip-api:9999", None)?; // This would use invalid URL in production
+        let test_params = StrategistParams::new(
+            TOKEN_CONTRACT_ADDRESS.to_string(),
+            TOKEN_COSMOS_HUB_DENOM.to_string(),
+            EXPECTED_ROUTE_HASH.to_string(),
+            EXPECTED_DESTINATION.to_string(),
+            FEE_THRESHOLD_TOKEN_WEI,
+            EXPECTED_SOURCE_CHAIN.to_string(),
+            EXPECTED_DEST_CHAIN.to_string(),
+            EXPECTED_BRIDGE_ID.to_string(),
+            EXPECTED_ENTRY_CONTRACT.to_string(),
+            TOKEN_TRANSFER_REGISTRY_ID,
+        );
+        let invalid_skip_client = SkipApiClient::new("http://invalid-skip-api:9999", None, &test_params)?; // This would use invalid URL in production
         let test_request = TransferRequest {
             amount: 1000,
             source_address: "0x742d35Cc6634C0532925a3b8F78B86B95a7e0C18".to_string(),
-            destination: EXPECTED_DESTINATION.to_string(),
-            max_fee: Some(FEE_THRESHOLD_TOKEN_WEI),
+            destination: self.params.expected_destination.to_string(),
+            max_fee: Some(self.params.fee_threshold_token_wei),
         };
 
         // This should fail gracefully when Skip API is unavailable
@@ -291,7 +343,7 @@ impl TokenTransferStrategist {
         let high_fee_request = TransferRequest {
             amount: 1000,
             source_address: "0x742d35Cc6634C0532925a3b8F78B86B95a7e0C18".to_string(),
-            destination: EXPECTED_DESTINATION.to_string(),
+            destination: self.params.expected_destination.to_string(),
             max_fee: Some(100), // Very low threshold to trigger failure
         };
 
@@ -307,7 +359,7 @@ impl TokenTransferStrategist {
             amount: 1000,
             source_address: "invalid_ethereum_address".to_string(),
             destination: "invalid_cosmos_address".to_string(),
-            max_fee: Some(FEE_THRESHOLD_TOKEN_WEI),
+            max_fee: Some(self.params.fee_threshold_token_wei),
         };
 
         match self.validate_transfer_request(&invalid_address_request) {
@@ -361,8 +413,8 @@ impl TokenTransferStrategist {
         let test_request = TransferRequest {
             amount: 1000,
             source_address: "0x742d35Cc6634C0532925a3b8F78B86B95a7e0C18".to_string(),
-            destination: EXPECTED_DESTINATION.to_string(),
-            max_fee: Some(FEE_THRESHOLD_TOKEN_WEI),
+            destination: self.params.expected_destination.to_string(),
+            max_fee: Some(self.params.fee_threshold_token_wei),
         };
 
         // Simulate proof generation with mock data
@@ -470,12 +522,12 @@ impl TokenTransferStrategist {
         SkipApiResponse {
             operations: vec![
                 Operation::EurekaTransfer(EurekaTransferOperation {
-                    from_chain_id: "1".to_string(),
-                    to_chain_id: "cosmoshub-4".to_string(),
-                    denom_in: "0x8236a87084f8B84306f72007F36F2618A5634494".to_string(),
-                    denom_out: "ibc/DBD9E339E1B093A052D76BECFFDE8435EAC114CF2133346B4D691F3F2068C957".to_string(),
-                    bridge_id: "EUREKA".to_string(),
-                    entry_contract_address: "0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C".to_string(),
+                    from_chain_id: self.params.expected_source_chain.clone(),
+                    to_chain_id: self.params.expected_dest_chain.clone(),
+                    denom_in: self.params.token_contract_address.clone(),
+                    denom_out: self.params.token_cosmos_hub_denom.clone(),
+                    bridge_id: self.params.expected_bridge_id.clone(),
+                    entry_contract_address: self.params.expected_entry_contract.clone(),
                     smart_relay: false,
                     smart_relay_fee_quote: None,
                 })
@@ -484,9 +536,9 @@ impl TokenTransferStrategist {
             estimated_fees: vec![
                 Fee {
                     fee_type: "eureka_relay".to_string(),
-                    bridge_id: Some("EUREKA".to_string()),
+                    bridge_id: Some(self.params.expected_bridge_id.clone()),
                     amount: "957".to_string(), // Below threshold
-                    chain_id: "1".to_string(),
+                    chain_id: self.params.expected_source_chain.clone(),
                 }
             ],
         }
@@ -501,15 +553,8 @@ mod integration_tests {
     #[tokio::test]
     #[ignore] // Use --ignored to run this test with real API
     async fn test_real_skip_api_integration() {
-        // Initialize strategist with test configuration
-        let config = StrategistConfig {
-            ethereum_rpc_url: "http://localhost:8545".to_string(),
-            skip_api_key: None,
-            mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(),
-            environment: Environment::Local,
-        };
-
-        let strategist = TokenTransferStrategist::new(config)
+        // Initialize strategist with environment configuration
+        let strategist = TokenTransferStrategist::from_env()
             .expect("Failed to create strategist");
 
         // Test real Skip API integration
@@ -531,15 +576,8 @@ mod integration_tests {
     #[tokio::test]
     #[ignore] // Use --ignored to run production tests
     async fn test_production_environment_connectivity() {
-        // Initialize strategist with production configuration
-        let config = StrategistConfig {
-            ethereum_rpc_url: "https://eth-mainnet.alchemyapi.io/v2/your-api-key".to_string(),
-            skip_api_key: None,
-            mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(),
-            environment: Environment::Mainnet,
-        };
-
-        let strategist = TokenTransferStrategist::new(config)
+        // Initialize strategist with environment configuration (mainnet requires proper RPC setup)
+        let strategist = TokenTransferStrategist::from_env()
             .expect("Failed to create strategist");
 
         // Test production environment
@@ -559,15 +597,8 @@ mod integration_tests {
 
     #[tokio::test]
     async fn test_comprehensive_error_handling() {
-        // Initialize strategist with test configuration
-        let config = StrategistConfig {
-            ethereum_rpc_url: "http://localhost:8545".to_string(),
-            skip_api_key: None,
-            mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(),
-            environment: Environment::Local,
-        };
-
-        let strategist = TokenTransferStrategist::new(config)
+        // Initialize strategist with environment configuration
+        let strategist = TokenTransferStrategist::from_env()
             .expect("Failed to create strategist");
 
         // Test comprehensive error handling
@@ -587,15 +618,8 @@ mod integration_tests {
 
     #[tokio::test]
     async fn test_performance_validation() {
-        // Initialize strategist with test configuration
-        let config = StrategistConfig {
-            ethereum_rpc_url: "http://localhost:8545".to_string(),
-            skip_api_key: None,
-            mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(),
-            environment: Environment::Local,
-        };
-
-        let strategist = TokenTransferStrategist::new(config)
+        // Initialize strategist with environment configuration
+        let strategist = TokenTransferStrategist::from_env()
             .expect("Failed to create strategist");
 
         // Test performance validation

@@ -62,11 +62,11 @@ pub fn calculate_fee_percentage(transfer_amount: u64, fee_amount: u64) -> f64 {
 /// Validate that fee is within acceptable range
 pub fn validate_fee_amount(fee_amount: u64, transfer_amount: u64) -> Result<()> {
     // Check absolute fee threshold
-    if fee_amount > FEE_THRESHOLD_LBTC_WEI {
+    if fee_amount > FEE_THRESHOLD_TOKEN_WEI {
         return Err(anyhow::anyhow!(
             "Fee {} wei exceeds threshold {} wei", 
             fee_amount, 
-            FEE_THRESHOLD_LBTC_WEI
+            FEE_THRESHOLD_TOKEN_WEI
         ));
     }
     
@@ -89,7 +89,7 @@ pub fn create_test_transfer_request(amount: u64) -> serde_json::Value {
         "amount": amount.to_string(),
         "source_address": generate_test_address(),
         "destination": EXPECTED_DESTINATION,
-        "max_fee_lbtc_wei": FEE_THRESHOLD_LBTC_WEI
+        "max_fee_token_wei": FEE_THRESHOLD_TOKEN_WEI
     })
 }
 
@@ -193,8 +193,8 @@ impl RouteComponents {
             return Err(anyhow::anyhow!("Expected source denom {}, got {}", TOKEN_CONTRACT_ADDRESS, self.denom_in));
         }
         
-        if self.denom_out != LBTC_COSMOS_HUB_DENOM {
-            return Err(anyhow::anyhow!("Expected dest denom {}, got {}", LBTC_COSMOS_HUB_DENOM, self.denom_out));
+        if self.denom_out != TOKEN_COSMOS_HUB_DENOM {
+            return Err(anyhow::anyhow!("Expected dest denom {}, got {}", TOKEN_COSMOS_HUB_DENOM, self.denom_out));
         }
         
         info!("Route components validation passed");

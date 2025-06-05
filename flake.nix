@@ -168,12 +168,12 @@
               # Use the Rust with WASM target to build the WASM binary
               export HOME=$TMPDIR
               export RUSTFLAGS="--cfg=web_sys_unstable_apis"
-              ${rustWithWasmTarget}/bin/cargo build --target wasm32-unknown-unknown --release -p valence-coprocessor-app-program
+              ${rustWithWasmTarget}/bin/cargo build --target wasm32-unknown-unknown --release -p valence-coprocessor-app-controller
             '';
             
             installPhase = ''
               mkdir -p $out
-              cp target/wasm32-unknown-unknown/release/valence_coprocessor_app_program.wasm $out/valence_coprocessor_app_lib.wasm
+              cp target/wasm32-unknown-unknown/release/valence_coprocessor_app_controller.wasm $out/valence_coprocessor_app_lib.wasm
             '';
           };
 
@@ -276,16 +276,16 @@
             echo "Target release directory before build: $PRJ_ROOT/target/wasm32-unknown-unknown/release/"
             ls -la "$PRJ_ROOT/target/wasm32-unknown-unknown/release/" 2>/dev/null || echo "Release directory does not exist yet or is empty."
 
-            nix develop .#wasm-shell -c bash -c 'export RUSTFLAGS="--cfg=web_sys_unstable_apis"; echo "Inside nix develop (wasm-shell): Building valence-coprocessor-app-program..."; pwd; cargo build --target wasm32-unknown-unknown --release -p valence-coprocessor-app-program -v; echo "WASM Build command finished. Checking output..."; ls -la target/wasm32-unknown-unknown/release/;'
+            nix develop .#wasm-shell -c bash -c 'export RUSTFLAGS="--cfg=web_sys_unstable_apis"; echo "Inside nix develop (wasm-shell): Building valence-coprocessor-app-controller..."; pwd; cargo build --target wasm32-unknown-unknown --release -p valence-coprocessor-app-controller -v; echo "WASM Build command finished. Checking output..."; ls -la target/wasm32-unknown-unknown/release/;'
 
             echo "WASM Build process completed. Checking for WASM file..."
-            echo "Expected WASM file location: $PRJ_ROOT/target/wasm32-unknown-unknown/release/valence_coprocessor_app_program.wasm"
+            echo "Expected WASM file location: $PRJ_ROOT/target/wasm32-unknown-unknown/release/valence_coprocessor_app_controller.wasm"
             ls -la "$PRJ_ROOT/target/wasm32-unknown-unknown/release/" 2>/dev/null || echo "Release directory does not exist or is empty after build."
 
             # Copy the WASM to the expected location if it was built
-            if [ -f "$PRJ_ROOT/target/wasm32-unknown-unknown/release/valence_coprocessor_app_program.wasm" ]; then
+            if [ -f "$PRJ_ROOT/target/wasm32-unknown-unknown/release/valence_coprocessor_app_controller.wasm" ]; then
               echo "Copying WASM binary to optimized directory..."
-              cp "$PRJ_ROOT/target/wasm32-unknown-unknown/release/valence_coprocessor_app_program.wasm" "$PRJ_ROOT/target/wasm32-unknown-unknown/optimized/valence_coprocessor_app_lib.wasm"
+              cp "$PRJ_ROOT/target/wasm32-unknown-unknown/release/valence_coprocessor_app_controller.wasm" "$PRJ_ROOT/target/wasm32-unknown-unknown/optimized/valence_coprocessor_app_lib.wasm"
               echo "Copied to: $PRJ_ROOT/target/wasm32-unknown-unknown/optimized/valence_coprocessor_app_lib.wasm"
               ls -la "$PRJ_ROOT/target/wasm32-unknown-unknown/optimized/"
             else
@@ -1388,6 +1388,10 @@
             {
               name = "LIBRARY_PATH";
               value = "${pkgs.libiconv}/lib";
+            }
+            {
+              name = "MACOSX_DEPLOYMENT_TARGET";
+              value = "11.0";
             }
           ];
           

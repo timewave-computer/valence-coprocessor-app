@@ -37,7 +37,7 @@ impl E2ESkipApiClient {
             "amount_in": amount.to_string(),
             "source_asset_denom": TOKEN_CONTRACT_ADDRESS,
             "source_asset_chain_id": EXPECTED_SOURCE_CHAIN,
-            "dest_asset_denom": LBTC_COSMOS_HUB_DENOM,
+            "dest_asset_denom": TOKEN_COSMOS_HUB_DENOM,
             "dest_asset_chain_id": EXPECTED_DEST_CHAIN
         });
 
@@ -68,7 +68,7 @@ impl E2ESkipApiClient {
             "amount_in": amount.to_string(),
             "source_asset_denom": TOKEN_CONTRACT_ADDRESS,
             "source_asset_chain_id": EXPECTED_SOURCE_CHAIN,
-            "dest_asset_denom": LBTC_COSMOS_HUB_DENOM,
+            "dest_asset_denom": TOKEN_COSMOS_HUB_DENOM,
             "dest_asset_chain_id": EXPECTED_DEST_CHAIN,
             "address_list": [source_address, EXPECTED_DESTINATION]
         });

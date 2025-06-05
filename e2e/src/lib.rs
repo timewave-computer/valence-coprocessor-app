@@ -187,8 +187,8 @@ pub fn validate_constants() -> Result<()> {
     }
 
     // Validate fee threshold is reasonable (not zero, not too high)
-    if FEE_THRESHOLD_LBTC_WEI == 0 || FEE_THRESHOLD_LBTC_WEI > 10_000_000_000_000_000 {
-        return Err(anyhow::anyhow!("Invalid fee threshold: {}", FEE_THRESHOLD_LBTC_WEI));
+    if FEE_THRESHOLD_TOKEN_WEI == 0 || FEE_THRESHOLD_TOKEN_WEI > 10_000_000_000_000_000 {
+        return Err(anyhow::anyhow!("Invalid fee threshold: {}", FEE_THRESHOLD_TOKEN_WEI));
     }
 
     // Validate route hash format (should be hex string)

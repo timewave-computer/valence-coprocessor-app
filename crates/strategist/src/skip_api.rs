@@ -5,14 +5,15 @@ use reqwest::Client;
 use serde::Serialize;
 use tracing::{info, warn, error, debug};
 
-use crate::constants::*;
 use crate::types::{TransferRequest, SkipApiResponse};
+use crate::StrategistParams;
 
 /// Skip API client for route and message discovery
 pub struct SkipApiClient {
     client: Client,
     base_url: String,
     _api_key: Option<String>,
+    params: StrategistParams,
 }
 
 /// Skip API route request
@@ -37,8 +38,8 @@ struct MessagesRequest {
 }
 
 impl SkipApiClient {
-    /// Creates a new Skip API client with configuration
-    pub fn new(base_url: &str, api_key: Option<&str>) -> Result<Self> {
+    /// Creates a new Skip API client with configuration and parameters
+    pub fn new(base_url: &str, api_key: Option<&str>, params: &StrategistParams) -> Result<Self> {
         let mut client_builder = Client::builder();
         
         // Add API key to default headers if provided
@@ -57,6 +58,7 @@ impl SkipApiClient {
                 .map_err(|e| anyhow!("Failed to create HTTP client: {}", e))?,
             base_url: base_url.to_string(),
             _api_key: api_key.map(|s| s.to_string()),
+            params: params.clone(),
         })
     }
 
@@ -66,10 +68,10 @@ impl SkipApiClient {
 
         let messages_request = MessagesRequest {
             amount_in: request.amount.to_string(),
-            source_asset_denom: TOKEN_CONTRACT_ADDRESS.to_string(),
-            source_asset_chain_id: EXPECTED_SOURCE_CHAIN.to_string(),
-            dest_asset_denom: TOKEN_COSMOS_HUB_DENOM.to_string(),
-            dest_asset_chain_id: EXPECTED_DEST_CHAIN.to_string(),
+            source_asset_denom: self.params.token_contract_address.clone(),
+            source_asset_chain_id: self.params.expected_source_chain.clone(),
+            dest_asset_denom: self.params.token_cosmos_hub_denom.clone(),
+            dest_asset_chain_id: self.params.expected_dest_chain.clone(),
             address_list: vec![
                 request.source_address.clone(),
                 request.destination.clone(),
@@ -110,10 +112,10 @@ impl SkipApiClient {
 
         let route_request = RouteRequest {
             amount_in: request.amount.to_string(),
-            source_asset_denom: TOKEN_CONTRACT_ADDRESS.to_string(),
-            source_asset_chain_id: EXPECTED_SOURCE_CHAIN.to_string(),
-            dest_asset_denom: TOKEN_COSMOS_HUB_DENOM.to_string(),
-            dest_asset_chain_id: EXPECTED_DEST_CHAIN.to_string(),
+            source_asset_denom: self.params.token_contract_address.clone(),
+            source_asset_chain_id: self.params.expected_source_chain.clone(),
+            dest_asset_denom: self.params.token_cosmos_hub_denom.clone(),
+            dest_asset_chain_id: self.params.expected_dest_chain.clone(),
         };
 
         debug!("Route request: {:?}", route_request);
@@ -138,7 +140,7 @@ impl SkipApiClient {
         Ok(route)
     }
 
-    /// Validate that a route matches our hardcoded expectations
+    /// Validate that a route matches our configured expectations
     pub fn validate_route(&self, response: &SkipApiResponse) -> Result<()> {
         // Check for eureka_transfer operation
         if !response.has_eureka_transfer() {
@@ -149,15 +151,15 @@ impl SkipApiClient {
         let route_data = crate::types::RouteData::from_skip_response(response)?;
         let calculated_hash = route_data.generate_hash();
         
-        if calculated_hash != EXPECTED_ROUTE_HASH {
-            warn!("Route hash mismatch: expected {}, got {}", EXPECTED_ROUTE_HASH, calculated_hash);
+        if calculated_hash != self.params.expected_route_hash {
+            warn!("Route hash mismatch: expected {}, got {}", self.params.expected_route_hash, calculated_hash);
             return Err(anyhow!("Route hash validation failed"));
         }
 
         // Check fee threshold
         let total_fees = response.total_fees();
-        if total_fees > FEE_THRESHOLD_TOKEN_WEI {
-            warn!("Fees exceed threshold: {} > {}", total_fees, FEE_THRESHOLD_TOKEN_WEI);
+        if total_fees > self.params.fee_threshold_token_wei {
+            warn!("Fees exceed threshold: {} > {}", total_fees, self.params.fee_threshold_token_wei);
             return Err(anyhow!("Fees exceed maximum threshold"));
         }
 
@@ -172,11 +174,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_skip_api_client_creation() {
-        let client = SkipApiClient::new(SKIP_API_BASE_URL, None).unwrap();
-        assert_eq!(client.base_url, SKIP_API_BASE_URL);
+        let params = StrategistParams::from_constants();
+        
+        let client = SkipApiClient::new("https://api.skip.build", None, &params).unwrap();
+        assert_eq!(client.base_url, "https://api.skip.build");
         assert!(client._api_key.is_none());
 
-        let client_with_key = SkipApiClient::new(SKIP_API_BASE_URL, Some("test-key")).unwrap();
+        let client_with_key = SkipApiClient::new("https://api.skip.build", Some("test-key"), &params).unwrap();
         assert_eq!(client_with_key._api_key, Some("test-key".to_string()));
     }
 

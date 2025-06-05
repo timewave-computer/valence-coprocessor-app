@@ -88,7 +88,7 @@ impl E2ETestSuite {
             "amount_in": "1000000000000000", // 0.001 LBTC
             "source_asset_denom": TOKEN_CONTRACT_ADDRESS,
             "source_asset_chain_id": EXPECTED_SOURCE_CHAIN,
-            "dest_asset_denom": LBTC_COSMOS_HUB_DENOM,
+            "dest_asset_denom": TOKEN_COSMOS_HUB_DENOM,
             "dest_asset_chain_id": EXPECTED_DEST_CHAIN
         });
 
@@ -140,7 +140,7 @@ impl E2ETestSuite {
             "amount_in": "1000000000000000", // 0.001 LBTC  
             "source_asset_denom": TOKEN_CONTRACT_ADDRESS,
             "source_asset_chain_id": EXPECTED_SOURCE_CHAIN,
-            "dest_asset_denom": LBTC_COSMOS_HUB_DENOM,
+            "dest_asset_denom": TOKEN_COSMOS_HUB_DENOM,
             "dest_asset_chain_id": EXPECTED_DEST_CHAIN,
             "address_list": [
                 "0x1234567890123456789012345678901234567890", // Dummy source address
@@ -195,12 +195,12 @@ impl E2ETestSuite {
         // Use a fee amount that should pass validation
         let test_fee = TEST_TRANSFER_AMOUNTS[0]; // 0.001 LBTC
         
-        if test_fee >= FEE_THRESHOLD_LBTC_WEI {
-            return Err(anyhow::anyhow!("Test fee {} should be below threshold {}", test_fee, FEE_THRESHOLD_LBTC_WEI));
+        if test_fee >= FEE_THRESHOLD_TOKEN_WEI {
+            return Err(anyhow::anyhow!("Test fee {} should be below threshold {}", test_fee, FEE_THRESHOLD_TOKEN_WEI));
         }
 
         // This validation would normally be done in the circuit
-        let validation_passed = test_fee <= FEE_THRESHOLD_LBTC_WEI;
+        let validation_passed = test_fee <= FEE_THRESHOLD_TOKEN_WEI;
         
         if !validation_passed {
             return Err(anyhow::anyhow!("Fee validation failed unexpectedly"));
@@ -217,12 +217,12 @@ impl E2ETestSuite {
         // Use a fee amount that should fail validation
         let test_fee = TEST_TRANSFER_AMOUNTS[3]; // 0.002 LBTC (above threshold)
         
-        if test_fee <= FEE_THRESHOLD_LBTC_WEI {
-            return Err(anyhow::anyhow!("Test fee {} should be above threshold {}", test_fee, FEE_THRESHOLD_LBTC_WEI));
+        if test_fee <= FEE_THRESHOLD_TOKEN_WEI {
+            return Err(anyhow::anyhow!("Test fee {} should be above threshold {}", test_fee, FEE_THRESHOLD_TOKEN_WEI));
         }
 
         // This validation would normally be done in the circuit  
-        let validation_passed = test_fee <= FEE_THRESHOLD_LBTC_WEI;
+        let validation_passed = test_fee <= FEE_THRESHOLD_TOKEN_WEI;
         
         if validation_passed {
             return Err(anyhow::anyhow!("Fee validation should have failed for excessive fee"));
