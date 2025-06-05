@@ -4,7 +4,7 @@ extern crate alloc;
 
 use alloc::{vec::Vec, format, string::String};
 use valence_coprocessor::Witness;
-use alloy_sol_types::{sol, SolValue};
+use alloy_sol_types::{sol, SolValue, SolCall};
 use alloy_primitives::{Address, Bytes};
 
 #[cfg(test)]
@@ -141,6 +141,16 @@ sol! {
         address authorizationContract;
         ProcessorMessage processorMessage;
     }
+
+    /// Fees structure for IBC Eureka transfer
+    struct Fees {
+        uint256 relayFee;
+        address relayFeeRecipient;
+        uint64 quoteExpiry;
+    }
+
+    /// Transfer function call for IBC Eureka transfer
+    function transfer(Fees calldata fees, string calldata memo) external;
 }
 
 /// Validate that route string contains expected components
@@ -153,11 +163,21 @@ fn validate_route_components(route_string: &str, config: &CircuitConfig) -> bool
 
 /// Generate ZkMessage for Valence Authorization contract
 fn generate_zk_message(fee_amount: u64, config: &CircuitConfig) -> ZkMessage {
+    // Create the Fees structure for the transfer call
+    let fees = Fees {
+        relayFee: alloy_primitives::U256::from(fee_amount),
+        relayFeeRecipient: Address::ZERO, // Use zero address as default fee recipient
+        quoteExpiry: 0, // No expiry for simplicity
+    };
+
     // Create the transfer function call with validated fees and empty memo
-    let transfer_call = alloc::vec![
-        fee_amount.to_be_bytes().to_vec(),  // fees as bytes
-        alloc::vec![]  // empty memo
-    ];
+    let transfer_call = transferCall {
+        fees,
+        memo: String::new(), // Empty memo as required
+    };
+
+    // ABI encode the transfer call
+    let encoded_transfer_call = transfer_call.abi_encode();
 
     // Create AtomicFunction for IBCEurekaTransfer
     let entry_contract_address = config.expected_entry_contract.parse::<Address>()
@@ -174,7 +194,7 @@ fn generate_zk_message(fee_amount: u64, config: &CircuitConfig) -> ZkMessage {
             amount: 0,
         },
         interval: Duration {
-            durationType: DurationType::Height,
+            durationType: DurationType::Time,
             value: 0,
         },
     };
@@ -194,13 +214,13 @@ fn generate_zk_message(fee_amount: u64, config: &CircuitConfig) -> ZkMessage {
         subroutine: Bytes::from(encoded_subroutine),
     };
 
-    // Create SendMsgs message
+    // Create SendMsgs message with the properly encoded transfer call
     let send_msgs = SendMsgs {
         executionId: 1, // Generated execution ID
         priority: Priority::Medium,
         subroutine,
         expirationTime: 0, // No expiration
-        messages: transfer_call.into_iter().map(Bytes::from).collect(),
+        messages: alloc::vec![Bytes::from(encoded_transfer_call)],
     };
 
     // Encode SendMsgs
@@ -475,5 +495,73 @@ mod tests {
         // Check that validation failed due to non-empty memo
         assert_eq!(result[0] & 0x01, 0, "Overall validation should fail");
         assert_eq!(result[0] & 0x10, 0, "Memo validation should fail");
+    }
+
+    #[test]
+    fn test_zkMessage_abi_encoding() {
+        let config = CircuitConfig::new(
+            String::from("cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2"),
+            1890000000000000,
+            String::from("1"),
+            String::from("EUREKA"),
+            String::from("0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C"),
+            1001,
+        );
+        
+        let fee_amount = 957u64; // Valid fee below threshold
+        let route_string = "source_chain:1|dest_chain:cosmoshub-4|bridge_type:eureka_transfer|bridge_id:EUREKA|entry_contract:0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C";
+        let destination = &config.expected_destination;
+
+        let witnesses = vec![
+            Witness::Data(fee_amount.to_le_bytes().to_vec()),
+            Witness::Data(route_string.as_bytes().to_vec()),
+            Witness::Data(destination.as_bytes().to_vec()),
+            Witness::Data(b"".to_vec()),
+        ];
+
+        let result = circuit(witnesses, &config);
+        
+        // Decode the ZkMessage to verify proper structure
+        let decoded_result = ZkMessage::abi_decode(&result, false);
+        assert!(decoded_result.is_ok(), "Should be able to decode ZkMessage: {:?}", decoded_result.err());
+        
+        let zk_message = decoded_result.unwrap();
+        
+        // Verify ZkMessage fields
+        assert_eq!(zk_message.registry, 1001, "Registry ID should match config");
+        assert_eq!(zk_message.blockNumber, 0, "Block number should be 0");
+        assert_eq!(zk_message.authorizationContract, Address::ZERO, "Authorization contract should be zero");
+        
+        // Decode the SendMsgs from processor message
+        let send_msgs_result = SendMsgs::abi_decode(&zk_message.processorMessage.message, false);
+        assert!(send_msgs_result.is_ok(), "Should be able to decode SendMsgs: {:?}", send_msgs_result.err());
+        
+        let send_msgs = send_msgs_result.unwrap();
+        
+        // Verify SendMsgs fields
+        assert_eq!(send_msgs.executionId, 1, "Execution ID should be 1");
+        assert_eq!(send_msgs.expirationTime, 0, "Expiration time should be 0");
+        assert_eq!(send_msgs.messages.len(), 1, "Should have exactly one message");
+        
+        // Decode the AtomicSubroutine
+        let atomic_subroutine_result = AtomicSubroutine::abi_decode(&send_msgs.subroutine.subroutine, false);
+        assert!(atomic_subroutine_result.is_ok(), "Should be able to decode AtomicSubroutine: {:?}", atomic_subroutine_result.err());
+        
+        let atomic_subroutine = atomic_subroutine_result.unwrap();
+        
+        // Verify AtomicSubroutine fields
+        assert_eq!(atomic_subroutine.functions.len(), 1, "Should have exactly one function");
+        
+        // Decode the transfer call from messages
+        let transfer_call_result = transferCall::abi_decode(&send_msgs.messages[0], false);
+        assert!(transfer_call_result.is_ok(), "Should be able to decode transferCall: {:?}", transfer_call_result.err());
+        
+        let transfer_call = transfer_call_result.unwrap();
+        
+        // Verify transfer call fields
+        assert_eq!(transfer_call.fees.relayFee, alloy_primitives::U256::from(957), "Relay fee should match");
+        assert_eq!(transfer_call.fees.relayFeeRecipient, Address::ZERO, "Fee recipient should be zero");
+        assert_eq!(transfer_call.fees.quoteExpiry, 0, "Quote expiry should be 0");
+        assert_eq!(transfer_call.memo, "", "Memo should be empty");
     }
 }

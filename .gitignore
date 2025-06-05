@@ -4,3 +4,4 @@ bin/
 .cursor
 .DS_Store
 work/
+.env

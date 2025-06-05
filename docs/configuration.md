@@ -29,7 +29,7 @@ The strategist reads configuration from environment variables and `.env` files. 
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `WALLET_MNEMONIC` | 12+ word mnemonic for transactions | `word1 word2 ... word12` |
+| `MNEMONIC` | 12+ word mnemonic for transactions | `word1 word2 ... word12` |
 
 ### Optional Variables
 
@@ -43,7 +43,7 @@ These services use public endpoints that are automatically configured based on y
 
 | Service | Local | Testnet | Mainnet |
 |---------|-------|---------|---------|
-| **Coprocessor** | `http://localhost:37281` | `https://coprocessor-testnet.timewave.computer` | `https://coprocessor.timewave.computer` |
+| **Coprocessor** | `http://localhost:37281` | `http://prover.timewave.computer:37281` | `http://prover.timewave.computer:37281` |
 | **Skip API** | `https://api.skip.build` | `https://api.skip.build` | `https://api.skip.build` |
 
 ## Environment-Specific Configuration
@@ -60,14 +60,14 @@ ETHEREUM_RPC_URL=http://localhost:8545
 ```env
 STRATEGIST_ENVIRONMENT=testnet
 ETHEREUM_RPC_URL=https://sepolia.infura.io/v3/your_infura_project_id
-WALLET_MNEMONIC=your testnet mnemonic here
+MNEMONIC=your testnet mnemonic here
 ```
 
 ### Mainnet
 ```env
 STRATEGIST_ENVIRONMENT=mainnet
 ETHEREUM_RPC_URL=https://mainnet.infura.io/v3/your_infura_project_id
-WALLET_MNEMONIC=your mainnet mnemonic here
+MNEMONIC=your mainnet mnemonic here
 SKIP_API_KEY=your_premium_skip_api_key
 ```
 
@@ -180,8 +180,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Common Issues
 
-1. **"WALLET_MNEMONIC environment variable is required"**
-   - Set `WALLET_MNEMONIC` for testnet/mainnet environments
+1. **"MNEMONIC environment variable is required"**
+   - Set `MNEMONIC` for testnet/mainnet environments
    - For local development, this should be automatic
 
 2. **"For testnet/mainnet environment, you must provide ETHEREUM_RPC_URL"**

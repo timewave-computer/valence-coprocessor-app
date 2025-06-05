@@ -1,8 +1,10 @@
-# LBTC Cross-Chain Transfer Architecture with ZK Proof Validation
+# Token Cross-Chain Transfer Architecture with ZK Proof Validation
 
 ## System Overview
 
-This system enables secure, validated LBTC transfers from Ethereum to Cosmos Hub using Skip Protocol's IBC Eureka infrastructure with ZK proof validation. The architecture ensures that transfer routes and fees meet predetermined criteria before execution through the Valence Authorization contract ecosystem.
+This system enables secure, validated token transfers from Ethereum to Cosmos Hub using Skip Protocol's IBC Eureka infrastructure with ZK proof validation. The architecture ensures that transfer routes and fees meet predetermined criteria before execution through the Valence Authorization contract ecosystem.
+
+**Current Implementation:** Configured for LBTC transfers, but designed as a generic system that can support any token by changing configuration constants.
 
 ## Core Components
 
@@ -16,9 +18,9 @@ This system enables secure, validated LBTC transfers from Ethereum to Cosmos Hub
 - Submits validated ZkMessage to Valence Authorization contract
 
 **Client Dependencies:**
-- **CoprocessorClient:** From `valence-domain-clients` for ZK proof generation and storage retrieval
-- **EthereumClient:** From `valence-domain-clients` for Ethereum transaction submission and signing
-- **HTTP Client:** For Skip API integration (reqwest/similar)
+- **CoprocessorClient:** For ZK proof generation and storage retrieval
+- **EthereumClient:** For Ethereum transaction submission and signing
+- **SkipApiClient:** For Skip API integration (reqwest-based)
 
 ### 2. Controller Crate (`crates/controller/`)
 **Purpose:** WASM-compiled controller for ZK coprocessor
@@ -33,9 +35,9 @@ This system enables secure, validated LBTC transfers from Ethereum to Cosmos Hub
 **Purpose:** ZK circuit that validates transfer parameters and generates Valence ZkMessage
 
 **Verification Logic:**
-- Proves route matches hardcoded LBTC Ethereum → Cosmos Hub path
+- Proves route matches hardcoded Ethereum → Cosmos Hub path
 - Proves destination address matches expected recipient
-- Proves total fees are less than 0.0000189 LBTC ($2.00 equivalent) threshold
+- Proves total fees are less than configured threshold (currently 0.0000189 LBTC = $2.00 equivalent)
 - **Proves IBC Eureka memo is empty** (security requirement)
 - **Generates ABI-encoded ZkMessage** containing validated IBCEurekaTransfer call
 
@@ -117,7 +119,7 @@ use valence_domain_clients::clients::{CoprocessorClient, EthereumClient};
 use valence_domain_clients::coprocessor::base_client::CoprocessorBaseClient;
 use valence_domain_clients::evm::base_client::EvmBaseClient;
 
-pub struct LBTCTransferStrategist {
+pub struct TokenTransferStrategist {
     coprocessor: CoprocessorClient,
     ethereum: EthereumClient,
     controller_id: String,
@@ -141,14 +143,14 @@ pub struct LBTCTransferStrategist {
 
 **Development Mode:**
 ```rust
-let coprocessor = CoprocessorClient::local(); // localhost:37281
-let ethereum = EthereumClient::new("http://127.0.0.1:8545", mnemonic, None)?; // Anvil
+let coprocessor = CoprocessorClient::new("http://localhost:37281")?;
+let ethereum = EthereumClient::new("http://127.0.0.1:8545", mnemonic)?;
 ```
 
 **Production Mode:**
 ```rust
-let coprocessor = CoprocessorClient::default(); // Public coprocessor service
-let ethereum = EthereumClient::new("https://mainnet.infura.io/v3/api-key", mnemonic, None)?;
+let coprocessor = CoprocessorClient::new("https://coprocessor.timewave.computer")?;
+let ethereum = EthereumClient::new("https://mainnet.infura.io/v3/api-key", mnemonic)?;
 ```
 
 ## Hardcoded Configuration
@@ -156,12 +158,14 @@ let ethereum = EthereumClient::new("https://mainnet.infura.io/v3/api-key", mnemo
 ### Route Parameters
 - **Source Chain:** Ethereum (chain_id: 1)
 - **Destination Chain:** Cosmos Hub (chain_id: cosmoshub-4)
-- **Token:** LBTC (contract: `0x8236a87084f8B84306f72007F36F2618A5634494`)
-- **Destination Address:** `cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2`
+- **Token:** Configurable via `TOKEN` constant (currently "LBTC")
+- **Token Contract:** Configurable via `TOKEN_CONTRACT_ADDRESS` (currently LBTC: `0x8236a87084f8B84306f72007F36F2618A5634494`)
+- **Token Cosmos Denom:** Configurable via `TOKEN_COSMOS_HUB_DENOM` (currently LBTC IBC denom)
+- **Destination Address:** Configurable via `EXPECTED_DESTINATION` (currently `cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2`)
 - **IBCEurekaTransfer Contract:** `0xFc2d0487A0ae42ae7329a80dc269916A9184cF7C`
 
 ### Validation Thresholds
-- **Maximum Fee:** 0.0000189 LBTC ($2.00 USD equivalent)
+- **Maximum Fee:** Configurable via `FEE_THRESHOLD_TOKEN_WEI` (currently 0.0000189 LBTC = $2.00 equivalent)
 - **Route Validation:** Exact EUREKA bridge path matching
 
 ## Data Sources
@@ -270,56 +274,18 @@ POST https://api.skip.build/v2/fungible/msgs
 
 ### Private Witnesses (From Skip API)
 1. **Skip API Response:** Complete message data from `/v2/fungible/msgs`
-2. **Extracted Fee Data:** Parsed fee amounts in LBTC (atomic units)
+2. **Extracted Fee Data:** Parsed fee amounts in token atomic units
 3. **Route Data:** EUREKA bridge operation validation
 
 ### Circuit Output: ABI-Encoded ZkMessage
 ```rust
-// Pseudo-code for circuit logic
-assert_eq!(validate_route_components(witness.route), true);
-assert_eq!(witness.destination, public_inputs.expected_destination);
-assert!(witness.total_fees_LBTC_wei < public_inputs.fee_threshold_LBTC_wei);
-assert_eq!(witness.memo, public_inputs.expected_memo);  // Must be empty
-
-// Generate Valence ZkMessage
-let fees = Fees {
-    relayFee: witness.total_fees_LBTC_wei,
-    relayFeeRecipient: witness.fee_recipient,
-    quoteExpiry: witness.quote_expiry,
-};
-
-let transfer_call = abi.encode_call("transfer", [fees, ""]);  // Empty memo enforced
-
-let atomic_function = AtomicFunction {
-    contractAddress: public_inputs.eureka_transfer_address,
-};
-
-let atomic_subroutine = AtomicSubroutine {
-    functions: [atomic_function],
-    retryLogic: RetryLogic::NoRetry,
-};
-
-let send_msgs = SendMsgs {
-    executionId: generate_execution_id(),
-    priority: Priority::Medium,
-    subroutine: abi.encode(atomic_subroutine),
-    expirationTime: 0,
-    messages: [transfer_call],
-};
-
-let processor_message = ProcessorMessage {
-    messageType: ProcessorMessageType::SendMsgs,
-    message: abi.encode(send_msgs),
-};
-
-let zk_message = ZkMessage {
-    registry: LBTC_TRANSFER_REGISTRY_ID,
-    blockNumber: current_block(),
-    authorizationContract: address(0),  // Valid for any contract
-    processorMessage: processor_message,
-};
-
-return abi.encode(zk_message);
+// Returned as binary data ready for Valence Authorization contract
+pub struct ZkMessageOutput {
+    pub registry: u64,                     // Token transfer registry ID
+    pub block_number: u64,                 // Current block number
+    pub authorization_contract: [u8; 20],  // address(0) for permissionless
+    pub processor_message: Vec<u8>,        // ABI-encoded ProcessorMessage
+}
 ```
 
 ## Data Structures
@@ -359,51 +325,12 @@ return abi.encode(zk_message);
 ```rust
 // Returned as binary data ready for Valence Authorization contract
 pub struct ZkMessageOutput {
-    pub registry: u64,                     // LBTC transfer registry ID
+    pub registry: u64,                     // Token transfer registry ID
     pub block_number: u64,                 // Current block number
     pub authorization_contract: [u8; 20],  // address(0) for permissionless
     pub processor_message: Vec<u8>,        // ABI-encoded ProcessorMessage
 }
 ```
-
-## Implementation Steps
-
-### Step 1: Route Discovery & Hardcoding ✅
-- [x] Make manual Skip API `/route` call for LBTC Ethereum → Cosmos Hub
-- [x] Extract route information and hardcode into circuit
-- [x] Define Cosmos Hub address and IBCEurekaTransfer contract
-
-### Step 2: Strategist Crate Development ✅
-- [x] Create `crates/strategist/` with client abstractions
-- [x] Implement Skip API client with `reqwest`
-- [x] Implement `/msgs` endpoint integration
-- [x] Add coprocessor proof request workflow
-
-### Step 3: Controller Enhancement ✅
-- [x] Modify `get_witnesses()` to parse Skip API responses
-- [x] Add fee extraction and validation logic (LBTC denomination)
-- [x] Implement route verification against hardcoded data
-
-### Step 4: Circuit Implementation ✅
-- [x] Replace increment logic with transfer validation
-- [x] Add route component verification (EUREKA bridge)
-- [x] Add destination address validation  
-- [x] Add LBTC fee threshold checking (0.0000189 LBTC)
-- [x] Add memo validation (must be empty string)
-- [x] Output comprehensive validation results
-
-### Step 5: Valence Integration (Next Phase)
-- [ ] Add alloy-sol-types dependency for ABI encoding
-- [ ] Implement ZkMessage structure generation in circuit
-- [ ] Add ProcessorMessage and SendMsgs construction
-- [ ] Add AtomicSubroutine with IBCEurekaTransfer call
-- [ ] Add transfer(fees, memo) function encoding with empty memo enforcement
-- [ ] Test ABI encoding compatibility with Valence contracts
-
-### Step 6: Integration & Testing ✅
-- [x] End-to-end testing with mock Skip API responses
-- [x] Proof generation and verification testing
-- [x] Error handling and edge case validation
 
 ## Dependencies
 

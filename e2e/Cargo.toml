@@ -5,6 +5,10 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+[[bin]]
+name = "run_production_test"
+path = "run_production_test.rs"
+
 [dependencies]
 # Local crates
 strategist = { path = "../crates/strategist" }
