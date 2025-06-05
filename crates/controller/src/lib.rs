@@ -1,12 +1,11 @@
 #![no_std]
 extern crate alloc;
 
-// Core dependencies for the valence coprocessor controller
 use alloc::{format, string::ToString, vec::Vec};
-use alloy_primitives::U256; // Ethereum primitive types for handling large numbers
+use alloy_primitives::U256;
 use ethereum_merkle_proofs::merkle_lib::types::EthereumProofType;
 use serde_json::Value;
-use sha3::{Digest, Keccak256}; // Keccak256 hashing for Ethereum storage slot calculation
+use sha3::{Digest, Keccak256};
 use types::CircuitWitness;
 use utils::storage_key;
 use valence_coprocessor::{StateProof, Witness};
@@ -15,40 +14,42 @@ use valence_coprocessor::{StateProof, Witness};
 pub use valence_coprocessor_app_domain::{get_state_proof, validate_block};
 use valence_coprocessor_wasm::abi;
 
-/// Mainnet RPC endpoint for Ethereum network
-/// This is the primary endpoint used to fetch blockchain data
+/// Mainnet RPC endpoint for Ethereum network.
+///
+/// This is the primary endpoint used to fetch blockchain data from the Ethereum mainnet.
+/// The endpoint uses Alchemy's infrastructure to provide reliable access to Ethereum state data.
 const MAINNET_RPC_URL: &str =
     "https://eth-mainnet.g.alchemy.com/v2/D1CbidVntzlEbD4x7iyHnZZaPWzvDe9I";
 
-/// Retrieves and validates witnesses for the circuit computation.
+/// Generates cryptographic witnesses for zero-knowledge proof generation.
 ///
-/// This is the main function that orchestrates the entire witness generation process.
-/// It performs several critical steps:
-/// 1. Fetches the latest validated block from Helios light client
-/// 2. Retrieves Ethereum state proofs for specific storage slots
-/// 3. Handles dynamic string storage by reading multiple consecutive slots
-/// 4. Constructs a complete circuit witness for zero-knowledge proof generation
+/// This function collects all necessary state proofs from the Ethereum blockchain
+/// to create a witness that can be used in zero-knowledge circuits. It fetches
+/// data from specific storage slots in a target contract and builds Merkle proofs
+/// to demonstrate the data's validity against a verified state root.
 ///
-/// The function is designed to work with Ethereum's storage layout where:
-/// - Fixed-size data is stored in single slots
-/// - Dynamic strings are stored across multiple consecutive slots
-/// - Storage slots are calculated using Keccak256 hashing
+/// The function handles both fixed-size storage slots and dynamic string data
+/// that may span multiple consecutive storage slots.
 ///
 /// # Arguments
-/// * `args` - JSON value containing:
-///   * `addresses` - Array of Ethereum addresses to get proofs for
-///   * `keys` - Array of storage keys (empty string for account proofs)
-///   * `proof` - Hex-encoded proof bytes for block validation
-///   * `public_values` - Hex-encoded public values for block validation
-///   * `vk` - Hex-encoded verification key for block validation
+/// * `args` - JSON payload containing:
+///   * `event_idx` - The event index (u64) used to calculate storage slot keys
 ///
 /// # Returns
-/// * `Vec<Witness>` - Vector containing the circuit witness data
+/// * `Result<Vec<Witness>, anyhow::Error>` - Vector containing the serialized circuit witness data
 ///
 /// # Errors
-/// * If required fields are missing or invalid
-/// * If Helios proof validation fails
-/// * If state proof retrieval fails
+/// * Returns error if `event_idx` is missing or invalid in the arguments
+/// * Returns error if blockchain data cannot be fetched
+/// * Returns error if state proofs cannot be generated
+/// * Returns error if witness serialization fails
+///
+/// # Example
+/// ```json
+/// {
+///   "event_idx": 42
+/// }
+/// ```
 pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     // Extract event_idx from the arguments
     let event_idx: u64 = args["event_idx"]

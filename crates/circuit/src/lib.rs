@@ -1,3 +1,9 @@
+//! Circuit module for processing and verifying withdraw requests from Ethereum state proofs.
+//!
+//! This module contains the main circuit logic that takes witness data, extracts and verifies
+//! withdraw request information from Ethereum storage proofs, and outputs verified withdraw
+//! requests along with the state root used for verification.
+
 use core::panic;
 
 use alloy_primitives::{Address, U256};
@@ -11,23 +17,33 @@ use utils::{storage_key, string_slot_key};
 
 mod helper;
 
-/// Main circuit function that processes and verifies Ethereum state proofs.
+/// Processes witness data to extract and verify withdraw requests from Ethereum state proofs.
 ///
-/// This function:
-/// 1. Takes a vector of witnesses containing the circuit input data
-/// 2. Deserializes the input into a CircuitWitness
-/// 3. Verifies all Ethereum state proofs against the provided state root
-/// 4. Returns the verified state root as output
+/// This function takes a vector of witnesses containing circuit input data and state proofs,
+/// then extracts withdraw request information (ID, owner, redemption rate, shares amount,
+/// and receiver address) by verifying multiple Ethereum storage proofs against a state root.
 ///
 /// # Arguments
-/// * `witnesses` - Vector of Witness objects containing the input data
+///
+/// * `witnesses` - A vector of `Witness` instances. Expected to contain at least one `Witness::Data`
+///   variant with serialized `CircuitWitness` data.
 ///
 /// # Returns
-/// * `Vec<u8>` - The verified state root as a byte vector
 ///
-/// # Panics
-/// * If the input witness is not of type Data
-/// * If any proof verification fails
+/// Returns a serialized `CircuitOutput` as `Vec<u8>` containing:
+/// - Verified withdraw requests with all extracted data
+/// - The state root used for proof verification
+///
+/// # Proof Structure
+///
+/// The function expects state proofs in the following order:
+/// 1. **Proof 0**: ID, receiver type and owner information (combined in single storage slot)
+/// 2. **Proof 1**: Redemption rate value
+/// 3. **Proof 2**: Shares amount value  
+/// 4. **Proofs 3+**: Receiver address chunks (split across multiple slots for long addresses)
+///
+/// All proofs must verify against the same state root and use the expected contract address
+/// `0b3b3a2c11d6676816fe214b7f23446d12d762ff`.
 pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     // Extract the first witness which contains our circuit input data
     let circuit_input_witness = witnesses.first().unwrap();
@@ -240,8 +256,3 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     };
     serde_json::to_vec(&output).expect("Failed to serialize circuit output")
 }
-
-// todo:
-// construct the keys in the circuit from the contract address + id
-// check that the keys used in the state proofs match our expectation
-// => mvp done
