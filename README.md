@@ -43,29 +43,11 @@ Upon successful deployment, you should observe the generated ID:
 
 
 ### Prove
-
-We instruct the coprocessor to generate a proof for the program. The default implementation of the program will accept an input value and pass it through the circuit. The circuit will then add `1` to the given value before returning the result as little-endian.
-
-First we need to obtain a light client root and slot from the Co-processor. For testing we can run:
-
-```sh
-cd crates/excluded-utils
-cargo test test_get_latest_helios_block -- --nocapture
-```
-
-Example output, note that it is recommended to obtain a more recent root when testing:
-```sh
-Validated block root: "ad242daa9f4e7d20187f9122d32a7aa49a3d7bf46ff306b64961e7d21fdd90ee"
-Validated block height: 22616191
-```
-
-Now we can use this trusted block root and height to prove the program at that point in time:
-
 ```sh
 cargo-valence --socket prover.timewave.computer:37281 \
-  prove -j '{}' \
+  prove -j '{"event_idx":0}' \
   -p /var/share/proof.bin \
-  b2f9746ae51d5dd39e96aa8a90de7e72b5d09e65fdd9c005acd5bb33db3085ac
+  a9ddb689b1fd2d7884cb82f06245c448d65ae3a26895aefb709cbd3e52f65202
 ```
 
 To get the proof:
@@ -73,7 +55,7 @@ To get the proof:
 cargo-valence --socket prover.timewave.computer:37281 \
   storage \
   -p /var/share/proof.bin \
-  b2f9746ae51d5dd39e96aa8a90de7e72b5d09e65fdd9c005acd5bb33db3085ac | jq -r '.data' | base64 -d | jq
+  a9ddb689b1fd2d7884cb82f06245c448d65ae3a26895aefb709cbd3e52f65202 | jq -r '.data' | base64 -d | jq
 ```
 
 Example Proof:
@@ -129,6 +111,20 @@ A Definition for a domain. This crate will produce state proofs derived from JSO
 #### `./crates/program`
 
 The Valence program. It will be used to compute the circuit witnesses from given JSON arguments. It features an entrypoint that accommodates user requests; it also receives the result of a proof computation by the service.
+
+### Excluded Utils
+Obtain a light client root and slot from the Co-processor. For testing we can run:
+
+```sh
+cd crates/excluded-utils
+cargo test test_get_latest_helios_block -- --nocapture
+```
+
+Example output, note that it is recommended to obtain a more recent root when testing:
+```sh
+Validated block root: "ad242daa9f4e7d20187f9122d32a7aa49a3d7bf46ff306b64961e7d21fdd90ee"
+Validated block height: 22616191
+```
 
 ### Requirements
 

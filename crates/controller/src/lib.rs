@@ -8,6 +8,7 @@ use ethereum_merkle_proofs::merkle_lib::types::EthereumProofType;
 use serde_json::Value;
 use sha3::{Digest, Keccak256}; // Keccak256 hashing for Ethereum storage slot calculation
 use types::CircuitWitness;
+use utils::storage_key;
 use valence_coprocessor::{StateProof, Witness};
 
 // Re-export domain functions to make them available for deployment
@@ -48,7 +49,11 @@ const MAINNET_RPC_URL: &str =
 /// * If required fields are missing or invalid
 /// * If Helios proof validation fails
 /// * If state proof retrieval fails
-pub fn get_witnesses(_args: Value) -> anyhow::Result<Vec<Witness>> {
+pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
+    // Extract event_idx from the arguments
+    let event_idx: u64 = args["event_idx"]
+        .as_u64()
+        .ok_or_else(|| anyhow::anyhow!("Missing or invalid event_idx in arguments"))?;
     // Step 1: Get the latest validated block from Helios light client
     // This ensures we're working with a cryptographically verified blockchain state
     let block = abi::get_latest_block("ethereum-alpha")?.expect("Failed to get block");
@@ -57,19 +62,19 @@ pub fn get_witnesses(_args: Value) -> anyhow::Result<Vec<Witness>> {
 
     // Step 2: Define the target contract and storage slots we want to prove
     // This contract address contains the data we need to verify
-    let contract_address = "0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98";
+    let contract_address = "0x0B3B3a2C11D6676816fe214B7F23446D12D762FF";
 
     // These are the specific storage slots containing our target data
     // Each key represents a different piece of data stored in the contract
     let keys = Vec::from([
-        "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6b",
-        "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6c",
-        "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6d",
+        storage_key(event_idx, 0),
+        storage_key(event_idx, 1),
+        storage_key(event_idx, 2),
     ]);
 
     // This key represents the starting slot for a dynamic string
     // Strings in Ethereum storage can span multiple slots if they're longer than 32 bytes
-    let string_key = "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6e";
+    let string_key = storage_key(event_idx, 3);
 
     // Step 3: Collect state proofs for all fixed-size storage slots
     let mut ethereum_state_proofs: Vec<StateProof> = Vec::new();
@@ -149,7 +154,8 @@ pub fn get_witnesses(_args: Value) -> anyhow::Result<Vec<Witness>> {
     // The circuit will use this to prove that all the data existed in the blockchain state
     let circuit_witness = CircuitWitness {
         state_proofs: ethereum_state_proofs, // All the Merkle proofs we collected
-        state_root: validated_state_root,    // The cryptographically verified state root
+        event_idx,
+        state_root: validated_state_root, // The cryptographically verified state root
     };
 
     // Serialize the witness into the format expected by the zero-knowledge circuit

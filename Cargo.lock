@@ -1711,6 +1711,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
+name = "utils"
+version = "0.1.0"
+dependencies = [
+ "alloy-primitives 0.8.25",
+ "alloy-sol-types",
+ "ethereum 0.1.0 (git+https://github.com/timewave-computer/zk-merkle-proofs?branch=dev)",
+ "hex",
+]
+
+[[package]]
 name = "valence-coprocessor"
 version = "0.1.13"
 source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.13#ca34a85e2215a4a04d8d6d70f533eb7be4c91a8a"
@@ -1732,13 +1742,13 @@ name = "valence-coprocessor-app-circuit"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives 0.8.25",
- "alloy-sol-types",
  "common 0.1.0 (git+https://github.com/timewave-computer/zk-merkle-proofs?branch=dev)",
  "ethereum 0.1.0 (git+https://github.com/timewave-computer/zk-merkle-proofs?branch=dev)",
  "hex",
  "num-bigint",
  "serde_json",
  "types",
+ "utils",
  "valence-coprocessor",
 ]
 
@@ -1758,6 +1768,7 @@ dependencies = [
  "tokio",
  "types",
  "url",
+ "utils",
  "valence-coprocessor",
  "valence-coprocessor-app-domain",
  "valence-coprocessor-wasm",

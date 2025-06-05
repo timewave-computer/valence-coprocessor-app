@@ -1,0 +1,12 @@
+[package]
+name = "utils"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+alloy-sol-types = { version = "0.8.25", default-features = false }
+ethereum-merkle-proofs.workspace = true
+alloy-primitives.workspace = true
+hex.workspace = true

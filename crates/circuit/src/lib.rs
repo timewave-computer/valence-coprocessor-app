@@ -7,7 +7,7 @@ use num_bigint::BigUint;
 use types::{CircuitOutput, CircuitWitness, WithdrawRequest};
 use valence_coprocessor::{StateProof, Witness};
 
-use crate::helper::{storage_key, string_slot_key};
+use utils::{storage_key, string_slot_key};
 
 mod helper;
 
@@ -31,7 +31,6 @@ mod helper;
 pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     // Extract the first witness which contains our circuit input data
     let circuit_input_witness = witnesses.first().unwrap();
-
     // this macro isn't necessary, but rust analyzer throws a false positive
     #[allow(unused)]
     let mut circuit_input_serialized: Vec<u8> = Vec::new();
@@ -56,6 +55,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
 
     // Deserialize the CircuitWitness from the input data
     let input: CircuitWitness = serde_json::from_slice(&circuit_input_serialized).unwrap();
+    let event_idx = input.event_idx;
 
     // Collection to store all processed withdraw requests
     let mut withdraw_requests: Vec<WithdrawRequest> = Vec::new();
@@ -77,6 +77,8 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let id_and_owner_proof_type: EthereumProofType =
         serde_json::from_slice(&id_and_owner_proof.proof).unwrap();
 
+    let mut is_receiver_contract: bool = false;
+
     match &id_and_owner_proof_type {
         EthereumProofType::Simple(storage_proof) => {
             // the address used in the merkle proof must equal the
@@ -84,11 +86,16 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
             let should_be_contract_address = storage_proof.get_address();
             assert_eq!(
                 hex::encode(should_be_contract_address),
-                "f2b85c389a771035a9bd147d4bf87987a7f9cf98"
+                "0b3b3a2c11d6676816fe214b7f23446d12d762ff"
             );
-            assert_eq!(hex::encode(storage_proof.get_key()), storage_key(0));
+            assert_eq!(
+                hex::encode(storage_proof.get_key()),
+                storage_key(event_idx, 0)
+            );
 
             let stored_value = storage_proof.get_stored_value();
+
+            is_receiver_contract = stored_value[stored_value.len() - 29] != 0;
 
             // Extract ID from the last 8 bytes of the stored value
             let id_bytes = &stored_value[stored_value.len() - 8..];
@@ -116,9 +123,12 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
             let should_be_contract_address = storage_proof.get_address();
             assert_eq!(
                 hex::encode(should_be_contract_address),
-                "f2b85c389a771035a9bd147d4bf87987a7f9cf98"
+                "0b3b3a2c11d6676816fe214b7f23446d12d762ff"
             );
-            assert_eq!(hex::encode(storage_proof.get_key()), storage_key(1));
+            assert_eq!(
+                hex::encode(storage_proof.get_key()),
+                storage_key(event_idx, 1)
+            );
             let redemption_rate_rlp = &storage_proof.get_stored_value();
 
             // Handle RLP encoding: if more than 1 byte, skip the first RLP length byte
@@ -150,9 +160,12 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
             let should_be_contract_address = storage_proof.get_address();
             assert_eq!(
                 hex::encode(should_be_contract_address),
-                "f2b85c389a771035a9bd147d4bf87987a7f9cf98"
+                "0b3b3a2c11d6676816fe214b7f23446d12d762ff"
             );
-            assert_eq!(hex::encode(storage_proof.get_key()), storage_key(2));
+            assert_eq!(
+                hex::encode(storage_proof.get_key()),
+                storage_key(event_idx, 2)
+            );
             let shares_rlp = &storage_proof.get_stored_value();
 
             // Handle RLP encoding: if more than 1 byte, skip the first RLP length byte
@@ -175,7 +188,6 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     // ===== PROCESS RECEIVER ADDRESS PROOFS =====
     // The receiver address is split across multiple storage proofs
     // Each proof contains a chunk of the full receiver string
-    let receiver_proofs_len = receiver_proofs.len();
     for (idx, proof) in receiver_proofs.iter().enumerate() {
         // if we have 2 proofs it's a 46 byte address,
         // if we have 3 proofs it's a 66 byte address
@@ -187,11 +199,11 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
                 let should_be_contract_address = storage_proof.get_address();
                 assert_eq!(
                     hex::encode(should_be_contract_address),
-                    "f2b85c389a771035a9bd147d4bf87987a7f9cf98"
+                    "0b3b3a2c11d6676816fe214b7f23446d12d762ff"
                 );
                 // the key used in this merkle proof
                 // should match the expected key for the string slot
-                let expected_key = string_slot_key(&storage_key(3), idx);
+                let expected_key = string_slot_key(&storage_key(event_idx, 3), idx);
                 assert_eq!(hex::encode(storage_proof.get_key()), expected_key);
                 receiver.extend_from_slice(&storage_proof.get_stored_value()[1..]);
                 // Verify this proof against the provided state root
@@ -205,7 +217,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     // decode receiver from rlp-decoded bytes
     let receiver: String = String::from_utf8_lossy(&helper::truncate_neutron_address(
         receiver,
-        receiver_proofs_len,
+        is_receiver_contract,
     ))
     .to_string();
 

@@ -16,4 +16,4 @@ num-bigint = { version = "0.4.6", default-features = false, features = [
 ] }
 hex.workspace = true
 alloy-primitives = { version = "0.8.25", default-features = false }
-alloy-sol-types = { version = "0.8.25", default-features = false }
+utils.workspace = true
