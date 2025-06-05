@@ -65,7 +65,7 @@ Now we can use this trusted block root and height to prove the program at that p
 cargo-valence --socket prover.timewave.computer:37281 \
   prove -j '{}' \
   -p /var/share/proof.bin \
-  96d83b2300d83ecc413687e866338a5cb3522a1007460e7c90121c94a5ecb5e6
+  b2f9746ae51d5dd39e96aa8a90de7e72b5d09e65fdd9c005acd5bb33db3085ac
 ```
 
 To get the proof:
@@ -73,7 +73,7 @@ To get the proof:
 cargo-valence --socket prover.timewave.computer:37281 \
   storage \
   -p /var/share/proof.bin \
-  96d83b2300d83ecc413687e866338a5cb3522a1007460e7c90121c94a5ecb5e6 | jq -r '.data' | base64 -d | jq
+  b2f9746ae51d5dd39e96aa8a90de7e72b5d09e65fdd9c005acd5bb33db3085ac | jq -r '.data' | base64 -d | jq
 ```
 
 Example Proof:

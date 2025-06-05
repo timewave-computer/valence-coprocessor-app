@@ -42,9 +42,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-primitives"
-version = "1.1.2"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18c35fc4b03ace65001676358ffbbaefe2a2b27ee50fe777c345082c7c888be8"
+checksum = "a326d47106039f38b811057215a92139f46eef7983a4b77b10930a0ea5685b1e"
 dependencies = [
  "alloy-rlp",
  "bytes",
@@ -145,7 +145,7 @@ version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "983d99aa81f586cef9dae38443245e585840fcf0fc58b09aee0b1f27aed1d500"
 dependencies = [
- "alloy-primitives 1.1.2",
+ "alloy-primitives 1.2.0",
  "alloy-rlp",
  "arrayvec",
  "derive_more",
@@ -345,6 +345,15 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 [[package]]
 name = "common"
 version = "0.1.0"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs?branch=dev#89815fbf53fd42cd20aedd338a7ac4eeb3bfa84e"
+dependencies = [
+ "anyhow",
+ "serde",
+]
+
+[[package]]
+name = "common"
+version = "0.1.0"
 source = "git+https://github.com/timewave-computer/zk-merkle-proofs#f8071e33e53be4f01439d21e5e12154157cfb8b8"
 dependencies = [
  "anyhow",
@@ -523,12 +532,34 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 [[package]]
 name = "ethereum"
 version = "0.1.0"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs?branch=dev#89815fbf53fd42cd20aedd338a7ac4eeb3bfa84e"
+dependencies = [
+ "anyhow",
+ "arrayvec",
+ "bytes",
+ "common 0.1.0 (git+https://github.com/timewave-computer/zk-merkle-proofs?branch=dev)",
+ "const-hex",
+ "hash-db",
+ "hex-literal",
+ "num-bigint",
+ "nybbles",
+ "serde",
+ "serde_json",
+ "sha3",
+ "tracing",
+ "tracing-subscriber",
+ "triehash",
+]
+
+[[package]]
+name = "ethereum"
+version = "0.1.0"
 source = "git+https://github.com/timewave-computer/zk-merkle-proofs#f8071e33e53be4f01439d21e5e12154157cfb8b8"
 dependencies = [
  "anyhow",
  "arrayvec",
  "bytes",
- "common",
+ "common 0.1.0 (git+https://github.com/timewave-computer/zk-merkle-proofs)",
  "const-hex",
  "hash-db",
  "hex-literal",
@@ -1701,8 +1732,9 @@ name = "valence-coprocessor-app-circuit"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives 0.8.25",
- "common",
- "ethereum",
+ "alloy-sol-types",
+ "common 0.1.0 (git+https://github.com/timewave-computer/zk-merkle-proofs?branch=dev)",
+ "ethereum 0.1.0 (git+https://github.com/timewave-computer/zk-merkle-proofs?branch=dev)",
  "hex",
  "num-bigint",
  "serde_json",
@@ -1717,7 +1749,7 @@ dependencies = [
  "alloy-primitives 0.8.25",
  "alloy-sol-types",
  "anyhow",
- "ethereum",
+ "ethereum 0.1.0 (git+https://github.com/timewave-computer/zk-merkle-proofs)",
  "hex",
  "recursion-types",
  "serde_json",

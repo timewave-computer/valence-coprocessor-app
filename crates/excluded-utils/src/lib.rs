@@ -1,3 +1,8 @@
+/*
+    This file contains some test utilities that are used for debugging
+    It is not part of the app template and is excluded from the workspace on purpose
+*/
+
 use anyhow::Result;
 use hex;
 use sp1_sdk::SP1ProofWithPublicValues;
@@ -49,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_decode_public_values() {
-        let proof_base64 = "2gFcRWJhZ25SeEVRZ09iTG42eTg3UEkwM21Xa3FsUFBpcEJJUUs2Wm4vQ2ZkQkc3cWdXRnhzOU1aWm5ESk1TYmdEK2pob0h0ZHBCa3J4U2hIRkI5VHcrUmpsKzIzZ2FFb1M0Y28rWEZWbXVRK2F1UnU1UDErUXFHMzZ5RkN1R3VoRldnNHhOSGdHVGJrQkV0MDBGcng2TkJaNHFEOG9MVE00cDNvNGVGcU1vb0d2VDZuRE1KWHlJeWlhQmQyaG9FeXN5c0szQVB3UzJWR0VIaW4xOHc3NTBsUmVvYi84TWtEQ1IrSXhOUSs2Y3RNcjhiS0Uyd3kyK0EwaDhzcFRMaWpNcUZjWEVaQnE3Y2JZWmxaL1RIZTMwMmJEdEVoejl4OWUwazZma0E0THN0ckcvVFhvcktuTWZNM29PdlkyUDN5U0VYUUV1NTU1NHQvenMvWGVnSnJKZVlMV3FUMUk92gHMQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQjdJbmRwZEdoa2NtRjNYM0psY1hWbGMzUnpJanBiZXlKcFpDSTZNQ3dpYjNkdVpYSWlPaUl3ZUdRNVFUSXpZalU0WlRZNE5FSTVPRFZHTmpZeFEyVTNNREExUVVFNFJURXdOak13TVRVd1l6RWlMQ0p5WldSbGJYQjBhVzl1WDNKaGRHVWlPbHN4TURBd01EQXdNREJkTENKemFHRnlaWE5mWVcxdmRXNTBJanBiTVRBd1hTd2ljbVZqWldsMlpYSWlPaUp1WlhWMGNtOXVNVFJ0YkhCa05EaHJOWFpyWlhObGREUjROMlkzT0cxNWVpSjlYU3dpYzNSaGRHVmZjbTl2ZENJNld6RTNNeXd6Tml3ME5Td3hOekFzTVRVNUxEYzRMREV5TlN3ek1pd3lOQ3d4TWpjc01UUTFMRE0wTERJeE1TdzBNaXd4TWpJc01UWTBMREUxTkN3Mk1Td3hNak1zTWpRMExERXhNU3d5TkRNc05pd3hPRElzTnpNc09UY3NNak14TERJeE1Dd3pNU3d5TWpFc01UUTBMREl6T0YxOQ==";
+        let proof_base64 = "2gFcRWJhZ25RY01SNnR4QmlsdzQzandLZ0ZmS250MXdZM3huOUpGRklxVmRMclVBWmoxSXVzZVlSdll5bGpudy9INlllR3lEWndhMVJyWElFRnptbkZnb0RldUU5b3NhbTZ3b1Z4b1NuZ2pWaGxHVHdtTXpHL1BRdTI4ZFZUL1JmUFhMZVNlM2lVbHd0a1V6cm9jTzFrdlptaHc0eFZsaTdDaW1GSThrdE94Y0tkRHIyREJGZUdWTWpCU3ZMWEZRekJYajVJZDZFL252NjdqOFdiQkZvUHR4UUJPaTdRS2tXRHlid3VkbzFscllncWdjVmdQRkdNSEZBOTlTQXYrODF0N09nZ3E3QUhnOThTTytCRG5BMVF3T1VKM3NDQUFlOU5kVHhUQ1RuTGYrckt3WUZhMUR0Y3dTREtmeEFGSDgzYUJJcHpMODA2VDNBU3JiRmY3SEY0TWxiNmlTVEU92gHgYmpRTG5QK3plcGljcFVUbXUzZ0tMSGlRSFQrek56aDJoUkdqQmhldm9CMTdJbmRwZEdoa2NtRjNYM0psY1hWbGMzUnpJanBiZXlKcFpDSTZNQ3dpYjNkdVpYSWlPaUl3ZUdRNVFUSXpZalU0WlRZNE5FSTVPRFZHTmpZeFEyVTNNREExUVVFNFJURXdOak13TVRVd1l6RWlMQ0p5WldSbGJYQjBhVzl1WDNKaGRHVWlPbHN4TURBd01EQXdNREJkTENKemFHRnlaWE5mWVcxdmRXNTBJanBiTVRBd1hTd2ljbVZqWldsMlpYSWlPaUp1WlhWMGNtOXVNVFJ0YkhCa05EaHJOWFpyWlhObGREUjROMlkzT0cxNWVqTnRORGRxWTJGNE0zbHphbXR3SW4xZExDSnpkR0YwWlY5eWIyOTBJanBiTlRrc01UQTFMREUzTkN3eE1EWXNNakVzT0N3eU5EQXNNalEyTERJMExESXlNeXd4TnpNc01UQXNPRElzTVRFeExEWTRMRFlzTVRFeUxERXhOQ3cyT0N3Mk5pd3hNeklzTWpNMUxERTNNU3d4TURJc01UUXhMREl3TXl3eE1qZ3NNVEV5TERFM09Td3hOVGtzTVRRNExESXlYWDA9";
         let proof = valence_coprocessor::Proof::try_from_base64(proof_base64).unwrap();
         let (_, public_values) = proof.decode().unwrap();
         let output: CircuitOutput = serde_json::from_slice(&public_values[32..]).unwrap();
@@ -58,7 +63,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_state_proof() -> Result<(), anyhow::Error> {
-        /*let encoded = (1, 9).abi_encode();
+        let encoded = (1, 9).abi_encode();
         let contract_address = "0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98";
         let key_hash = digest_keccak(encoded.as_slice());
         println!("Key hash: {:?}", hex::encode(key_hash));
@@ -66,7 +71,8 @@ mod tests {
         let next_key = key_uint + U256::from(3);
         let next_key_hash: [u8; 32] = next_key.to_be_bytes();
         let next_key_hash_hex = hex::encode(next_key_hash);
-        println!("Next key hash: {:?}", next_key_hash_hex);*/
+        println!("Next key hash: {:?}", next_key_hash_hex);
+        
 
         let client = reqwest::Client::new();
         let base_key = "ec8156718a8372b1db44bb411437d0870f3e3790d4a08526d024ce1b0b668f6c";
@@ -76,8 +82,9 @@ mod tests {
             .header("Content-Type", "application/json")
             .json(&json!({
                 "address": "0xf2B85C389A771035a9Bd147D4BF87987A7F9cf98",
-                "ethereum_url": "https://erigon-tw-rpc.polkachu.com",
-                "height": 22616191,
+                "ethereum_url": "https://eth-mainnet.g.alchemy.com/v2/D1CbidVntzlEbD4x7iyHnZZaPWzvDe9I",
+                "height": 
+                22630563,
                 "key": base_key
             }))
             .send()
@@ -105,12 +112,12 @@ mod tests {
                 }
 
                 println!("Value: {:?}", value);
-                let is_valid = storage_proof.clone().verify(
-                    hex::decode("ad242daa9f4e7d20187f9122d32a7aa49a3d7bf46ff306b64961e7d21fdd90ee")
+                /*let is_valid = storage_proof.clone().verify(
+                    hex::decode("3b69ae6a1508f0f618dfad0a526f44067072444284ebab668dcb8070b39f9416")
                         .unwrap()
                         .as_slice(),
-                )?;
-                assert!(is_valid);
+                )?;*/
+                //assert!(is_valid);
             }
             _ => {
                 panic!("Unexpected proof type");

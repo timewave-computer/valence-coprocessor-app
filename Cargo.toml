@@ -34,3 +34,5 @@ tokio = { version = "1.45.0", features = [
   "rt",
   "time",
 ], default-features = false }
+common-merkle-proofs = { package = "common", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false, branch = "dev" }
+ethereum-merkle-proofs = { package = "ethereum", git = "https://github.com/timewave-computer/zk-merkle-proofs", default-features = false, branch = "dev" }
