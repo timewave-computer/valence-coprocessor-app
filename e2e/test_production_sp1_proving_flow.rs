@@ -436,7 +436,9 @@ impl ProductionSP1ProvingTest {
             "estimated_fees": [{
                 "amount": "957",
                 "chain_id": "1"
-            }]
+            }],
+            "relayFeeRecipient": "0x0000000000000000000000000000000000000000", // Use zero address as default fee recipient
+            "quoteExpiry": 0 // No expiry
         });
 
         let proof_payload = json!({
