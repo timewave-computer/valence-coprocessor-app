@@ -1,5 +1,5 @@
 //! Shared constants for token IBC Eureka transfer system
-//! 
+//!
 //! All hardcoded values are centralized here for use in e2e tests
 //! and across the strategist, controller, circuit components.
 
@@ -10,13 +10,16 @@ pub const TOKEN: &str = "LBTC";
 pub const TOKEN_CONTRACT_ADDRESS: &str = "0x8236a87084f8B84306f72007F36F2618A5634494";
 
 /// Token denomination on Cosmos Hub (IBC denom)
-pub const TOKEN_COSMOS_HUB_DENOM: &str = "ibc/DBD9E339E1B093A052D76BECFFDE8435EAC114CF2133346B4D691F3F2068C957";
+pub const TOKEN_COSMOS_HUB_DENOM: &str =
+    "ibc/DBD9E339E1B093A052D76BECFFDE8435EAC114CF2133346B4D691F3F2068C957";
 
 /// Expected route hash for token IBC Eureka transfers (SHA3-256)
-pub const EXPECTED_ROUTE_HASH: &str = "a041afeb1546e275ec0038183732036ce653b197e8129748da95cf6c7de43abf";
+pub const EXPECTED_ROUTE_HASH: &str =
+    "a041afeb1546e275ec0038183732036ce653b197e8129748da95cf6c7de43abf";
 
 /// Expected destination address for token transfers (cosmos1...)
-pub const EXPECTED_DESTINATION: &str = "cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2";
+pub const EXPECTED_DESTINATION: &str =
+    "cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2";
 
 /// Fee threshold in token wei (0.0000189 LBTC = $2.00 equivalent)
 pub const FEE_THRESHOLD_TOKEN_WEI: u64 = 1890000000000000;
@@ -90,9 +93,9 @@ pub const ENV_SKIP_API_KEY: &str = "SKIP_API_KEY";
 
 /// Test transfer amounts in token wei for e2e testing
 pub const TEST_TRANSFER_AMOUNTS: &[u64] = &[
-    1000000000000000,    // 0.001 LBTC (below threshold - should pass)
-    1800000000000000,    // 0.0018 LBTC (below threshold - should pass)  
-    1890000000000000,    // 0.0189 LBTC (at threshold - should pass)
-    2000000000000000,    // 0.002 LBTC (above threshold - should fail)
-    5000000000000000,    // 0.005 LBTC (well above threshold - should fail)
-]; 
+    1000000000000000, // 0.001 LBTC (below threshold - should pass)
+    1800000000000000, // 0.0018 LBTC (below threshold - should pass)
+    1890000000000000, // 0.0189 LBTC (at threshold - should pass)
+    2000000000000000, // 0.002 LBTC (above threshold - should fail)
+    5000000000000000, // 0.005 LBTC (well above threshold - should fail)
+];

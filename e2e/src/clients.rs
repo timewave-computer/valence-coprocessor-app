@@ -4,8 +4,8 @@ use crate::*;
 use anyhow::Result;
 use serde_json::Value;
 use std::time::{Duration, Instant};
-use tracing::{info, debug};
 use tokio::time::timeout;
+use tracing::{debug, info};
 
 /// Real Skip API client for e2e testing
 pub struct E2ESkipApiClient {
@@ -45,17 +45,16 @@ impl E2ESkipApiClient {
         debug!("Calling Skip API route: {}", url);
 
         let start_time = Instant::now();
-        let response = self.client
-            .post(&url)
-            .json(&route_request)
-            .send()
-            .await?;
+        let response = self.client.post(&url).json(&route_request).send().await?;
 
         let api_duration = start_time.elapsed();
         debug!("Skip API route call took {:?}", api_duration);
 
         if !response.status().is_success() {
-            return Err(anyhow::anyhow!("Skip API route request failed: {}", response.status()));
+            return Err(anyhow::anyhow!(
+                "Skip API route request failed: {}",
+                response.status()
+            ));
         }
 
         let route_data: Value = response.json().await?;
@@ -77,7 +76,8 @@ impl E2ESkipApiClient {
         debug!("Calling Skip API messages: {}", url);
 
         let start_time = Instant::now();
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .json(&messages_request)
             .send()
@@ -87,7 +87,10 @@ impl E2ESkipApiClient {
         debug!("Skip API messages call took {:?}", api_duration);
 
         if !response.status().is_success() {
-            return Err(anyhow::anyhow!("Skip API messages request failed: {}", response.status()));
+            return Err(anyhow::anyhow!(
+                "Skip API messages request failed: {}",
+                response.status()
+            ));
         }
 
         let messages_data: Value = response.json().await?;
@@ -96,7 +99,8 @@ impl E2ESkipApiClient {
 
     /// Extract total fees from Skip API response
     pub fn extract_total_fees(&self, response: &Value) -> Result<u64> {
-        let estimated_fees = response["estimated_fees"].as_array()
+        let estimated_fees = response["estimated_fees"]
+            .as_array()
             .ok_or_else(|| anyhow::anyhow!("No estimated_fees found in response"))?;
 
         let mut total_fees = 0u64;
@@ -113,12 +117,13 @@ impl E2ESkipApiClient {
 
     /// Validate that response contains eureka_transfer operation
     pub fn validate_eureka_operation(&self, response: &Value) -> Result<()> {
-        let operations = response["operations"].as_array()
+        let operations = response["operations"]
+            .as_array()
             .ok_or_else(|| anyhow::anyhow!("No operations found in response"))?;
 
-        let has_eureka = operations.iter().any(|op| {
-            op["type"].as_str() == Some("eureka_transfer")
-        });
+        let has_eureka = operations
+            .iter()
+            .any(|op| op["type"].as_str() == Some("eureka_transfer"));
 
         if !has_eureka {
             return Err(anyhow::anyhow!("No eureka_transfer operation found"));
@@ -155,18 +160,23 @@ impl E2EEthereumClient {
             "id": 1
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(&self.rpc_url)
             .json(&payload)
             .send()
             .await?;
 
         if !response.status().is_success() {
-            return Err(anyhow::anyhow!("Ethereum RPC request failed: {}", response.status()));
+            return Err(anyhow::anyhow!(
+                "Ethereum RPC request failed: {}",
+                response.status()
+            ));
         }
 
         let result: Value = response.json().await?;
-        let block_hex = result["result"].as_str()
+        let block_hex = result["result"]
+            .as_str()
             .ok_or_else(|| anyhow::anyhow!("Invalid block number response"))?;
 
         // Convert hex to u64
@@ -188,18 +198,23 @@ impl E2EEthereumClient {
             "id": 1
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(&self.rpc_url)
             .json(&payload)
             .send()
             .await?;
 
         if !response.status().is_success() {
-            return Err(anyhow::anyhow!("Balance query failed: {}", response.status()));
+            return Err(anyhow::anyhow!(
+                "Balance query failed: {}",
+                response.status()
+            ));
         }
 
         let result: Value = response.json().await?;
-        let balance_hex = result["result"].as_str()
+        let balance_hex = result["result"]
+            .as_str()
             .ok_or_else(|| anyhow::anyhow!("Invalid balance response"))?;
 
         // Convert hex to u64
@@ -218,22 +233,29 @@ impl E2EEthereumClient {
             "id": 1
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(&self.rpc_url)
             .json(&payload)
             .send()
             .await?;
 
         if !response.status().is_success() {
-            return Err(anyhow::anyhow!("Contract validation failed: {}", response.status()));
+            return Err(anyhow::anyhow!(
+                "Contract validation failed: {}",
+                response.status()
+            ));
         }
 
         let result: Value = response.json().await?;
-        let code = result["result"].as_str()
+        let code = result["result"]
+            .as_str()
             .ok_or_else(|| anyhow::anyhow!("Invalid code response"))?;
 
         if code == "0x" {
-            return Err(anyhow::anyhow!("LBTC contract not found at expected address"));
+            return Err(anyhow::anyhow!(
+                "LBTC contract not found at expected address"
+            ));
         }
 
         info!("LBTC contract validated at {}", TOKEN_CONTRACT_ADDRESS);
@@ -262,14 +284,18 @@ impl E2ECoprocessorClient {
     /// Check coprocessor health
     pub async fn health_check(&self) -> Result<()> {
         let url = format!("{}/health", self.base_url);
-        
+
         let response = timeout(
             Duration::from_secs(MAX_API_RESPONSE_TIME_SECONDS),
-            self.client.get(&url).send()
-        ).await??;
+            self.client.get(&url).send(),
+        )
+        .await??;
 
         if !response.status().is_success() {
-            return Err(anyhow::anyhow!("Coprocessor health check failed: {}", response.status()));
+            return Err(anyhow::anyhow!(
+                "Coprocessor health check failed: {}",
+                response.status()
+            ));
         }
 
         info!("Coprocessor health check passed");
@@ -279,14 +305,18 @@ impl E2ECoprocessorClient {
     /// List available controllers (circuits)
     pub async fn list_controllers(&self) -> Result<Value> {
         let url = format!("{}/controllers", self.base_url);
-        
+
         let response = timeout(
             Duration::from_secs(MAX_API_RESPONSE_TIME_SECONDS),
-            self.client.get(&url).send()
-        ).await??;
+            self.client.get(&url).send(),
+        )
+        .await??;
 
         if !response.status().is_success() {
-            return Err(anyhow::anyhow!("Failed to list controllers: {}", response.status()));
+            return Err(anyhow::anyhow!(
+                "Failed to list controllers: {}",
+                response.status()
+            ));
         }
 
         let controllers: Value = response.json().await?;
@@ -299,7 +329,9 @@ pub struct E2EClientFactory;
 
 impl E2EClientFactory {
     /// Create all clients for a given configuration
-    pub fn create_clients(config: &E2EConfig) -> (E2ESkipApiClient, E2EEthereumClient, E2ECoprocessorClient) {
+    pub fn create_clients(
+        config: &E2EConfig,
+    ) -> (E2ESkipApiClient, E2EEthereumClient, E2ECoprocessorClient) {
         let skip_client = E2ESkipApiClient::new();
         let ethereum_client = E2EEthereumClient::new(config.ethereum_rpc_url.clone());
         let coprocessor_client = E2ECoprocessorClient::new(config.coprocessor_url.clone());
@@ -317,12 +349,12 @@ impl E2EClientFactory {
 
         // Test coprocessor connectivity
         coprocessor_client.health_check().await?;
-        
+
         // Test Skip API by getting chain info
         let client = reqwest::Client::new();
         let url = format!("{}/v2/info/chains", SKIP_API_BASE_URL);
         let response = client.get(&url).send().await?;
-        
+
         if !response.status().is_success() {
             return Err(anyhow::anyhow!("Skip API connectivity failed"));
         }
@@ -330,4 +362,4 @@ impl E2EClientFactory {
         info!("All clients connected successfully");
         Ok(())
     }
-} 
+}

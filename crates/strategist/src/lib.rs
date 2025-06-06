@@ -1,24 +1,24 @@
 //! Token IBC Eureka Transfer Strategist
-//! 
+//!
 //! Orchestrates token transfers from Ethereum to Cosmos Hub using:
 //! - Skip API for route discovery and message construction
 //! - Coprocessor for ZK proof generation and validation
 //! - Ethereum client for transaction submission
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use tracing::{info, warn};
 
-mod constants;
+mod clients;
 mod config;
+mod constants;
 mod skip_api;
 mod types;
-mod clients;
 
+pub use clients::*;
+pub use config::{Environment, StrategistConfig};
 pub use constants::*;
-pub use config::{StrategistConfig, Environment};
 pub use skip_api::SkipApiClient;
 pub use types::*;
-pub use clients::*;
 
 /// Configuration parameters for token transfer operations
 #[derive(Debug, Clone)]
@@ -116,13 +116,20 @@ impl TokenTransferStrategist {
     /// Creates a new token transfer strategist with custom configuration and parameters
     pub fn new_with_params(config: StrategistConfig, params: StrategistParams) -> Result<Self> {
         config.validate()?;
-        
-        info!("Initializing Token Transfer Strategist for {:?}", config.environment);
+
+        info!(
+            "Initializing Token Transfer Strategist for {:?}",
+            config.environment
+        );
 
         // Initialize domain clients using configuration
         let coprocessor = CoprocessorClient::new(&config.coprocessor_url())?;
         let ethereum = EthereumClient::new(&config.ethereum_rpc_url, &config.mnemonic)?;
-        let skip_api = SkipApiClient::new(&config.skip_api_base_url(), config.skip_api_key.as_deref(), &params)?;
+        let skip_api = SkipApiClient::new(
+            &config.skip_api_base_url(),
+            config.skip_api_key.as_deref(),
+            &params,
+        )?;
 
         Ok(Self {
             _config: config,
@@ -135,11 +142,17 @@ impl TokenTransferStrategist {
 
     /// Executes a complete token transfer flow
     pub async fn execute_transfer(&self, request: TransferRequest) -> Result<TransferResult> {
-        info!("Starting token transfer execution for amount: {}", request.amount);
+        info!(
+            "Starting token transfer execution for amount: {}",
+            request.amount
+        );
 
         // Step 1: Get Skip API messages with route and fee information
         let messages = self.skip_api.get_messages(&request).await?;
-        info!("Retrieved {} messages from Skip API", messages.operations.len());
+        info!(
+            "Retrieved {} messages from Skip API",
+            messages.operations.len()
+        );
 
         // Step 2: Generate ZK proof validating route and fees
         let proof_request = self.build_proof_request(&messages, &request)?;
@@ -191,7 +204,7 @@ impl TokenTransferStrategist {
         // Test route discovery
         info!("Testing route discovery with real Skip API");
         let route_response = self.skip_api.get_route(&test_request).await?;
-        
+
         // Validate route structure
         self.skip_api.validate_route(&route_response)?;
         info!("✅ Route validation passed with real Skip API");
@@ -199,7 +212,7 @@ impl TokenTransferStrategist {
         // Test message generation
         info!("Testing message generation with real Skip API");
         let messages_response = self.skip_api.get_messages(&test_request).await?;
-        
+
         // Validate message structure
         if !messages_response.has_eureka_transfer() {
             return Err(anyhow!("Messages response missing eureka_transfer"));
@@ -207,10 +220,17 @@ impl TokenTransferStrategist {
 
         let total_fees = messages_response.total_fees();
         if total_fees > self.params.fee_threshold_token_wei {
-            return Err(anyhow!("Real API fees {} exceed threshold {}", total_fees, self.params.fee_threshold_token_wei));
+            return Err(anyhow!(
+                "Real API fees {} exceed threshold {}",
+                total_fees,
+                self.params.fee_threshold_token_wei
+            ));
         }
 
-        info!("✅ Real Skip API integration test passed - fees: {} wei", total_fees);
+        info!(
+            "✅ Real Skip API integration test passed - fees: {} wei",
+            total_fees
+        );
         Ok(())
     }
 
@@ -262,7 +282,7 @@ impl TokenTransferStrategist {
 
         // Get Skip API messages for transaction building
         let messages = self.skip_api.get_messages(&test_request).await?;
-        
+
         // Build transaction without submitting
         let tx_result = self.ethereum.build_transaction(&messages).await;
         match tx_result {
@@ -295,7 +315,8 @@ impl TokenTransferStrategist {
             EXPECTED_ENTRY_CONTRACT.to_string(),
             TOKEN_TRANSFER_REGISTRY_ID,
         );
-        let invalid_skip_client = SkipApiClient::new("http://invalid-skip-api:9999", None, &test_params)?; // This would use invalid URL in production
+        let invalid_skip_client =
+            SkipApiClient::new("http://invalid-skip-api:9999", None, &test_params)?; // This would use invalid URL in production
         let test_request = TransferRequest {
             amount: 1000,
             source_address: "0x742d35Cc6634C0532925a3b8F78B86B95a7e0C18".to_string(),
@@ -305,7 +326,9 @@ impl TokenTransferStrategist {
 
         // This should fail gracefully when Skip API is unavailable
         match invalid_skip_client.get_messages(&test_request).await {
-            Ok(_) => info!("⚠️  Skip API test passed (unexpected - should fail with invalid config)"),
+            Ok(_) => {
+                info!("⚠️  Skip API test passed (unexpected - should fail with invalid config)")
+            }
             Err(_) => info!("✅ Skip API unavailability handled gracefully"),
         }
 
@@ -319,7 +342,8 @@ impl TokenTransferStrategist {
 
         // Test 3: Ethereum RPC failure simulation
         info!("Testing Ethereum RPC failure handling");
-        let invalid_ethereum = EthereumClient::new("http://invalid-ethereum:8545", "invalid mnemonic")?;
+        let invalid_ethereum =
+            EthereumClient::new("http://invalid-ethereum:8545", "invalid mnemonic")?;
         match invalid_ethereum.test_connectivity().await {
             Ok(_) => warn!("⚠️  Ethereum test succeeded unexpectedly"),
             Err(_) => info!("✅ Ethereum RPC failure handled gracefully"),
@@ -378,7 +402,8 @@ impl TokenTransferStrategist {
             return Err(anyhow!("Transfer amount cannot be zero"));
         }
 
-        if request.amount > 1_000_000_000_000_000_000 { // 1 token in wei
+        if request.amount > 1_000_000_000_000_000_000 {
+            // 1 token in wei
             return Err(anyhow!("Transfer amount exceeds maximum limit"));
         }
 
@@ -394,7 +419,8 @@ impl TokenTransferStrategist {
 
         // Validate max fee if provided
         if let Some(max_fee) = request.max_fee {
-            if max_fee < 1000 { // Minimum reasonable fee
+            if max_fee < 1000 {
+                // Minimum reasonable fee
                 return Err(anyhow!("Maximum fee too low - transfers will likely fail"));
             }
         }
@@ -409,7 +435,7 @@ impl TokenTransferStrategist {
         // Test 1: Proof generation time (< 30 seconds)
         info!("Testing proof generation performance");
         let start_time = std::time::Instant::now();
-        
+
         let test_request = TransferRequest {
             amount: 1000,
             source_address: "0x742d35Cc6634C0532925a3b8F78B86B95a7e0C18".to_string(),
@@ -421,24 +447,28 @@ impl TokenTransferStrategist {
         let mock_messages = self.create_mock_skip_response();
         let proof_request = self.build_proof_request(&mock_messages, &test_request)?;
         let _proof = self.coprocessor.generate_proof(proof_request).await?;
-        
+
         let proof_duration = start_time.elapsed();
         info!("Proof generation completed in {:?}", proof_duration);
-        
+
         if proof_duration.as_secs() > 30 {
-            return Err(anyhow!("Proof generation took {} seconds, exceeds 30 second limit", proof_duration.as_secs()));
+            return Err(anyhow!(
+                "Proof generation took {} seconds, exceeds 30 second limit",
+                proof_duration.as_secs()
+            ));
         }
         info!("✅ Proof generation within 30 second requirement");
 
         // Test 2: Skip API response time (< 5 seconds)
         info!("Testing Skip API response performance");
         let api_start = std::time::Instant::now();
-        
+
         // Use a timeout to ensure we don't exceed 5 seconds
         let api_timeout = tokio::time::timeout(
             std::time::Duration::from_secs(5),
-            self.test_skip_api_performance(&test_request)
-        ).await;
+            self.test_skip_api_performance(&test_request),
+        )
+        .await;
 
         let api_duration = api_start.elapsed();
         info!("Skip API test completed in {:?}", api_duration);
@@ -446,7 +476,10 @@ impl TokenTransferStrategist {
         match api_timeout {
             Ok(Ok(_)) => {
                 if api_duration.as_secs() > 5 {
-                    warn!("⚠️  Skip API response took {} seconds, exceeds 5 second target", api_duration.as_secs());
+                    warn!(
+                        "⚠️  Skip API response took {} seconds, exceeds 5 second target",
+                        api_duration.as_secs()
+                    );
                 } else {
                     info!("✅ Skip API response within 5 second requirement");
                 }
@@ -467,8 +500,9 @@ impl TokenTransferStrategist {
         // Simulate complete flow with timeouts
         let e2e_result = tokio::time::timeout(
             std::time::Duration::from_secs(60),
-            self.simulate_end_to_end_flow(&test_request)
-        ).await;
+            self.simulate_end_to_end_flow(&test_request),
+        )
+        .await;
 
         let e2e_duration = e2e_start.elapsed();
         info!("End-to-end flow test completed in {:?}", e2e_duration);
@@ -476,7 +510,10 @@ impl TokenTransferStrategist {
         match e2e_result {
             Ok(Ok(_)) => {
                 if e2e_duration.as_secs() > 60 {
-                    return Err(anyhow!("End-to-end flow took {} seconds, exceeds 60 second limit", e2e_duration.as_secs()));
+                    return Err(anyhow!(
+                        "End-to-end flow took {} seconds, exceeds 60 second limit",
+                        e2e_duration.as_secs()
+                    ));
                 }
                 info!("✅ End-to-end flow within 60 second requirement");
             }
@@ -504,43 +541,39 @@ impl TokenTransferStrategist {
     async fn simulate_end_to_end_flow(&self, request: &TransferRequest) -> Result<()> {
         // Step 1: Skip API call (simulated)
         let messages = self.create_mock_skip_response();
-        
+
         // Step 2: Proof generation
         let proof_request = self.build_proof_request(&messages, request)?;
         let _proof = self.coprocessor.generate_proof(proof_request).await?;
-        
+
         // Step 3: Transaction building (simulated)
         self.ethereum.build_transaction(&messages).await?;
-        
+
         Ok(())
     }
 
     /// Create mock Skip API response for testing
     fn create_mock_skip_response(&self) -> SkipApiResponse {
         use crate::types::*;
-        
+
         SkipApiResponse {
-            operations: vec![
-                Operation::EurekaTransfer(EurekaTransferOperation {
-                    from_chain_id: self.params.expected_source_chain.clone(),
-                    to_chain_id: self.params.expected_dest_chain.clone(),
-                    denom_in: self.params.token_contract_address.clone(),
-                    denom_out: self.params.token_cosmos_hub_denom.clone(),
-                    bridge_id: self.params.expected_bridge_id.clone(),
-                    entry_contract_address: self.params.expected_entry_contract.clone(),
-                    smart_relay: false,
-                    smart_relay_fee_quote: None,
-                })
-            ],
+            operations: vec![Operation::EurekaTransfer(EurekaTransferOperation {
+                from_chain_id: self.params.expected_source_chain.clone(),
+                to_chain_id: self.params.expected_dest_chain.clone(),
+                denom_in: self.params.token_contract_address.clone(),
+                denom_out: self.params.token_cosmos_hub_denom.clone(),
+                bridge_id: self.params.expected_bridge_id.clone(),
+                entry_contract_address: self.params.expected_entry_contract.clone(),
+                smart_relay: false,
+                smart_relay_fee_quote: None,
+            })],
             estimated_route_duration_seconds: 300,
-            estimated_fees: vec![
-                Fee {
-                    fee_type: "eureka_relay".to_string(),
-                    bridge_id: Some(self.params.expected_bridge_id.clone()),
-                    amount: "957".to_string(), // Below threshold
-                    chain_id: self.params.expected_source_chain.clone(),
-                }
-            ],
+            estimated_fees: vec![Fee {
+                fee_type: "eureka_relay".to_string(),
+                bridge_id: Some(self.params.expected_bridge_id.clone()),
+                amount: "957".to_string(), // Below threshold
+                chain_id: self.params.expected_source_chain.clone(),
+            }],
         }
     }
 }
@@ -548,18 +581,16 @@ impl TokenTransferStrategist {
 #[cfg(test)]
 mod integration_tests {
     use super::*;
-    use tokio;
 
     #[tokio::test]
     #[ignore] // Use --ignored to run this test with real API
     async fn test_real_skip_api_integration() {
         // Initialize strategist with environment configuration
-        let strategist = TokenTransferStrategist::from_env()
-            .expect("Failed to create strategist");
+        let strategist = TokenTransferStrategist::from_env().expect("Failed to create strategist");
 
         // Test real Skip API integration
         let result = strategist.validate_real_skip_api().await;
-        
+
         // This test requires internet access and may fail if Skip API is down
         // We'll check if it passes but won't fail the test suite if network is unavailable
         match result {
@@ -567,7 +598,10 @@ mod integration_tests {
                 println!("✅ Real Skip API integration test passed");
             }
             Err(e) => {
-                println!("⚠️  Real Skip API test failed (may be due to network): {}", e);
+                println!(
+                    "⚠️  Real Skip API test failed (may be due to network): {}",
+                    e
+                );
                 // Don't panic - this is expected when running in CI or without internet
             }
         }
@@ -577,12 +611,11 @@ mod integration_tests {
     #[ignore] // Use --ignored to run production tests
     async fn test_production_environment_connectivity() {
         // Initialize strategist with environment configuration (mainnet requires proper RPC setup)
-        let strategist = TokenTransferStrategist::from_env()
-            .expect("Failed to create strategist");
+        let strategist = TokenTransferStrategist::from_env().expect("Failed to create strategist");
 
         // Test production environment
         let result = strategist.test_production_environment().await;
-        
+
         // This test requires production services to be available
         match result {
             Ok(()) => {
@@ -598,12 +631,11 @@ mod integration_tests {
     #[tokio::test]
     async fn test_comprehensive_error_handling() {
         // Initialize strategist with environment configuration
-        let strategist = TokenTransferStrategist::from_env()
-            .expect("Failed to create strategist");
+        let strategist = TokenTransferStrategist::from_env().expect("Failed to create strategist");
 
         // Test comprehensive error handling
         let result = strategist.test_error_handling().await;
-        
+
         // This test should always pass since it's testing error handling
         match result {
             Ok(()) => {
@@ -619,12 +651,11 @@ mod integration_tests {
     #[tokio::test]
     async fn test_performance_validation() {
         // Initialize strategist with environment configuration
-        let strategist = TokenTransferStrategist::from_env()
-            .expect("Failed to create strategist");
+        let strategist = TokenTransferStrategist::from_env().expect("Failed to create strategist");
 
         // Test performance validation
         let result = strategist.validate_performance().await;
-        
+
         // This test should pass with mock implementations
         match result {
             Ok(()) => {
@@ -636,4 +667,4 @@ mod integration_tests {
             }
         }
     }
-} 
+}

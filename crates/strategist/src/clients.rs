@@ -1,10 +1,10 @@
 //! Client implementations for coprocessor and Ethereum interactions
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
-use crate::types::{SkipApiResponse, ProofRequest};
+use crate::types::{ProofRequest, SkipApiResponse};
 
 /// Coprocessor client for ZK proof generation
 pub struct CoprocessorClient {
@@ -26,7 +26,7 @@ impl CoprocessorClient {
         // TODO: Implement actual coprocessor API call
         // For now, return a mock response
         warn!("Using mock proof generation - implement actual coprocessor integration");
-        
+
         Ok(ProofResponse {
             hash: "mock_proof_hash_placeholder".to_string(),
             proof_data: vec![],
@@ -37,10 +37,11 @@ impl CoprocessorClient {
     /// Ping coprocessor service to test connectivity
     pub async fn ping(&self) -> Result<()> {
         info!("Pinging coprocessor service at {}", self.url);
-        
+
         // Create a simple HTTP client to test connectivity
         let client = reqwest::Client::new();
-        let response = client.get(format!("{}/health", self.url))
+        let response = client
+            .get(format!("{}/health", self.url))
             .timeout(std::time::Duration::from_secs(10))
             .send()
             .await;
@@ -51,7 +52,10 @@ impl CoprocessorClient {
                 Ok(())
             }
             Ok(resp) => {
-                warn!("Coprocessor service responded with status: {}", resp.status());
+                warn!(
+                    "Coprocessor service responded with status: {}",
+                    resp.status()
+                );
                 Err(anyhow!("Coprocessor service unhealthy: {}", resp.status()))
             }
             Err(e) => {
@@ -88,14 +92,14 @@ impl EthereumClient {
         // TODO: Implement actual Ethereum transaction submission
         // For now, return a mock transaction hash
         warn!("Using mock transaction submission - implement actual Ethereum integration");
-        
+
         Ok("0xmock_transaction_hash_placeholder".to_string())
     }
 
     /// Test Ethereum connectivity (read-only)
     pub async fn test_connectivity(&self) -> Result<()> {
         info!("Testing Ethereum connectivity to {}", self.rpc_url);
-        
+
         let client = reqwest::Client::new();
         let eth_request = serde_json::json!({
             "jsonrpc": "2.0",
@@ -104,7 +108,8 @@ impl EthereumClient {
             "id": 1
         });
 
-        let response = client.post(&self.rpc_url)
+        let response = client
+            .post(&self.rpc_url)
             .json(&eth_request)
             .timeout(std::time::Duration::from_secs(10))
             .send()
@@ -121,17 +126,17 @@ impl EthereumClient {
                 }
             }
             Ok(resp) => Err(anyhow!("Ethereum RPC error: {}", resp.status())),
-            Err(e) => Err(anyhow!("Ethereum connectivity failed: {}", e))
+            Err(e) => Err(anyhow!("Ethereum connectivity failed: {}", e)),
         }
     }
 
     /// Verify token contract exists on mainnet
     pub async fn verify_token_contract(&self) -> Result<()> {
         info!("Verifying token contract on Ethereum mainnet");
-        
+
         let client = reqwest::Client::new();
         let token_address = "0x8236a87084f8B84306f72007F36F2618A5634494";
-        
+
         let eth_request = serde_json::json!({
             "jsonrpc": "2.0",
             "method": "eth_getCode",
@@ -139,7 +144,8 @@ impl EthereumClient {
             "id": 1
         });
 
-        let response = client.post(&self.rpc_url)
+        let response = client
+            .post(&self.rpc_url)
             .json(&eth_request)
             .timeout(std::time::Duration::from_secs(10))
             .send()
@@ -161,7 +167,7 @@ impl EthereumClient {
     /// Build transaction without submitting
     pub async fn build_transaction(&self, _messages: &SkipApiResponse) -> Result<()> {
         info!("Building Ethereum transaction (without submission)");
-        
+
         // This would normally build the actual transaction data
         // For now, we'll just validate that we can construct the transaction
         info!("Transaction building validation successful");
@@ -175,4 +181,4 @@ pub struct ProofResponse {
     pub hash: String,
     pub proof_data: Vec<u8>,
     pub verified: bool,
-} 
+}

@@ -1,9 +1,9 @@
 //! Configuration management for the token transfer strategist
-//! 
+//!
 //! Reads sensitive configuration like RPC URLs and API keys from environment variables.
 //! Uses .env file support for local development.
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use std::env;
 
 /// Configuration for the token transfer strategist
@@ -35,14 +35,17 @@ impl std::str::FromStr for Environment {
             "local" => Ok(Environment::Local),
             "testnet" => Ok(Environment::Testnet),
             "mainnet" => Ok(Environment::Mainnet),
-            _ => Err(anyhow!("Invalid environment: {}. Must be 'local', 'testnet', or 'mainnet'", s)),
+            _ => Err(anyhow!(
+                "Invalid environment: {}. Must be 'local', 'testnet', or 'mainnet'",
+                s
+            )),
         }
     }
 }
 
 impl StrategistConfig {
     /// Load configuration from environment variables
-    /// 
+    ///
     /// This will first try to load from a .env file if it exists,
     /// then read from environment variables.
     pub fn from_env() -> Result<Self> {
@@ -60,14 +63,15 @@ impl StrategistConfig {
         let skip_api_key = env::var("SKIP_API_KEY").ok();
 
         // Get wallet mnemonic
-        let mnemonic = env::var("WALLET_MNEMONIC")
-            .unwrap_or_else(|_| {
-                if environment == Environment::Local {
-                    "test test test test test test test test test test test junk".to_string()
-                } else {
-                    panic!("WALLET_MNEMONIC environment variable is required for non-local environments")
-                }
-            });
+        let mnemonic = env::var("WALLET_MNEMONIC").unwrap_or_else(|_| {
+            if environment == Environment::Local {
+                "test test test test test test test test test test test junk".to_string()
+            } else {
+                panic!(
+                    "WALLET_MNEMONIC environment variable is required for non-local environments"
+                )
+            }
+        });
 
         Ok(Self {
             ethereum_rpc_url,
@@ -101,13 +105,16 @@ impl StrategistConfig {
             }
             Environment::Testnet | Environment::Mainnet => {
                 // For testnet and mainnet, require custom RPC URL
-                env::var("ETHEREUM_RPC_URL")
-                    .map_err(|_| anyhow!("For {} environment, you must provide ETHEREUM_RPC_URL", 
+                env::var("ETHEREUM_RPC_URL").map_err(|_| {
+                    anyhow!(
+                        "For {} environment, you must provide ETHEREUM_RPC_URL",
                         match environment {
                             Environment::Testnet => "testnet",
-                            Environment::Mainnet => "mainnet", 
+                            Environment::Mainnet => "mainnet",
                             Environment::Local => unreachable!(),
-                        }))
+                        }
+                    )
+                })
             }
         }
     }
@@ -116,7 +123,10 @@ impl StrategistConfig {
     pub fn validate(&self) -> Result<()> {
         // Validate URLs
         if !self.ethereum_rpc_url.starts_with("http") {
-            return Err(anyhow!("Invalid Ethereum RPC URL: {}", self.ethereum_rpc_url));
+            return Err(anyhow!(
+                "Invalid Ethereum RPC URL: {}",
+                self.ethereum_rpc_url
+            ));
         }
 
         // Validate mnemonic (basic check)
@@ -135,8 +145,14 @@ mod tests {
     #[test]
     fn test_environment_parsing() {
         assert_eq!("local".parse::<Environment>().unwrap(), Environment::Local);
-        assert_eq!("testnet".parse::<Environment>().unwrap(), Environment::Testnet);
-        assert_eq!("mainnet".parse::<Environment>().unwrap(), Environment::Mainnet);
+        assert_eq!(
+            "testnet".parse::<Environment>().unwrap(),
+            Environment::Testnet
+        );
+        assert_eq!(
+            "mainnet".parse::<Environment>().unwrap(),
+            Environment::Mainnet
+        );
         assert!("invalid".parse::<Environment>().is_err());
     }
 
@@ -171,13 +187,19 @@ mod tests {
             environment: Environment::Testnet,
             ..config.clone()
         };
-        assert_eq!(testnet_config.coprocessor_url(), "https://coprocessor-testnet.timewave.computer");
+        assert_eq!(
+            testnet_config.coprocessor_url(),
+            "https://coprocessor-testnet.timewave.computer"
+        );
 
         let mainnet_config = StrategistConfig {
             environment: Environment::Mainnet,
             ..config
         };
-        assert_eq!(mainnet_config.coprocessor_url(), "https://coprocessor.timewave.computer");
+        assert_eq!(
+            mainnet_config.coprocessor_url(),
+            "https://coprocessor.timewave.computer"
+        );
     }
 
     #[test]
@@ -191,4 +213,4 @@ mod tests {
 
         assert_eq!(config.skip_api_base_url(), "https://api.skip.build");
     }
-} 
+}

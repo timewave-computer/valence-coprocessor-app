@@ -1,7 +1,7 @@
 //! Type definitions for token transfer operations
 
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
-use anyhow::{Result, anyhow};
 
 /// Transfer request for IBC Eureka transfers
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,9 +48,9 @@ impl SkipApiResponse {
 
     /// Check if this response contains a eureka_transfer operation
     pub fn has_eureka_transfer(&self) -> bool {
-        self.operations.iter().any(|op| {
-            matches!(op, Operation::EurekaTransfer(_))
-        })
+        self.operations
+            .iter()
+            .any(|op| matches!(op, Operation::EurekaTransfer(_)))
     }
 }
 
@@ -142,7 +142,8 @@ impl RouteData {
     /// Extract route data from Skip API response
     pub fn from_skip_response(response: &SkipApiResponse) -> Result<Self> {
         // Find the eureka_transfer operation
-        let eureka_op = response.operations
+        let eureka_op = response
+            .operations
             .iter()
             .find_map(|op| match op {
                 Operation::EurekaTransfer(eureka) => Some(eureka),
@@ -164,7 +165,7 @@ impl RouteData {
     /// Generate route hash for validation
     pub fn generate_hash(&self) -> String {
         use sha3::{Digest, Sha3_256};
-        
+
         let canonical_route = format!(
             "source_chain:{}|dest_chain:{}|source_denom:{}|dest_denom:{}|bridge_type:{}|bridge_id:{}|entry_contract:{}",
             self.source_chain,
@@ -193,7 +194,7 @@ impl FeeData {
     /// Extract fee data from Skip API response
     pub fn from_skip_response(response: &SkipApiResponse) -> Result<Self> {
         let total_fee_token_wei = response.total_fees();
-        
+
         Ok(FeeData {
             total_fee_token_wei,
             fee_breakdown: response.estimated_fees.clone(),
@@ -208,4 +209,4 @@ pub struct ProofRequest {
     pub fee_data: FeeData,
     pub destination_address: String,
     pub expected_route_hash: String,
-} 
+}

@@ -1,12 +1,12 @@
 //! End-to-end tests for LBTC IBC Eureka transfer system
-//! 
+//!
 //! Tests the complete flow:
 //! - Skip API RPC for route discovery and fee information
 //! - Coprocessor RPC for ZK proof generation  
 //! - Ethereum RPC for transaction validation
 
-pub mod constants;
 pub mod clients;
+pub mod constants;
 pub mod tests;
 pub mod utils;
 
@@ -18,10 +18,7 @@ use tracing::info;
 
 /// Initialize logging for e2e tests
 pub fn init_logging() {
-    tracing_subscriber::fmt()
-        .with_test_writer()
-        .try_init()
-        .ok();
+    tracing_subscriber::fmt().with_test_writer().try_init().ok();
 }
 
 /// Test configuration for e2e runs
@@ -42,9 +39,9 @@ pub struct E2EConfig {
 /// Test environment type
 #[derive(Debug, Clone, PartialEq)]
 pub enum Environment {
-    Local,      // Local anvil + local coprocessor
-    Testnet,    // Ethereum testnet + public coprocessor  
-    Mainnet,    // Ethereum mainnet + public coprocessor (read-only)
+    Local,   // Local anvil + local coprocessor
+    Testnet, // Ethereum testnet + public coprocessor
+    Mainnet, // Ethereum mainnet + public coprocessor (read-only)
 }
 
 impl E2EConfig {
@@ -56,22 +53,24 @@ impl E2EConfig {
         let coprocessor_url = std::env::var(ENV_COPROCESSOR_URL)
             .unwrap_or_else(|_| PUBLIC_COPROCESSOR_URL.to_string());
 
-        let mnemonic = std::env::var(ENV_MNEMONIC)
-            .unwrap_or_else(|_| TEST_MNEMONIC.to_string());
+        let mnemonic = std::env::var(ENV_MNEMONIC).unwrap_or_else(|_| TEST_MNEMONIC.to_string());
 
         let skip_api_key = std::env::var(ENV_SKIP_API_KEY).ok();
 
         // Determine environment based on URLs
-        let environment = if ethereum_rpc_url.contains("127.0.0.1") || ethereum_rpc_url.contains("localhost") {
-            Environment::Local
-        } else if ethereum_rpc_url.contains("sepolia") || ethereum_rpc_url.contains("holesky") {
-            Environment::Testnet
-        } else {
-            Environment::Mainnet
-        };
+        let environment =
+            if ethereum_rpc_url.contains("127.0.0.1") || ethereum_rpc_url.contains("localhost") {
+                Environment::Local
+            } else if ethereum_rpc_url.contains("sepolia") || ethereum_rpc_url.contains("holesky") {
+                Environment::Testnet
+            } else {
+                Environment::Mainnet
+            };
 
-        info!("E2E Config: environment={:?}, eth_rpc={}, coprocessor={}", 
-              environment, ethereum_rpc_url, coprocessor_url);
+        info!(
+            "E2E Config: environment={:?}, eth_rpc={}, coprocessor={}",
+            environment, ethereum_rpc_url, coprocessor_url
+        );
 
         Ok(Self {
             ethereum_rpc_url,
@@ -107,7 +106,10 @@ impl E2EConfig {
 
 /// Utility function to test RPC connectivity
 pub async fn test_rpc_connectivity(config: &E2EConfig) -> Result<()> {
-    info!("Testing RPC connectivity for environment: {:?}", config.environment);
+    info!(
+        "Testing RPC connectivity for environment: {:?}",
+        config.environment
+    );
 
     // Test Ethereum RPC connectivity
     let eth_client = reqwest::Client::new();
@@ -126,19 +128,23 @@ pub async fn test_rpc_connectivity(config: &E2EConfig) -> Result<()> {
         .await?;
 
     if !eth_response.status().is_success() {
-        return Err(anyhow::anyhow!("Ethereum RPC not accessible: {}", eth_response.status()));
+        return Err(anyhow::anyhow!(
+            "Ethereum RPC not accessible: {}",
+            eth_response.status()
+        ));
     }
 
     let eth_result: serde_json::Value = eth_response.json().await?;
-    let block_number = eth_result["result"].as_str()
+    let block_number = eth_result["result"]
+        .as_str()
         .ok_or_else(|| anyhow::anyhow!("Invalid block number response"))?;
-    
+
     info!("Ethereum RPC connected, latest block: {}", block_number);
 
     // Test coprocessor connectivity
     let coprocessor_client = reqwest::Client::new();
     let health_url = format!("{}/health", config.coprocessor_url);
-    
+
     let coprocessor_response = coprocessor_client
         .get(&health_url)
         .timeout(Duration::from_secs(MAX_API_RESPONSE_TIME_SECONDS))
@@ -146,7 +152,10 @@ pub async fn test_rpc_connectivity(config: &E2EConfig) -> Result<()> {
         .await?;
 
     if !coprocessor_response.status().is_success() {
-        return Err(anyhow::anyhow!("Coprocessor not accessible: {}", coprocessor_response.status()));
+        return Err(anyhow::anyhow!(
+            "Coprocessor not accessible: {}",
+            coprocessor_response.status()
+        ));
     }
 
     info!("Coprocessor service connected");
@@ -154,7 +163,7 @@ pub async fn test_rpc_connectivity(config: &E2EConfig) -> Result<()> {
     // Test Skip API connectivity
     let skip_client = reqwest::Client::new();
     let skip_url = format!("{}/v2/info/chains", SKIP_API_BASE_URL);
-    
+
     let skip_response = skip_client
         .get(&skip_url)
         .timeout(Duration::from_secs(MAX_API_RESPONSE_TIME_SECONDS))
@@ -162,7 +171,10 @@ pub async fn test_rpc_connectivity(config: &E2EConfig) -> Result<()> {
         .await?;
 
     if !skip_response.status().is_success() {
-        return Err(anyhow::anyhow!("Skip API not accessible: {}", skip_response.status()));
+        return Err(anyhow::anyhow!(
+            "Skip API not accessible: {}",
+            skip_response.status()
+        ));
     }
 
     info!("Skip API connected");
@@ -188,12 +200,18 @@ pub fn validate_constants() -> Result<()> {
 
     // Validate fee threshold is reasonable (not zero, not too high)
     if FEE_THRESHOLD_TOKEN_WEI == 0 || FEE_THRESHOLD_TOKEN_WEI > 10_000_000_000_000_000 {
-        return Err(anyhow::anyhow!("Invalid fee threshold: {}", FEE_THRESHOLD_TOKEN_WEI));
+        return Err(anyhow::anyhow!(
+            "Invalid fee threshold: {}",
+            FEE_THRESHOLD_TOKEN_WEI
+        ));
     }
 
     // Validate route hash format (should be hex string)
     if EXPECTED_ROUTE_HASH.len() != 64 {
-        return Err(anyhow::anyhow!("Invalid route hash length: {}", EXPECTED_ROUTE_HASH.len()));
+        return Err(anyhow::anyhow!(
+            "Invalid route hash length: {}",
+            EXPECTED_ROUTE_HASH.len()
+        ));
     }
 
     if !EXPECTED_ROUTE_HASH.chars().all(|c| c.is_ascii_hexdigit()) {
@@ -202,4 +220,4 @@ pub fn validate_constants() -> Result<()> {
 
     info!("All constants validated successfully");
     Ok(())
-} 
+}

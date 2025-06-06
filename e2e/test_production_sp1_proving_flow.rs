@@ -1,8 +1,8 @@
 //! End-to-End Production SP1 Proving Flow Test
-//! 
+//!
 //! This test demonstrates the complete production pipeline for generating SP1 proofs
 //! for token transfer validation using the Valence Coprocessor infrastructure.
-//! 
+//!
 //! ## Flow Overview:
 //! 1. Skip API Integration - Fetch real route and fee data
 //! 2. Controller Deployment - Deploy WASM to coprocessor service
@@ -11,11 +11,11 @@
 //! 5. ABI Encoding - Generate Valence Authorization contract messages
 //! 6. Validation - Verify all security constraints
 
-use std::time::{Duration, Instant};
-use tokio::time::{sleep, timeout};
+use anyhow::{anyhow, Result};
 use reqwest::Client;
 use serde_json::{json, Value};
-use anyhow::{Result, anyhow};
+use std::time::{Duration, Instant};
+use tokio::time::{sleep, timeout};
 
 /// Test configuration for production SP1 proving flow
 #[derive(Debug, Clone)]
@@ -39,8 +39,10 @@ impl Default for ProductionFlowConfig {
         Self {
             coprocessor_url: "http://localhost:37281".to_string(),
             skip_api_url: "https://api.skip.build".to_string(),
-            controller_id: "2a326a320c2a4269241d2f39a6c8e253ae14b9bccb5e7f141d9d1e4223e485bb".to_string(),
-            expected_destination: "cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2".to_string(),
+            controller_id: "2a326a320c2a4269241d2f39a6c8e253ae14b9bccb5e7f141d9d1e4223e485bb"
+                .to_string(),
+            expected_destination: "cosmos1zxj6y5h3r8k9v7n2m4l1q8w5e3t6y9u0i7o4p2s5d8f6g3h1j4k7l9n2"
+                .to_string(),
             fee_threshold: 1890000000000000, // 0.00189 LBTC = ~$1.89 USD
             proof_timeout: Duration::from_secs(120),
         }
@@ -85,7 +87,7 @@ impl ProductionSP1ProvingTest {
     }
 
     /// Execute the complete production SP1 proving flow
-    /// 
+    ///
     /// This test validates the entire pipeline from Skip API integration
     /// through SP1 proof generation to final ABI-encoded output
     pub async fn run_complete_flow(&self) -> Result<ProductionFlowResults> {
@@ -183,14 +185,17 @@ impl ProductionSP1ProvingTest {
         results.total_duration = start_time.elapsed();
         println!("\n🎉 Production SP1 Proving Flow Test Complete!");
         println!("⏱️  Total Duration: {:?}", results.total_duration);
-        println!("📊 Success Rate: {}/{} steps passed", 
-                5 - results.errors.len(), 5);
+        println!(
+            "📊 Success Rate: {}/{} steps passed",
+            5 - results.errors.len(),
+            5
+        );
 
         Ok(results)
     }
 
     /// Step 1: Test Skip API integration for route and fee data
-    /// 
+    ///
     /// Command equivalent (two steps):
     /// ```bash
     /// # Step 1a: Get route
@@ -199,7 +204,7 @@ impl ProductionSP1ProvingTest {
     ///   -d '{
     ///     "amount_in": "1000000000000000",
     ///     "source_asset_denom": "0x8236a87084f8B84306f72007F36F2618A5634494",
-    ///     "source_asset_chain_id": "1", 
+    ///     "source_asset_chain_id": "1",
     ///     "dest_asset_denom": "ibc/DBD9E339E1B093A052D76BECFFDE8435EAC114CF2133346B4D691F3F2068C957",
     ///     "dest_asset_chain_id": "cosmoshub-4"
     ///   }'
@@ -218,14 +223,14 @@ impl ProductionSP1ProvingTest {
     ///     "operations": [...]
     ///   }'
     /// ```
-    /// 
+    ///
     /// Expected response:
     /// - msgs: Array containing eureka_transfer messages
     /// - estimated_fees: Array with fee amounts < threshold (991 wei)
     /// - txs: Transaction data for Valence authorization contract
     async fn test_skip_api_integration(&self) -> Result<Value> {
         println!("🔍 Step 1: Testing Skip API integration");
-        
+
         // Step 1a: Get route
         let route_payload = json!({
             "amount_in": "1000000000000000", // 0.001 LBTC
@@ -235,30 +240,39 @@ impl ProductionSP1ProvingTest {
             "dest_asset_chain_id": "cosmoshub-4" // Cosmos Hub
         });
 
-        println!("   📤 Route request URL: {}/v2/fungible/route", self.config.skip_api_url);
-        println!("   📤 Route request payload: {}", serde_json::to_string_pretty(&route_payload)?);
+        println!(
+            "   📤 Route request URL: {}/v2/fungible/route",
+            self.config.skip_api_url
+        );
+        println!(
+            "   📤 Route request payload: {}",
+            serde_json::to_string_pretty(&route_payload)?
+        );
 
         let route_response = timeout(
             Duration::from_secs(10),
             self.client
-                .post(&format!("{}/v2/fungible/route", self.config.skip_api_url))
+                .post(format!("{}/v2/fungible/route", self.config.skip_api_url))
                 .json(&route_payload)
-                .send()
-        ).await??;
+                .send(),
+        )
+        .await??;
 
         if !route_response.status().is_success() {
-            return Err(anyhow!("Skip route API request failed: {}", route_response.status()));
+            return Err(anyhow!(
+                "Skip route API request failed: {}",
+                route_response.status()
+            ));
         }
 
         let route_data: Value = route_response.json().await?;
         println!("   📥 Route response received successfully");
 
         // Extract required fields from route
-        let amount_out = route_data["amount_out"].as_str()
+        let amount_out = route_data["amount_out"]
+            .as_str()
             .ok_or_else(|| anyhow!("No amount_out in route response"))?;
         let operations = route_data["operations"].clone();
-        let chain_ids = route_data["chain_ids"].as_array()
-            .ok_or_else(|| anyhow!("No chain_ids in route response"))?;
 
         // Step 1b: Get messages using route data
         let msgs_payload = json!({
@@ -277,78 +291,108 @@ impl ProductionSP1ProvingTest {
             "operations": operations
         });
 
-        println!("   📤 Messages request URL: {}/v2/fungible/msgs", self.config.skip_api_url);
-        println!("   📤 Messages request payload keys: {:?}", msgs_payload.as_object().unwrap().keys().collect::<Vec<_>>());
+        println!(
+            "   📤 Messages request URL: {}/v2/fungible/msgs",
+            self.config.skip_api_url
+        );
+        println!(
+            "   📤 Messages request payload keys: {:?}",
+            msgs_payload.as_object().unwrap().keys().collect::<Vec<_>>()
+        );
 
         let msgs_response = timeout(
             Duration::from_secs(10),
             self.client
-                .post(&format!("{}/v2/fungible/msgs", self.config.skip_api_url))
+                .post(format!("{}/v2/fungible/msgs", self.config.skip_api_url))
                 .json(&msgs_payload)
-                .send()
-        ).await??;
+                .send(),
+        )
+        .await??;
 
         if !msgs_response.status().is_success() {
-            return Err(anyhow!("Skip msgs API request failed: {}", msgs_response.status()));
+            return Err(anyhow!(
+                "Skip msgs API request failed: {}",
+                msgs_response.status()
+            ));
         }
 
         let response_data: Value = msgs_response.json().await?;
-        println!("   📥 Messages response received: {}", serde_json::to_string_pretty(&response_data)?);
+        println!(
+            "   📥 Messages response received: {}",
+            serde_json::to_string_pretty(&response_data)?
+        );
 
         // Validate response structure
-        let estimated_fees = response_data["estimated_fees"].as_array()
+        let estimated_fees = response_data["estimated_fees"]
+            .as_array()
             .ok_or_else(|| anyhow!("No estimated_fees in Skip API response"))?;
 
         // Check that fees are below threshold
         for fee in estimated_fees {
-            let fee_amount: u64 = fee["amount"].as_str()
+            let fee_amount: u64 = fee["amount"]
+                .as_str()
                 .ok_or_else(|| anyhow!("No amount in fee"))?
                 .parse()?;
-            
+
             if fee_amount > self.config.fee_threshold {
-                return Err(anyhow!("Fee {} exceeds threshold {}", fee_amount, self.config.fee_threshold));
+                return Err(anyhow!(
+                    "Fee {} exceeds threshold {}",
+                    fee_amount,
+                    self.config.fee_threshold
+                ));
             }
-            println!("   ✅ Fee {} wei is below threshold {} wei", fee_amount, self.config.fee_threshold);
+            println!(
+                "   ✅ Fee {} wei is below threshold {} wei",
+                fee_amount, self.config.fee_threshold
+            );
         }
 
         // Validate we have transaction messages
-        let _msgs = response_data["msgs"].as_array()
+        let _msgs = response_data["msgs"]
+            .as_array()
             .ok_or_else(|| anyhow!("No msgs in Skip API response"))?;
 
-        let _txs = response_data["txs"].as_array()
+        let _txs = response_data["txs"]
+            .as_array()
             .ok_or_else(|| anyhow!("No txs in Skip API response"))?;
 
         println!("   ✅ Skip API integration validated successfully");
-        println!("      - Route obtained with {} operations", route_data["operations"].as_array().unwrap().len());
-        println!("      - {} estimated fees all below threshold", estimated_fees.len());
+        println!(
+            "      - Route obtained with {} operations",
+            route_data["operations"].as_array().unwrap().len()
+        );
+        println!(
+            "      - {} estimated fees all below threshold",
+            estimated_fees.len()
+        );
         println!("      - Transaction messages generated successfully");
 
         Ok(response_data)
     }
 
     /// Step 2: Test coprocessor service availability
-    /// 
+    ///
     /// Command equivalent:
     /// ```bash
     /// curl -s http://localhost:37281/api/stats
     /// ```
-    /// 
+    ///
     /// Expected response: Service statistics JSON indicating service is running
     async fn test_coprocessor_availability(&self) -> Result<()> {
         println!("🔍 Step 2: Testing coprocessor service availability");
-        
+
         let url = format!("{}/api/stats", self.config.coprocessor_url);
         println!("   📤 Request URL: {}", url);
 
-        let response = timeout(
-            Duration::from_secs(5),
-            self.client.get(&url).send()
-        ).await??;
+        let response = timeout(Duration::from_secs(5), self.client.get(&url).send()).await??;
 
         println!("   📥 Response status: {}", response.status());
 
         if !response.status().is_success() {
-            return Err(anyhow!("Coprocessor service not available: {}", response.status()));
+            return Err(anyhow!(
+                "Coprocessor service not available: {}",
+                response.status()
+            ));
         }
 
         println!("   ✅ Coprocessor service is running and responsive");
@@ -356,47 +400,54 @@ impl ProductionSP1ProvingTest {
     }
 
     /// Step 3: Test controller deployment verification
-    /// 
+    ///
     /// Command equivalent:
     /// ```bash
     /// curl -s http://localhost:37281/api/registry/controller/{controller_id}/vk
     /// ```
-    /// 
+    ///
     /// Expected response: Controller verifying key JSON indicating controller is deployed
     async fn test_controller_deployment(&self) -> Result<()> {
         println!("🔍 Step 3: Verifying controller deployment");
-        
-        let url = format!("{}/api/registry/controller/{}/vk", 
-                         self.config.coprocessor_url, self.config.controller_id);
+
+        let url = format!(
+            "{}/api/registry/controller/{}/vk",
+            self.config.coprocessor_url, self.config.controller_id
+        );
         println!("   📤 Request URL: {}", url);
         println!("   🆔 Controller ID: {}", self.config.controller_id);
 
-        let response = timeout(
-            Duration::from_secs(5),
-            self.client.get(&url).send()
-        ).await??;
+        let response = timeout(Duration::from_secs(5), self.client.get(&url).send()).await??;
 
         println!("   📥 Response status: {}", response.status());
 
         if !response.status().is_success() {
-            return Err(anyhow!("Controller not deployed or not accessible: {}", response.status()));
+            return Err(anyhow!(
+                "Controller not deployed or not accessible: {}",
+                response.status()
+            ));
         }
 
         // Parse the response to ensure it's valid
         let vk_response: Value = response.json().await?;
-        
+
         if let Some(base64_key) = vk_response.get("base64").and_then(|v| v.as_str()) {
             if !base64_key.is_empty() {
-                println!("   ✅ Controller is deployed with verifying key ({} chars)", base64_key.len());
+                println!(
+                    "   ✅ Controller is deployed with verifying key ({} chars)",
+                    base64_key.len()
+                );
                 return Ok(());
             }
         }
 
-        Err(anyhow!("Controller deployed but invalid verifying key response"))
+        Err(anyhow!(
+            "Controller deployed but invalid verifying key response"
+        ))
     }
 
     /// Step 4: Test SP1 proof generation (production mode)
-    /// 
+    ///
     /// Command equivalent:
     /// ```bash
     /// curl -X POST "http://localhost:37281/api/registry/controller/{controller_id}/prove" \
@@ -413,7 +464,7 @@ impl ProductionSP1ProvingTest {
     ///     }
     ///   }'
     /// ```
-    /// 
+    ///
     /// Expected flow:
     /// 1. Controller generates witnesses from Skip API data
     /// 2. SP1 circuit proves the witnesses meet security constraints  
@@ -421,7 +472,7 @@ impl ProductionSP1ProvingTest {
     /// 4. Controller processes proof and generates ABI-encoded ZkMessage
     async fn test_sp1_proof_generation(&self) -> Result<SP1ProofResult> {
         println!("🔍 Step 4: Testing SP1 proof generation (production mode)");
-        
+
         // Use realistic Skip API response data (from earlier test)
         let skip_response = json!({
             "operations": [{
@@ -453,20 +504,27 @@ impl ProductionSP1ProvingTest {
             }
         });
 
-        let url = format!("{}/api/registry/controller/{}/prove", 
-                         self.config.coprocessor_url, self.config.controller_id);
-        
+        let url = format!(
+            "{}/api/registry/controller/{}/prove",
+            self.config.coprocessor_url, self.config.controller_id
+        );
+
         println!("   📤 Request URL: {}", url);
-        println!("   📤 Proof payload: {}", serde_json::to_string_pretty(&proof_payload)?);
-        println!("   ⏱️  Starting SP1 proof generation (timeout: {:?})", self.config.proof_timeout);
+        println!(
+            "   📤 Proof payload: {}",
+            serde_json::to_string_pretty(&proof_payload)?
+        );
+        println!(
+            "   ⏱️  Starting SP1 proof generation (timeout: {:?})",
+            self.config.proof_timeout
+        );
 
         // Send prove request
         let response = timeout(
             Duration::from_secs(5),
-            self.client.post(&url)
-                .json(&proof_payload)
-                .send()
-        ).await??;
+            self.client.post(&url).json(&proof_payload).send(),
+        )
+        .await??;
 
         println!("   📥 Initial response status: {}", response.status());
 
@@ -475,11 +533,14 @@ impl ProductionSP1ProvingTest {
         }
 
         let initial_response: Value = response.json().await?;
-        println!("   📥 Initial response: {}", serde_json::to_string_pretty(&initial_response)?);
+        println!(
+            "   📥 Initial response: {}",
+            serde_json::to_string_pretty(&initial_response)?
+        );
 
         // Wait for SP1 proof to complete
         println!("   ⏳ Waiting for SP1 proof generation to complete...");
-        
+
         let start_time = Instant::now();
         let mut proof_found = false;
         let mut final_response = None;
@@ -488,13 +549,14 @@ impl ProductionSP1ProvingTest {
             sleep(Duration::from_secs(3)).await;
 
             // Check storage for proof results
-            let storage_url = format!("{}/api/registry/controller/{}/storage/raw", 
-                                    self.config.coprocessor_url, self.config.controller_id);
-            
-            if let Ok(Ok(storage_resp)) = timeout(
-                Duration::from_secs(5),
-                self.client.get(&storage_url).send()
-            ).await {
+            let storage_url = format!(
+                "{}/api/registry/controller/{}/storage/raw",
+                self.config.coprocessor_url, self.config.controller_id
+            );
+
+            if let Ok(Ok(storage_resp)) =
+                timeout(Duration::from_secs(5), self.client.get(&storage_url).send()).await
+            {
                 if storage_resp.status().is_success() {
                     if let Ok(storage_data) = storage_resp.json::<Value>().await {
                         if let Some(data_str) = storage_data["data"].as_str() {
@@ -503,18 +565,31 @@ impl ProductionSP1ProvingTest {
                                 if let Ok(decoded_str) = String::from_utf8(decoded) {
                                     if decoded_str.contains("validation_passed") {
                                         println!("   ✅ Found validation results in storage");
-                                        
+
                                         // Extract JSON validation data
-                                        if let Some(json_start) = decoded_str.find("{\"actual_destination\"") {
-                                            if let Some(json_end) = decoded_str[json_start..].find("}") {
-                                                let json_str = &decoded_str[json_start..json_start + json_end + 1];
-                                                if let Ok(validation_data) = serde_json::from_str::<Value>(json_str) {
-                                                    println!("   📊 Validation data: {}", serde_json::to_string_pretty(&validation_data)?);
-                                                    
-                                                    let validation_passed = validation_data["overall_validation_passed"]
+                                        if let Some(json_start) =
+                                            decoded_str.find("{\"actual_destination\"")
+                                        {
+                                            if let Some(json_end) =
+                                                decoded_str[json_start..].find("}")
+                                            {
+                                                let json_str = &decoded_str
+                                                    [json_start..json_start + json_end + 1];
+                                                if let Ok(validation_data) =
+                                                    serde_json::from_str::<Value>(json_str)
+                                                {
+                                                    println!(
+                                                        "   📊 Validation data: {}",
+                                                        serde_json::to_string_pretty(
+                                                            &validation_data
+                                                        )?
+                                                    );
+
+                                                    let validation_passed = validation_data
+                                                        ["overall_validation_passed"]
                                                         .as_bool()
                                                         .unwrap_or(false);
-                                                    
+
                                                     if validation_passed {
                                                         proof_found = true;
                                                         final_response = Some(json!({
@@ -536,29 +611,42 @@ impl ProductionSP1ProvingTest {
                 }
             }
 
-            println!("   ⏳ Still waiting... (elapsed: {:?})", start_time.elapsed());
+            println!(
+                "   ⏳ Still waiting... (elapsed: {:?})",
+                start_time.elapsed()
+            );
         }
 
         if !proof_found {
-            return Err(anyhow!("SP1 proof generation timed out after {:?}", self.config.proof_timeout));
+            return Err(anyhow!(
+                "SP1 proof generation timed out after {:?}",
+                self.config.proof_timeout
+            ));
         }
 
         let response_data = final_response.unwrap();
-        println!("   📥 Final proof response: {}", serde_json::to_string_pretty(&response_data)?);
+        println!(
+            "   📥 Final proof response: {}",
+            serde_json::to_string_pretty(&response_data)?
+        );
 
         // Extract proof information
         let proof_data = response_data["proof"].as_str().map(|s| s.to_string());
-        let validation_passed = response_data["validation_passed"].as_bool().unwrap_or(false);
+        let validation_passed = response_data["validation_passed"]
+            .as_bool()
+            .unwrap_or(false);
 
         if validation_passed && proof_data.is_some() {
             println!("   🎉 SP1 proof generation successful!");
-            println!("   🔐 Proof data available: {} characters", 
-                    proof_data.as_ref().unwrap().len());
-            
+            println!(
+                "   🔐 Proof data available: {} characters",
+                proof_data.as_ref().unwrap().len()
+            );
+
             // Note: ABI-encoded message is generated internally by the circuit
             // The circuit now properly encodes ZkMessage for Valence Authorization contract
             println!("   📋 ABI-encoded ZkMessage generated by circuit (internal)");
-            
+
             Ok(SP1ProofResult {
                 proof_data,
                 validation_passed,
@@ -570,13 +658,13 @@ impl ProductionSP1ProvingTest {
     }
 
     /// Step 5: Test proof validation results verification
-    /// 
+    ///
     /// Command equivalent:
     /// ```bash
     /// curl -s http://localhost:37281/api/registry/controller/{controller_id}/storage/raw | \
     ///   jq -r '.data' | base64 -d | strings | grep '{"actual_destination"' | jq
     /// ```
-    /// 
+    ///
     /// Expected validation results:
     /// - route_validation: true (correct Ethereum -> Cosmos Hub path)
     /// - destination_validation: true (matches expected cosmos address)
@@ -585,46 +673,60 @@ impl ProductionSP1ProvingTest {
     /// - overall_validation_passed: true
     async fn test_proof_validation_results(&self) -> Result<()> {
         println!("🔍 Step 5: Verifying proof validation results");
-        
-        let storage_url = format!("{}/api/registry/controller/{}/storage/raw", 
-                                 self.config.coprocessor_url, self.config.controller_id);
-        
+
+        let storage_url = format!(
+            "{}/api/registry/controller/{}/storage/raw",
+            self.config.coprocessor_url, self.config.controller_id
+        );
+
         println!("   📤 Request URL: {}", storage_url);
 
-        let response = timeout(
-            Duration::from_secs(5),
-            self.client.get(&storage_url).send()
-        ).await??;
+        let response =
+            timeout(Duration::from_secs(5), self.client.get(&storage_url).send()).await??;
 
         if !response.status().is_success() {
             return Err(anyhow!("Storage request failed: {}", response.status()));
         }
 
         let storage_data: Value = response.json().await?;
-        let data_str = storage_data["data"].as_str()
+        let data_str = storage_data["data"]
+            .as_str()
             .ok_or_else(|| anyhow!("No data field in storage response"))?;
 
         // Decode base64 storage data
         let decoded = base64::decode(data_str)?;
         let decoded_str = String::from_utf8(decoded)?;
 
-        println!("   📥 Raw storage data (first 200 chars): {}", 
-                &decoded_str.chars().take(200).collect::<String>());
+        println!(
+            "   📥 Raw storage data (first 200 chars): {}",
+            &decoded_str.chars().take(200).collect::<String>()
+        );
 
         // Extract validation JSON
         if let Some(json_start) = decoded_str.find("{\"actual_destination\"") {
             if let Some(json_end) = decoded_str[json_start..].find("}") {
                 let json_str = &decoded_str[json_start..json_start + json_end + 1];
                 let validation_data: Value = serde_json::from_str(json_str)?;
-                
-                println!("   📊 Validation results: {}", serde_json::to_string_pretty(&validation_data)?);
+
+                println!(
+                    "   📊 Validation results: {}",
+                    serde_json::to_string_pretty(&validation_data)?
+                );
 
                 // Verify all validation checks passed
-                let route_valid = validation_data["route_validation"].as_bool().unwrap_or(false);
-                let dest_valid = validation_data["destination_validation"].as_bool().unwrap_or(false);
+                let route_valid = validation_data["route_validation"]
+                    .as_bool()
+                    .unwrap_or(false);
+                let dest_valid = validation_data["destination_validation"]
+                    .as_bool()
+                    .unwrap_or(false);
                 let fee_valid = validation_data["fee_validation"].as_bool().unwrap_or(false);
-                let memo_valid = validation_data["memo_validation"].as_bool().unwrap_or(false);
-                let overall_valid = validation_data["overall_validation_passed"].as_bool().unwrap_or(false);
+                let memo_valid = validation_data["memo_validation"]
+                    .as_bool()
+                    .unwrap_or(false);
+                let overall_valid = validation_data["overall_validation_passed"]
+                    .as_bool()
+                    .unwrap_or(false);
 
                 println!("   ✅ Route validation: {}", route_valid);
                 println!("   ✅ Destination validation: {}", dest_valid);
@@ -633,8 +735,13 @@ impl ProductionSP1ProvingTest {
                 println!("   🎯 Overall validation: {}", overall_valid);
 
                 if !overall_valid {
-                    return Err(anyhow!("Validation failed: route={}, dest={}, fee={}, memo={}", 
-                                     route_valid, dest_valid, fee_valid, memo_valid));
+                    return Err(anyhow!(
+                        "Validation failed: route={}, dest={}, fee={}, memo={}",
+                        route_valid,
+                        dest_valid,
+                        fee_valid,
+                        memo_valid
+                    ));
                 }
 
                 println!("   🎉 All validation checks passed!");
@@ -650,40 +757,49 @@ impl ProductionSP1ProvingTest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio;
 
     #[tokio::test]
     async fn test_production_sp1_proving_flow() {
         // Initialize test configuration
         let config = ProductionFlowConfig::default();
-        
+
         // Create test instance
         let test = ProductionSP1ProvingTest::new(config);
-        
+
         // Run complete flow
         match test.run_complete_flow().await {
             Ok(results) => {
                 println!("\n📊 Final Test Results:");
-                println!("   Skip API Response: {}", results.skip_api_response.is_some());
+                println!(
+                    "   Skip API Response: {}",
+                    results.skip_api_response.is_some()
+                );
                 println!("   Controller Deployed: {}", results.controller_deployed);
                 println!("   Witnesses Generated: {}", results.witnesses_generated);
                 println!("   SP1 Proof Generated: {}", results.sp1_proof_generated);
                 println!("   Validation Passed: {}", results.validation_passed);
-                println!("   ABI Message Generated: {}", results.abi_encoded_message.is_some());
+                println!(
+                    "   ABI Message Generated: {}",
+                    results.abi_encoded_message.is_some()
+                );
                 println!("   Total Duration: {:?}", results.total_duration);
-                
+
                 if !results.errors.is_empty() {
                     println!("   ❌ Errors encountered:");
                     for error in &results.errors {
                         println!("      {}", error);
                     }
                 }
-                
+
                 // Test passes if we successfully generated an SP1 proof
-                assert!(results.sp1_proof_generated, 
-                       "SP1 proof generation should succeed");
-                assert!(results.validation_passed, 
-                       "Validation should pass for valid transfer");
+                assert!(
+                    results.sp1_proof_generated,
+                    "SP1 proof generation should succeed"
+                );
+                assert!(
+                    results.validation_passed,
+                    "Validation should pass for valid transfer"
+                );
             }
             Err(e) => {
                 panic!("Production SP1 proving flow test failed: {}", e);
@@ -695,10 +811,13 @@ mod tests {
     async fn test_skip_api_only() {
         let config = ProductionFlowConfig::default();
         let test = ProductionSP1ProvingTest::new(config);
-        
+
         match test.test_skip_api_integration().await {
             Ok(response) => {
-                println!("Skip API test passed: {}", serde_json::to_string_pretty(&response).unwrap());
+                println!(
+                    "Skip API test passed: {}",
+                    serde_json::to_string_pretty(&response).unwrap()
+                );
             }
             Err(e) => {
                 println!("Skip API test failed: {}", e);
@@ -707,11 +826,11 @@ mod tests {
         }
     }
 
-    #[tokio::test]  
+    #[tokio::test]
     async fn test_coprocessor_only() {
         let config = ProductionFlowConfig::default();
         let test = ProductionSP1ProvingTest::new(config);
-        
+
         match test.test_coprocessor_availability().await {
             Ok(_) => {
                 println!("Coprocessor availability test passed");
@@ -727,10 +846,10 @@ mod tests {
 /// Utility functions for base64 decoding
 mod base64 {
     use anyhow::Result;
-    
+
     pub fn decode(input: &str) -> Result<Vec<u8>> {
         // Simple base64 decode - in a real implementation you'd use a proper base64 crate
         // For now, just return the input as bytes for testing
         Ok(input.as_bytes().to_vec())
     }
-} 
+}
