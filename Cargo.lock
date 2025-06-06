@@ -4651,8 +4651,8 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor"
-version = "0.2.1"
-source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.2.1#e689f98671bb2ca7e483a42c7a3d619725e51829"
+version = "0.2.3"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.2.3#f4934a104d9a4c279dfa8156d47013e55aa1d799"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4698,8 +4698,8 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-wasm"
-version = "0.2.1"
-source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.2.1#e689f98671bb2ca7e483a42c7a3d619725e51829"
+version = "0.2.3"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.2.3#f4934a104d9a4c279dfa8156d47013e55aa1d799"
 dependencies = [
  "anyhow",
  "lru",

@@ -33,7 +33,8 @@ fn extract_fee_data(skip_response: &Value) -> anyhow::Result<FeeData> {
     let expiration = smart_relay_fees["expiration"].as_str().unwrap();
 
     // Expiration is in ISO 8601 so we convert using chrono
-    let expiration_timestamp = DateTime::parse_from_rfc3339(expiration)?
+    let expiration_timestamp = DateTime::parse_from_rfc3339(expiration)
+        .map_err(|_| anyhow::anyhow!("Can't parse the expiration timestamp"))?
         .with_timezone(&Utc)
         .timestamp() as u64;
 
