@@ -33,7 +33,8 @@ dependencies = [
  "bytes",
  "cfg-if",
  "const-hex",
- "derive_more",
+ "derive_more 2.0.1",
+ "hashbrown",
  "itoa",
  "paste",
  "ruint",
@@ -50,7 +51,7 @@ dependencies = [
  "bytes",
  "cfg-if",
  "const-hex",
- "derive_more",
+ "derive_more 2.0.1",
  "hashbrown",
  "itoa",
  "paste",
@@ -141,6 +142,21 @@ dependencies = [
 
 [[package]]
 name = "alloy-trie"
+version = "0.7.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d95a94854e420f07e962f7807485856cde359ab99ab6413883e15235ad996e8b"
+dependencies = [
+ "alloy-primitives 0.8.25",
+ "alloy-rlp",
+ "arrayvec",
+ "derive_more 1.0.0",
+ "nybbles",
+ "smallvec",
+ "tracing",
+]
+
+[[package]]
+name = "alloy-trie"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "983d99aa81f586cef9dae38443245e585840fcf0fc58b09aee0b1f27aed1d500"
@@ -148,7 +164,7 @@ dependencies = [
  "alloy-primitives 1.2.0",
  "alloy-rlp",
  "arrayvec",
- "derive_more",
+ "derive_more 2.0.1",
  "nybbles",
  "smallvec",
  "tracing",
@@ -323,9 +339,9 @@ checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 
 [[package]]
 name = "cc"
-version = "1.2.25"
+version = "1.2.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0fc897dc1e865cc67c0e05a836d9d3f1df3cbe442aa4a9473b18e12624a4951"
+checksum = "956a5e21988b87f372569b66183b78babf23ebc2e744b733e4350a752c4dafac"
 dependencies = [
  "shlex",
 ]
@@ -345,7 +361,7 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 [[package]]
 name = "common"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/zk-merkle-proofs?branch=dev#89815fbf53fd42cd20aedd338a7ac4eeb3bfa84e"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs?branch=dev#a7604eb7cccfbc6a69a0d5cbdf971fb34b3689f1"
 dependencies = [
  "anyhow",
  "serde",
@@ -434,11 +450,31 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
+dependencies = [
+ "derive_more-impl 1.0.0",
+]
+
+[[package]]
+name = "derive_more"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "093242cf7570c207c83073cf82f79706fe7b8317e98620a47d5be7c3d8497678"
 dependencies = [
- "derive_more-impl",
+ "derive_more-impl 2.0.1",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -532,17 +568,22 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 [[package]]
 name = "ethereum"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/zk-merkle-proofs?branch=dev#89815fbf53fd42cd20aedd338a7ac4eeb3bfa84e"
+source = "git+https://github.com/timewave-computer/zk-merkle-proofs?branch=dev#a7604eb7cccfbc6a69a0d5cbdf971fb34b3689f1"
 dependencies = [
+ "alloy-primitives 0.8.25",
+ "alloy-rlp",
+ "alloy-trie 0.7.9",
  "anyhow",
  "arrayvec",
  "bytes",
  "common 0.1.0 (git+https://github.com/timewave-computer/zk-merkle-proofs?branch=dev)",
  "const-hex",
+ "ethereum-types",
  "hash-db",
  "hex-literal",
  "num-bigint",
  "nybbles",
+ "rlp 0.6.1",
  "serde",
  "serde_json",
  "sha3",
@@ -574,6 +615,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ethereum-types"
+version = "0.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ab15ed80916029f878e0267c3a9f92b67df55e79af370bf66199059ae2b4ee3"
+dependencies = [
+ "fixed-hash",
+ "primitive-types",
+ "uint",
+]
+
+[[package]]
 name = "ff"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -581,6 +633,17 @@ checksum = "c0b50bfb653653f9ca9095b427bed08ab8d75a137839d9ad64eb11810d5b6393"
 dependencies = [
  "rand_core 0.6.4",
  "subtle",
+]
+
+[[package]]
+name = "fixed-hash"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "835c052cb0c08c1acf6ffd71c022172e18723949c8282f2b9f27efbc51e64534"
+dependencies = [
+ "byteorder",
+ "rustc-hex",
+ "static_assertions",
 ]
 
 [[package]]
@@ -1150,6 +1213,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "primitive-types"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d15600a7d856470b7d278b3fe0e311fe28c2526348549f8ef2ff7db3299c87f5"
+dependencies = [
+ "fixed-hash",
+ "uint",
+]
+
+[[package]]
 name = "proc-macro-crate"
 version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1289,6 +1362,16 @@ name = "rlp"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb919243f34364b6bd2fc10ef797edbfa75f33c252e7998527479c6d6b47e1ec"
+dependencies = [
+ "bytes",
+ "rustc-hex",
+]
+
+[[package]]
+name = "rlp"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa24e92bb2a83198bb76d661a71df9f7076b8c420b8696e4d3d97d50d94479e3"
 dependencies = [
  "bytes",
  "rustc-hex",
@@ -1470,6 +1553,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
 name = "substrate-bn-succinct"
 version = "0.6.0-v4.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1618,9 +1707,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.28"
+version = "0.1.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "395ae124c09f9e6918a2310af6038fba074bcf474ac352496d5910dd59a2226d"
+checksum = "1b1ffbcf9c6f6b99d386e7444eb608ba646ae452a36b39737deb9663b610f662"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1629,9 +1718,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-core"
-version = "0.1.33"
+version = "0.1.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e672c95779cf947c5311f83787af4fa8fffd12fb27e4993211a84bdfd9610f9c"
+checksum = "b9d12581f227e93f094d3af2ae690a574abb8a2b9b7a96e7cfe9647b2b617678"
 dependencies = [
  "once_cell",
 ]
@@ -1652,7 +1741,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1631b201eb031b563d2e85ca18ec8092508e262a3196ce9bd10a67ec87b9f5c"
 dependencies = [
  "hash-db",
- "rlp",
+ "rlp 0.5.2",
 ]
 
 [[package]]
@@ -1667,12 +1756,24 @@ version = "0.1.0"
 dependencies = [
  "alloy-primitives 0.8.25",
  "alloy-rlp",
- "alloy-trie",
+ "alloy-trie 0.8.1",
  "anyhow",
  "num-bigint",
  "serde",
  "serde_json",
  "valence-coprocessor",
+]
+
+[[package]]
+name = "uint"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "909988d098b2f738727b161a106cfc7cab00c539c2687a8836f8e565976fb53e"
+dependencies = [
+ "byteorder",
+ "crunchy",
+ "hex",
+ "static_assertions",
 ]
 
 [[package]]
@@ -1722,8 +1823,8 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor"
-version = "0.1.13"
-source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.13#ca34a85e2215a4a04d8d6d70f533eb7be4c91a8a"
+version = "0.2.3"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.2.3#f4934a104d9a4c279dfa8156d47013e55aa1d799"
 dependencies = [
  "anyhow",
  "base64",
@@ -1792,8 +1893,8 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-wasm"
-version = "0.1.13"
-source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.1.13#ca34a85e2215a4a04d8d6d70f533eb7be4c91a8a"
+version = "0.2.3"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.2.3#f4934a104d9a4c279dfa8156d47013e55aa1d799"
 dependencies = [
  "anyhow",
  "lru",

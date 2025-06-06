@@ -52,7 +52,7 @@ Submit a proof request with JSON arguments:
 cargo-valence --socket prover.timewave.computer:37281 \
   prove -j '{"event_idx":0}' \
   -p /var/share/proof.bin \
-  98fc5fcaf907e257e65f9c9a3c1b2728b2adde88c9338ff35bea0fdd10daf16d
+  07bcd834e77fb7685600cca2b22fdb6c5a47c61f256dacaa9405698a3d2bcc5e
 ```
 
 Retrieve the generated proof:
@@ -61,7 +61,7 @@ Retrieve the generated proof:
 cargo-valence --socket prover.timewave.computer:37281 \
   storage \
   -p /var/share/proof.bin \
-  98fc5fcaf907e257e65f9c9a3c1b2728b2adde88c9338ff35bea0fdd10daf16d | jq -r '.data' | base64 -d | jq
+  07bcd834e77fb7685600cca2b22fdb6c5a47c61f256dacaa9405698a3d2bcc5e | jq -r '.data' | base64 -d | jq
 ```
 
 #### How Proof Generation Works
