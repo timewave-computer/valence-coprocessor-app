@@ -38,7 +38,7 @@ cargo-valence --socket prover.timewave.computer:37281 deploy circuit --controlle
 
 Upon successful deployment, you'll receive a Program ID similar to:
 ```
-98fc5fcaf907e257e65f9c9a3c1b2728b2adde88c9338ff35bea0fdd10daf16d
+07bcd834e77fb7685600cca2b22fdb6c5a47c61f256dacaa9405698a3d2bcc5e
 ```
 
 > [!NOTE]
