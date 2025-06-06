@@ -1,5 +1,10 @@
 [workspace]
-members = ["crates/circuit", "crates/domain", "crates/controller"]
+members = [
+  "crates/circuit",
+  "crates/domain",
+  "crates/controller",
+  "crates/ibc-eureka",
+]
 resolver = "2"
 
 [workspace.package]
@@ -9,9 +14,24 @@ license = "Apache-2.0"
 version = "0.3.0"
 
 [workspace.dependencies]
+ibc-eureka = { path = "crates/ibc-eureka" }
 anyhow = { version = "1.0.83", default-features = false }
 serde_json = { version = "1.0.140", default-features = false, features = [
   "alloc",
 ] }
-valence-coprocessor = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.2.1", default-features = false }
-valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.2.1", default-features = false }
+valence-coprocessor = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.2.3", default-features = false }
+valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.2.3", default-features = false }
+serde = { version = "1.0", features = [
+  "derive",
+  "alloc",
+], default-features = false }
+tokio = { version = "1.45.0", features = [
+  "sync",
+  "macros",
+  "io-util",
+  "rt",
+  "time",
+], default-features = false }
+sha2 = { version = "0.10.9", default-features = false }
+alloy-sol-types = { version = "0.8", default-features = false }
+alloy-primitives = { version = "0.8", default-features = false }
