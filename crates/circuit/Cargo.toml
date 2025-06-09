@@ -13,3 +13,4 @@ valence-authorization-utils = { git = "https://github.com/timewave-computer/vale
 valence-library-utils       = { git = "https://github.com/timewave-computer/valence-protocol", branch = "main" }
 valence-clearing-queue      = { git = "https://github.com/timewave-computer/valence-protocol", branch = "main" }
 serde_json.workspace        = true
+alloy-primitives            = { version = "0.8.25", default-features = false }
