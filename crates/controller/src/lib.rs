@@ -13,7 +13,7 @@ use valence_coprocessor_wasm::abi::{self};
 
 /// Mainnet RPC endpoint for Ethereum network
 const MAINNET_RPC_URL: &str = "https://eth-mainnet.public.blastapi.io";
-const VAULT_ADDRESS: &str = "0x0B3B3a2C11D6676816fe214B7F23446D12D762FF";
+const VAULT_ADDRESS: &str = "0xf2b85c389a771035a9bd147d4bf87987a7f9cf98";
 
 pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     let withdraw_request_id = args["withdraw_request_id"].as_u64().unwrap();
@@ -43,13 +43,12 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     let decoded = <(
         u64,
         alloy_primitives::Address,
-        bool,
         U256,
         U256,
         U256,
     )>::abi_decode(&bytes, false)?;
 
-    let string_offset = decoded.5.to::<usize>();
+    let string_offset = decoded.4.to::<usize>();
     let string_length = u32::from_be_bytes([
         bytes[string_offset + 28], bytes[string_offset + 29],
         bytes[string_offset + 30], bytes[string_offset + 31]
