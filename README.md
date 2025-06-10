@@ -39,6 +39,7 @@ cargo-valence --socket prover.timewave.computer:37281 \
   --circuit valence-coprocessor-app-circuit
 ```
 
+
 This will output the application id associated with the controller. Let's bind this id to an environment variable, for convenience.
 
 ```sh
@@ -54,9 +55,9 @@ This command will queue a proof request for this circuit into the co-processor, 
 
 ```sh
 cargo-valence --socket prover.timewave.computer:37281 \
-  prove -j '{"value": 42}' \
+  prove -j '{"value": 45}' \
   -p /var/share/proof.bin \
-  $CONTROLLER
+  e672363fa314348836e4d95fc5ccfbd001bd59bf311e70b39b92d760aad93885
 ```
 
 The argument `-j '{"value": 42}'` will be forwarded to `./crates/controller/src/lib.rs:get_witnesses`. The output of this function will be then forwarded to the circuit for proving.
@@ -71,7 +72,7 @@ Once the proof is computed by the backend, it will be delivered to the virtual f
 cargo-valence --socket prover.timewave.computer:37281 \
   storage \
   -p /var/share/proof.bin \
-  $CONTROLLER | jq -r '.data' | base64 -d | jq
+  e672363fa314348836e4d95fc5ccfbd001bd59bf311e70b39b92d760aad93885 | jq -r '.data' | base64 -d | jq
 ```
 
 The output should be similar to the following structure:

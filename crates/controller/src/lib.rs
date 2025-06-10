@@ -2,6 +2,7 @@
 extern crate alloc;
 use alloc::{string::ToString as _, vec::Vec};
 use alloy_sol_types::sol;
+use ibc_eureka::types::*;
 use serde_json::Value;
 use valence_coprocessor::Witness;
 use valence_coprocessor_wasm::abi;
@@ -120,6 +121,35 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
         "received a proof request with arguments {}",
         serde_json::to_string(&args).unwrap_or_default()
     )?;
+
+    let route_request = RouteRequest {
+        amount_in: "1000000000".to_string(),
+        source_asset_denom: "0x8236a87084f8B84306f72007F36F2618A5634494".to_string(),
+        source_asset_chain_id: "1".to_string(),
+        dest_asset_denom: "ibc/DBD9E339E1B093A052D76BECFFDE8435EAC114CF2133346B4D691F3F2068C957"
+            .to_string(),
+        dest_asset_chain_id: "cosmoshub-4".to_string(),
+    };
+
+    let state_proof_request = serde_json::json!({
+        "method": "POST",
+        "url": "https://api.skip.build/v2/fungible/route",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "json": route_request
+    });
+    let response_json = abi::http(&state_proof_request)?;
+    let body_bytes: Vec<u8> = response_json["body"]
+        .as_array()
+        .ok_or("body not an array")
+        .unwrap()
+        .iter()
+        .map(|v| Ok::<u8, &str>(v.as_u64().unwrap() as u8))
+        .collect::<Result<Vec<u8>, _>>()
+        .unwrap();
+    let skip_api_response: SkipApiResponse = serde_json::from_slice(&body_bytes)?;
+    abi::log!("skip_api_response: {:?}", skip_api_response)?;
     let value = args["value"].as_u64().unwrap();
     let value = value.to_le_bytes().to_vec();
     Ok([Witness::Data(value)].to_vec())

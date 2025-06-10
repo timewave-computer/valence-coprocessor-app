@@ -6,8 +6,5 @@ edition = "2024"
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
-tokio.workspace = true
 anyhow.workspace = true
 sha2.workspace = true
-alloy-sol-types.workspace = true
-alloy-primitives.workspace = true
