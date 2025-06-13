@@ -21,7 +21,7 @@ use valence_coprocessor::Witness;
 use valence_library_utils::{msg::ExecuteMsg, LibraryAccountType};
 
 const SCALE_FACTOR: u64 = 100000000;
-const CLEARING_QUEUE_LIBRARY_ADDRESS: &str = "neutron14mlpd48k5vkeset4x7f78myz3m47jcax3ysjkp";
+const CLEARING_QUEUE_LIBRARY_ADDRESS: &str = "neutron14swndagawqqtq6mh0z7uyfznw2lpqh3eu4zs4cwxuvdhpdaf944qqvq2mp";
 
 pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let withdraw_request_id = witnesses[0].as_data().unwrap();
@@ -89,7 +89,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     };
 
     let msg = ZkMessage {
-        registry: 1,
+        registry: 0,
         block_number: 0,
         domain: Domain::Main,
         authorization_contract: None,
