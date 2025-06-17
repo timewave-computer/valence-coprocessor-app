@@ -57,8 +57,8 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     let receiver = alloc::string::String::from_utf8(string_data.to_vec())?;
 
     let withdraw_request_id_bytes = decoded.0.to_le_bytes().to_vec();
-    let withdraw_request_redemption_rate_bytes = decoded.3.to_le_bytes_vec();
-    let withdraw_request_shares_amount_bytes = decoded.4.to_le_bytes_vec();
+    let withdraw_request_redemption_rate_bytes = decoded.2.to_le_bytes_vec();
+    let withdraw_request_shares_amount_bytes = decoded.3.to_le_bytes_vec();
     let recipient_bytes = receiver.as_bytes().to_vec();
     
     let witnesses = [
