@@ -13,7 +13,7 @@ use valence_coprocessor_wasm::abi::{self};
 
 /// Mainnet RPC endpoint for Ethereum network
 const MAINNET_RPC_URL: &str = "https://eth-mainnet.public.blastapi.io";
-const VAULT_ADDRESS: &str = "0x3EA82BDA12e3cba18E4A9fD0cf7DE2fB78cA4d32";
+const VAULT_ADDRESS: &str = "0x1c2d8f447167fa7d28b2ec869df9d320aa2e6a71";
 
 pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     let withdraw_request_id = args["withdraw_request_id"].as_u64().unwrap();

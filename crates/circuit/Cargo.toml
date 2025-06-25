@@ -9,8 +9,8 @@ description       = "The Valence co-processor circuit definition."
 valence-coprocessor.workspace = true
 # Change branch to a specific commit
 cosmwasm-std                = { version = "2.2.2", default-features = false }
-valence-authorization-utils = { git = "https://github.com/timewave-computer/valence-protocol", branch = "main" }
-valence-library-utils       = { git = "https://github.com/timewave-computer/valence-protocol", branch = "main" }
-valence-clearing-queue      = { git = "https://github.com/timewave-computer/valence-protocol", branch = "main" }
+valence-authorization-utils = { git = "https://github.com/timewave-computer/valence-protocol", branch = "neutron-vaults" }
+valence-library-utils       = { git = "https://github.com/timewave-computer/valence-protocol", branch = "neutron-vaults" }
+valence-clearing-queue      = { git = "https://github.com/timewave-computer/valence-protocol", branch = "neutron-vaults" }
 serde_json.workspace        = true
 alloy-primitives            = { version = "0.8.25", default-features = false }
