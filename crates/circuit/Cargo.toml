@@ -1,11 +1,12 @@
 [package]
-name = "valence-coprocessor-app-circuit"
+name              = "valence-coprocessor-app-circuit"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
-description = "The Valence co-processor circuit definition."
+description       = "The Valence co-processor circuit definition."
 
 [dependencies]
 valence-coprocessor.workspace = true
-alloy-sol-types.workspace = true
-alloy-primitives.workspace = true
+alloy-sol-types.workspace     = true
+alloy-primitives.workspace    = true
+serde_json.workspace          = true

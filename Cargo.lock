@@ -4672,6 +4672,7 @@ version = "0.3.0"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
+ "serde_json",
  "valence-coprocessor",
 ]
 

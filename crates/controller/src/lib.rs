@@ -64,6 +64,9 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     // Extract fee data
     let fee_data = extract_fee_data(skip_response)?;
 
+    // Get memo from args. Format is { "memo": {...} }
+    let memo = args.get("memo").unwrap();
+
     abi::log!("Fee data extracted: {:?}", fee_data)?;
 
     // Prepare witness data for circuit (3 witnesses expected)
@@ -71,6 +74,7 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
         Witness::Data(fee_data.amount.to_le_bytes().to_vec()), // Witness 0: Fee amount
         Witness::Data(fee_data.recipient.as_bytes().to_vec()), // Witness 1: Fee recipient address
         Witness::Data(fee_data.expiration.to_le_bytes().to_vec()), // Witness 2: Expiration timestamp
+        Witness::Data(memo.to_string().as_bytes().to_vec()),       // Witness 3: Memo
     ]
     .to_vec();
 

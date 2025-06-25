@@ -8,20 +8,28 @@ use alloc::{
 };
 use alloy_primitives::{Address, Bytes};
 use alloy_sol_types::{sol, SolCall, SolValue};
+use serde_json::Value;
 use valence_coprocessor::Witness;
 
 // Currently fee is 0.20$ which translates currently to 193. So we'll set a ceiling of 10 times that.
 const MAX_FEE_ALLOWED: u64 = 1930;
 // The library this will be executed on:
-const EUREKA_TRANSFER_LIBRARY_CONTRACT: &str = "0xc8A8ADc4B612EbE10d239955D35640d80748CDB3";
+const EUREKA_TRANSFER_LIBRARY_CONTRACT: &str = "0xc8A8ADc4B612EbE10d239955D35640d80748CDB3"; // TBD
+
+// Memo fields that need to be validated
+const DEST_CALLBACK: &str = "lom13ehuhysn5mqjeaheeuew2gjs785f6k7jm8vfsqg3jhtpkwppcmzqdk2xf9";
+const WASM_CONTRACT: &str = "lom1szrfu43ncn6as3mgjd8davelgd77zdj7n3zhwkuc8w85gc3yrctsdrnnxl";
+const IBC_CHANNEL: &str = "channel-0";
+const RECEIVER: &str = "cosmos14mlpd48k5vkeset4x7f78myz3m47jcax4mesvx"; // TBD
+const RECOVER_ADDRESS: &str = "lom1g8p66wfxmvvknv5w23ntxsl9wj8rr4923zfquk8tw8kemrlz8rks8m7fn7";
 
 /// Main circuit function for token transfer validation
 pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     // Ensure we have the expected number of witnesses
     assert_eq!(
         witnesses.len(),
-        3,
-        "Expected 3 witnesses: fee amount, fee receiver and fee "
+        4,
+        "Expected 4 witnesses: fee amount, fee receiver, fee and memo"
     );
 
     // Extract witness data
@@ -30,6 +38,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let fee_expiration_bytes = witnesses[2]
         .as_data()
         .expect("Failed to get fee expiration");
+    let memo = witnesses[3].as_data().expect("Failed to get memo data");
 
     // Parse fee amount
     let fee_amount = u64::from_le_bytes(
@@ -51,6 +60,12 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let fee_expiration = u64::from_le_bytes(
         <[u8; 8]>::try_from(fee_expiration_bytes).expect("Expiration data must be exactly 8 bytes"),
     );
+
+    // Parse get the memo
+    let memo: Value = serde_json::from_slice(&memo).unwrap();
+
+    // Validate the memo
+    validate_memo(&memo);
 
     // Generate ZkMessage
     let zk_message = generate_zk_message(fee_amount, fee_recipient.to_string(), fee_expiration);
@@ -162,6 +177,67 @@ sol! {
 
     /// Transfer function call for IBC Eureka transfer
     function transfer(Fees calldata fees, string calldata memo) external;
+}
+
+fn validate_memo(memo: &Value) {
+    // Validate dest_callback
+    let dest_callback = memo
+        .get("dest_callback")
+        .and_then(|dc| dc.get("address"))
+        .and_then(|addr| addr.as_str())
+        .unwrap();
+
+    if dest_callback != DEST_CALLBACK {
+        panic!("Invalid dest_callback address: {}", dest_callback);
+    }
+
+    // Validate wasm contract
+    let wasm_contract = memo
+        .get("wasm")
+        .and_then(|w| w.get("contract"))
+        .and_then(|c| c.as_str())
+        .unwrap();
+
+    if wasm_contract != WASM_CONTRACT {
+        panic!("Invalid wasm contract address: {}", wasm_contract);
+    }
+
+    // Navigate to ibc_info more safely
+    let ibc_info = memo
+        .get("wasm")
+        .and_then(|w| w.get("msg"))
+        .and_then(|m| m.get("swap_and_action"))
+        .and_then(|sa| sa.get("post_swap_action"))
+        .and_then(|psa| psa.get("ibc_transfer"))
+        .and_then(|it| it.get("ibc_info"))
+        .unwrap();
+
+    // Validate IBC channel
+    let ibc_channel = ibc_info
+        .get("source_channel")
+        .and_then(|sc| sc.as_str())
+        .unwrap();
+
+    if ibc_channel != IBC_CHANNEL {
+        panic!("Invalid IBC channel: {}", ibc_channel);
+    }
+
+    // Validate receiver
+    let receiver = ibc_info.get("receiver").and_then(|r| r.as_str()).unwrap();
+
+    if receiver != RECEIVER {
+        panic!("Invalid IBC receiver address: {}", receiver);
+    }
+
+    // Validate recover address
+    let recover_address = ibc_info
+        .get("recover_address")
+        .and_then(|ra| ra.as_str())
+        .unwrap();
+
+    if recover_address != RECOVER_ADDRESS {
+        panic!("Invalid recover address: {}", recover_address);
+    }
 }
 
 /// Generate ZkMessage for Valence Authorization contract
