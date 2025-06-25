@@ -68,7 +68,12 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     validate_memo(&memo);
 
     // Generate ZkMessage
-    let zk_message = generate_zk_message(fee_amount, fee_recipient.to_string(), fee_expiration);
+    let zk_message = generate_zk_message(
+        fee_amount,
+        fee_recipient.to_string(),
+        fee_expiration,
+        memo.to_string(),
+    );
 
     // Return ABI-encoded ZkMessage
     zk_message.abi_encode()
@@ -241,7 +246,12 @@ fn validate_memo(memo: &Value) {
 }
 
 /// Generate ZkMessage for Valence Authorization contract
-fn generate_zk_message(fee_amount: u64, fee_recipient: String, expiration: u64) -> ZkMessage {
+fn generate_zk_message(
+    fee_amount: u64,
+    fee_recipient: String,
+    expiration: u64,
+    memo: String,
+) -> ZkMessage {
     // Create the Fees structure for the lombard transfer call
     let fees = Fees {
         relayFee: alloy_primitives::U256::from(fee_amount),
@@ -249,11 +259,8 @@ fn generate_zk_message(fee_amount: u64, fee_recipient: String, expiration: u64) 
         quoteExpiry: expiration,
     };
 
-    // Create the lombard transfer function call with validated fees and empty memo
-    let transfer_call = lombardTransferCall {
-        fees,
-        memo: String::new(), // Empty memo as required
-    };
+    // Create the lombard transfer function call with validated fees and the validated memo
+    let transfer_call = lombardTransferCall { fees, memo };
 
     // ABI encode the lombard transfer call
     let encoded_transfer_call = transfer_call.abi_encode();
