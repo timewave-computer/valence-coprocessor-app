@@ -322,6 +322,29 @@ mod tests {
 
     use super::*;
 
+    const MEMO: &str = r#"
+    {
+        "dest_callback": {
+            "address": "lom13ehuhysn5mqjeaheeuew2gjs785f6k7jm8vfsqg3jhtpkwppcmzqdk2xf9"
+        },
+        "wasm": {
+            "contract": "lom1szrfu43ncn6as3mgjd8davelgd77zdj7n3zhwkuc8w85gc3yrctsdrnnxl",
+            "msg": {
+                "swap_and_action": {
+                    "post_swap_action": {
+                        "ibc_transfer": {
+                            "ibc_info": {
+                                "source_channel": "channel-0",
+                                "receiver": "cosmos14mlpd48k5vkeset4x7f78myz3m47jcax4mesvx",
+                                "recover_address": "lom1g8p66wfxmvvknv5w23ntxsl9wj8rr4923zfquk8tw8kemrlz8rks8m7fn7"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }"#;
+
     #[test]
     fn test_circuit_valid_transfer() {
         let fee_amount = 957u64; // Valid fee below threshold
@@ -332,6 +355,7 @@ mod tests {
             Witness::Data(fee_amount.to_le_bytes().to_vec()),
             Witness::Data(receiver.as_bytes().to_vec()),
             Witness::Data(expiration.to_le_bytes().to_vec()),
+            Witness::Data(MEMO.as_bytes().to_vec()), // Memo data
         ];
 
         let result = circuit(witnesses);
@@ -352,6 +376,28 @@ mod tests {
             Witness::Data(fee_amount.to_le_bytes().to_vec()),
             Witness::Data(receiver.as_bytes().to_vec()),
             Witness::Data(expiration.to_le_bytes().to_vec()),
+            Witness::Data(MEMO.as_bytes().to_vec()), // Memo data
+        ];
+
+        circuit(witnesses);
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid dest_callback address: lom123")]
+    fn test_invalid_dest_callback_address() {
+        let fee_amount = 900u64;
+        let receiver = "0x33C4DaD158F1E2cCF97bF17d1574d5b7b9f43002";
+        let expiration = 1890000000000000u64; // Example expiration timestamp
+        let invalid_memo = MEMO.replace(
+            "lom13ehuhysn5mqjeaheeuew2gjs785f6k7jm8vfsqg3jhtpkwppcmzqdk2xf9",
+            "lom123", // Invalid dest_callback address
+        );
+
+        let witnesses = vec![
+            Witness::Data(fee_amount.to_le_bytes().to_vec()),
+            Witness::Data(receiver.as_bytes().to_vec()),
+            Witness::Data(expiration.to_le_bytes().to_vec()),
+            Witness::Data(invalid_memo.as_bytes().to_vec()), // Memo data
         ];
 
         circuit(witnesses);
