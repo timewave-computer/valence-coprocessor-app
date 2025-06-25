@@ -175,8 +175,8 @@ sol! {
         uint64 quoteExpiry;
     }
 
-    /// Transfer function call for IBC Eureka transfer
-    function transfer(Fees calldata fees, string calldata memo) external;
+    /// lombardTransfer function call for IBC Eureka transfer library
+    function lombardTransfer(Fees calldata fees, string calldata memo) external;
 }
 
 fn validate_memo(memo: &Value) {
@@ -242,20 +242,20 @@ fn validate_memo(memo: &Value) {
 
 /// Generate ZkMessage for Valence Authorization contract
 fn generate_zk_message(fee_amount: u64, fee_recipient: String, expiration: u64) -> ZkMessage {
-    // Create the Fees structure for the transfer call
+    // Create the Fees structure for the lombard transfer call
     let fees = Fees {
         relayFee: alloy_primitives::U256::from(fee_amount),
         relayFeeRecipient: fee_recipient.parse().unwrap(),
         quoteExpiry: expiration,
     };
 
-    // Create the transfer function call with validated fees and empty memo
-    let transfer_call = transferCall {
+    // Create the lombard transfer function call with validated fees and empty memo
+    let transfer_call = lombardTransferCall {
         fees,
         memo: String::new(), // Empty memo as required
     };
 
-    // ABI encode the transfer call
+    // ABI encode the lombard transfer call
     let encoded_transfer_call = transfer_call.abi_encode();
 
     let atomic_function = AtomicFunction {
