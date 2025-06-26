@@ -2470,7 +2470,7 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-app-circuit"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "alloy-primitives",
  "cosmwasm-std",
@@ -2483,7 +2483,7 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-app-controller"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -2497,7 +2497,7 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-app-domain"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "anyhow",
  "serde_json",
