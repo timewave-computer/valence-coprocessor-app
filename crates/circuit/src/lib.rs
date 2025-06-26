@@ -3,10 +3,10 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
-use valence_coprocessor::Witness;
 use valence_authorization_utils::{
     authorization::AuthorizationMsg, domain::Domain, zk_authorization::ZkMessage,
 };
+use valence_coprocessor::Witness;
 
 pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let registry = witnesses[0].as_data().unwrap();
