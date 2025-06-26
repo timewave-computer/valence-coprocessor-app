@@ -471,7 +471,7 @@ impl E2ETestResults {
 }
 
 #[cfg(test)]
-mod tests {
+mod tests_e2e {
     use super::*;
     use std::sync::Once;
 

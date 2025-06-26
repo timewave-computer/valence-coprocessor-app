@@ -62,7 +62,7 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     );
 
     // Parse get the memo
-    let memo: Value = serde_json::from_slice(&memo).unwrap();
+    let memo: Value = serde_json::from_slice(memo).unwrap();
 
     // Validate the memo
     validate_memo(&memo);
