@@ -1,19 +1,17 @@
 [workspace]
-members = ["crates/circuit", "crates/domain", "crates/controller", "crates/strategist", "e2e"]
+members  = ["crates/circuit", "crates/domain", "crates/controller", "crates/strategist", "e2e"]
 resolver = "2"
 
 [workspace.package]
 authors = ["Timewave Labs"]
 edition = "2021"
 license = "Apache-2.0"
-version = "0.4.1"
+version = "0.4.2"
 
 [workspace.dependencies]
-anyhow = { version = "1.0.83", default-features = false }
-serde_json = { version = "1.0.140", default-features = false, features = [
-  "alloc",
-] }
-valence-coprocessor = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.3.0", default-features = false }
-valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.3.0", default-features = false }
-alloy-sol-types = { version = "0.8", default-features = false, features = ["std"] }
-alloy-primitives = { version = "0.8", default-features = false, features = ["std"] }
+anyhow                   = { version = "1.0.83", default-features = false }
+serde_json               = { version = "1.0.140", default-features = false, features = ["alloc"] }
+valence-coprocessor      = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.3.1", default-features = false }
+valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.3.1", default-features = false }
+alloy-sol-types          = { version = "0.8", default-features = false, features = ["std"] }
+alloy-primitives         = { version = "0.8", default-features = false, features = ["std"] }

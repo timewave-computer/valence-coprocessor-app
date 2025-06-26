@@ -1017,7 +1017,7 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
 name = "e2e"
-version = "0.4.0"
+version = "0.4.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3960,7 +3960,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "strategist"
-version = "0.4.0"
+version = "0.4.2"
 dependencies = [
  "anyhow",
  "dotenvy",
@@ -4646,8 +4646,8 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor"
-version = "0.3.0"
-source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.3.0#01d0b0f58890130979c387622bfc54d12fb62b5b"
+version = "0.3.1"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.3.1#cefeac69e40ebd86cafebb3ade47f0f9e75b6061"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4663,7 +4663,7 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-app-circuit"
-version = "0.4.0"
+version = "0.4.2"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4673,7 +4673,7 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-app-controller"
-version = "0.4.0"
+version = "0.4.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4684,7 +4684,7 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-app-domain"
-version = "0.4.0"
+version = "0.4.2"
 dependencies = [
  "anyhow",
  "serde_json",
@@ -4694,8 +4694,8 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-wasm"
-version = "0.3.0"
-source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.3.0#01d0b0f58890130979c387622bfc54d12fb62b5b"
+version = "0.3.1"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.3.1#cefeac69e40ebd86cafebb3ade47f0f9e75b6061"
 dependencies = [
  "anyhow",
  "lru",
