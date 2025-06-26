@@ -6,11 +6,25 @@ This is a template for a Valence app.
 
 - [Docker](https://docs.docker.com/get-started/)
 - [Rust](https://www.rust-lang.org/tools/install)
-- [Cargo Valence subcommand](https://github.com/timewave-computer/valence-coprocessor/tree/v0.1.13?tab=readme-ov-file#cli-helper)
-- (Optional): [Valence co-processor instance](https://github.com/timewave-computer/valence-coprocessor/tree/v0.1.13?tab=readme-ov-file#local-execution)
+- [Cargo Valence subcommand](https://github.com/timewave-computer/valence-coprocessor/tree/v0.3.0?tab=readme-ov-file#cli-helper)
+- (Optional): [Valence co-processor instance](https://github.com/timewave-computer/valence-coprocessor/tree/v0.3.0?tab=readme-ov-file#local-execution)
 
 ## Instructions
 
+#### Install Cargo Valence
+
+A CLI helper is provided to facilitate the use of standard operations like deploying a domain, circuit, proving statements, and retrieving state information.
+
+To install:
+
+```bash
+cargo install \
+  --git https://github.com/timewave-computer/valence-coprocessor.git \
+  --tag v0.4.0 \
+  --locked cargo-valence
+```
+
+`cargo-valence` supports local development workflows, as well as connecting to the public coprocessor service at http://prover.timewave.computer:37281/
 
 We will be using the public co-processor service. If you prefer to operate your own instance, omit the `--socket` parameter.
 
@@ -25,7 +39,7 @@ cargo-valence --socket prover.timewave.computer:37281 \
   --circuit valence-coprocessor-app-circuit
 ```
 
-This will output the circuit id associated with the controller. Let's set it to an environment variable, for convenience.
+This will output the application id associated with the controller. Let's bind this id to an environment variable, for convenience.
 
 ```sh
 export CONTROLLER=$(cargo-valence --socket prover.timewave.computer:37281 \
@@ -100,8 +114,47 @@ The Valence Zero-Knowledge circuit. It serves as a recipient for witness data (s
 
 #### `./crates/domain`
 
-A Definition for a domain. This crate will produce state proofs derived from JSON arguments, and validate blocks incorporated within the coprocessor.
+Defines the state model of a domain for the app. This crate provides facilities to produce state proofs derived from light client validated blocks. Use JSON arguments to perform verified queries that will be incorporated into the coprocessor SMT tree.
 
 #### `./crates/controller`
 
-The Valence controller. It will be used to compute the circuit witnesses from given JSON arguments. It features an entrypoint that accommodates user requests; it also receives the result of a proof computation by the service.
+The Valence controller. Compiled WASM binary that the coprocessor service runs in order to compute the circuit witnesses from given JSON arguments. It features an entrypoint that accommodates user requests; it also receives the result of a proof computation by the service.
+
+### Nix Commands
+
+Commands mirroring `cargo-valence` functionality are available via Nix:
+
+```bash
+# Build WASM controller and SP1 circuit (with fallback dummy ELF).
+nix run .#build-wasm
+
+# Deploy to local service
+nix run .#valence-deploy -- deploy circuit
+
+# Deploy to public service
+nix run .#valence-deploy -- --socket <HOST:PORT> deploy circuit
+
+# Request proof (local)
+nix run .#valence-prove -- prove <CONTROLLER_ID> '{JSON_ARGS}' "<PATH_IN_FS>"`
+
+# Request proof (public)
+nix run .#valence-prove -- --socket <HOST:PORT> prove <CONTROLLER_ID> '{JSON_ARGS}' "<PATH_IN_FS>"
+
+# Retrieve file from VFS (local)
+nix run .#valence-storage -- fs <CONTROLLER_ID> <FILENAME.EXT>
+
+# Get raw storage data (local)
+nix run .#valence-storage -- raw <CONTROLLER_ID>
+
+# Retrieve file (public)
+nix run .#valence-storage -- --socket <HOST:PORT> fs <CONTROLLER_ID> <FILENAME.EXT>
+
+# Default dev shell
+nix develop
+
+# WASM dev shell
+nix develop .#wasm-shell
+
+# SP1 circuit dev shell
+nix develop .#sp1-shell
+```

@@ -21,7 +21,8 @@ use valence_coprocessor::Witness;
 use valence_library_utils::{msg::ExecuteMsg, LibraryAccountType};
 
 const SCALE_FACTOR: u64 = 100000000;
-const CLEARING_QUEUE_LIBRARY_ADDRESS: &str = "neutron16dk4zld6slxhjruse5pvfe3kz7ts2lm76qyy9pvzqs7ptguw2seq3vynyp";
+const CLEARING_QUEUE_LIBRARY_ADDRESS: &str =
+    "neutron16dk4zld6slxhjruse5pvfe3kz7ts2lm76qyy9pvzqs7ptguw2seq3vynyp";
 
 pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
     let withdraw_request_id = witnesses[0].as_data().unwrap();

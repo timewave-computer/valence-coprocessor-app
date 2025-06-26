@@ -40,18 +40,14 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     let bytes =
         hex::decode(hex_data).map_err(|e| anyhow::anyhow!("Failed to decode hex: {}", e))?;
 
-    let decoded = <(
-        u64,
-        alloy_primitives::Address,
-        U256,
-        U256,
-        U256,
-    )>::abi_decode(&bytes, false)?;
+    let decoded = <(u64, alloy_primitives::Address, U256, U256, U256)>::abi_decode(&bytes, false)?;
 
     let string_offset = decoded.4.to::<usize>();
     let string_length = u32::from_be_bytes([
-        bytes[string_offset + 28], bytes[string_offset + 29],
-        bytes[string_offset + 30], bytes[string_offset + 31]
+        bytes[string_offset + 28],
+        bytes[string_offset + 29],
+        bytes[string_offset + 30],
+        bytes[string_offset + 31],
     ]) as usize;
     let string_data = &bytes[string_offset + 32..string_offset + 32 + string_length];
     let receiver = alloc::string::String::from_utf8(string_data.to_vec())?;
@@ -60,7 +56,7 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     let withdraw_request_redemption_rate_bytes = decoded.2.to_le_bytes_vec();
     let withdraw_request_shares_amount_bytes = decoded.3.to_le_bytes_vec();
     let recipient_bytes = receiver.as_bytes().to_vec();
-    
+
     let witnesses = [
         Witness::Data(withdraw_request_id_bytes),
         Witness::Data(withdraw_request_shares_amount_bytes),
@@ -79,7 +75,7 @@ pub fn build_eth_call_request(
 ) -> Value {
     let function_sig = "withdrawRequests(uint64)";
     let function_selector = &digest_keccak(function_sig.as_bytes())[0..4];
-    let encoded_params = (withdraw_request_id as u64).abi_encode();
+    let encoded_params = (withdraw_request_id).abi_encode();
     let call_data = [function_selector, &encoded_params].concat();
     let call_data_hex = encode(call_data);
 
@@ -148,7 +144,7 @@ mod test {
         let three_fields =
             <(u64, alloy_primitives::Address, bool)>::abi_decode(&bytes, false).unwrap();
         assert_eq!(three_fields.0, 1);
-        assert_eq!(three_fields.2, true);
+        assert!(three_fields.2);
 
         // Test first four fields
         let four_fields =
@@ -164,27 +160,27 @@ mod test {
         assert_eq!(five_fields.4, U256::from(50u32));
 
         // Now test all six fields - this is where it probably fails
-        let all_fields = <(
-            u64,
-            alloy_primitives::Address,
-            bool,
-            U256,
-            U256,
-            U256,
-        )>::abi_decode(&bytes, false).unwrap();
+        let all_fields =
+            <(u64, alloy_primitives::Address, bool, U256, U256, U256)>::abi_decode(&bytes, false)
+                .unwrap();
 
-         // Now we have the string offset in decoded.5
+        // Now we have the string offset in decoded.5
         let string_offset = all_fields.5.to::<usize>();
-        
+
         // Extract string manually using the offset
         let string_length: usize = u32::from_be_bytes([
-            bytes[string_offset + 28], bytes[string_offset + 29], 
-            bytes[string_offset + 30], bytes[string_offset + 31]
+            bytes[string_offset + 28],
+            bytes[string_offset + 29],
+            bytes[string_offset + 30],
+            bytes[string_offset + 31],
         ]) as usize;
-        
+
         let string_data = &bytes[string_offset + 32..string_offset + 32 + string_length];
         let receiver = alloc::string::String::from_utf8(string_data.to_vec()).unwrap();
 
-        assert_eq!(receiver, "neutron1m2emc93m9gpwgsrsf2vylv9xvgqh654630v7dfrhrkmr5slly53spg85wv")
+        assert_eq!(
+            receiver,
+            "neutron1m2emc93m9gpwgsrsf2vylv9xvgqh654630v7dfrhrkmr5slly53spg85wv"
+        )
     }
 }
