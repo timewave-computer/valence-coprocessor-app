@@ -6,8 +6,8 @@ This is a template for a Valence app.
 
 - [Docker](https://docs.docker.com/get-started/)
 - [Rust](https://www.rust-lang.org/tools/install)
-- [Cargo Valence subcommand](https://github.com/timewave-computer/valence-coprocessor/tree/v0.2.3?tab=readme-ov-file#cli-helper)
-- (Optional): [Valence co-processor instance](https://github.com/timewave-computer/valence-coprocessor/tree/v0.2.3?tab=readme-ov-file#local-execution)
+- [Cargo Valence subcommand](https://github.com/timewave-computer/valence-coprocessor/tree/v0.3.0?tab=readme-ov-file#cli-helper)
+- (Optional): [Valence co-processor instance](https://github.com/timewave-computer/valence-coprocessor/tree/v0.3.0?tab=readme-ov-file#local-execution)
 
 ## Instructions
 
@@ -20,7 +20,7 @@ To install:
 ```bash
 cargo install \
   --git https://github.com/timewave-computer/valence-coprocessor.git \
-  --tag v0.1.13 \
+  --tag v0.4.0 \
   --locked cargo-valence
 ```
 
