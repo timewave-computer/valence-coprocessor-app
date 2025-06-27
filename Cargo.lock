@@ -2085,7 +2085,7 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-app-circuit"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "serde_json",
  "valence-authorization-utils",
@@ -2094,7 +2094,7 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-app-controller"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "anyhow",
  "serde_json",
@@ -2104,7 +2104,7 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-app-domain"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "anyhow",
  "serde_json",
