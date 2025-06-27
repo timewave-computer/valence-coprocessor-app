@@ -317,14 +317,14 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-app-circuit"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "valence-coprocessor",
 ]
 
 [[package]]
 name = "valence-coprocessor-app-controller"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "serde_json",
@@ -334,7 +334,7 @@ dependencies = [
 
 [[package]]
 name = "valence-coprocessor-app-domain"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "serde_json",
