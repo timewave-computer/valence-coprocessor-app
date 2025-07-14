@@ -13,7 +13,7 @@ This is a template for a Valence app.
 
 #### Install Cargo Valence
 
-A CLI helper is provided to facilitate the use of standard operations like deploying a domain, circuit, proving statements, and retrieving state information.
+A CLI helper is provided to facilitate the use of standard operations like deploying a circuit, proving statements, and retrieving state information.
 
 To install:
 
@@ -111,10 +111,6 @@ Note: The first 32 bytes of the public inputs are reserved for the co-processor 
 #### `./crates/circuit`
 
 The Valence Zero-Knowledge circuit. It serves as a recipient for witness data (state proofs or data) from the associated controller. It carries out assertions based on business logic and outputs a `Vec<u8>`, which is subsequently forwarded to on-chain applications.
-
-#### `./crates/domain`
-
-Defines the state model of a domain for the app. This crate provides facilities to produce state proofs derived from light client validated blocks. Use JSON arguments to perform verified queries that will be incorporated into the coprocessor SMT tree.
 
 #### `./crates/controller`
 

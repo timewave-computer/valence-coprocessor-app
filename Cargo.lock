@@ -333,16 +333,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "valence-coprocessor-app-domain"
-version = "0.4.2"
-dependencies = [
- "anyhow",
- "serde_json",
- "valence-coprocessor",
- "valence-coprocessor-wasm",
-]
-
-[[package]]
 name = "valence-coprocessor-wasm"
 version = "0.3.4"
 source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.3.4#b1130632a8a2d18d104f8babffa56489f0d48d8f"
