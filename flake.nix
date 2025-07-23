@@ -42,6 +42,21 @@
         system,
         ...
       }: let
+        # Common packages used across shells
+        commonShellPackages = [
+          pkgs.curl
+          pkgs.jq
+          config.packages.build-app
+          config.packages.full-pipeline
+        ];
+        
+        # Common Darwin-specific packages
+        commonDarwinPackages = pkgs.lib.optionals pkgs.stdenv.isDarwin [
+          pkgs.libiconv
+          pkgs.darwin.apple_sdk.frameworks.Security
+          pkgs.darwin.apple_sdk.frameworks.CoreFoundation
+        ];
+
         # Add rust-overlay
         overlays = [ rust-overlay.overlays.default ];
         pkgsWithOverlays = import nixpkgs {
@@ -140,7 +155,7 @@
             owner = "succinctlabs";
             repo = "sp1";
             rev = "v5.0.8";
-            hash = "sha256-1ihmgkwl246zzv2qjwi4lwg6jvyld2cnbmjm1rf27xabzvbvrl5x";
+            hash = "sha256-vdC81/5L9SNcDlXWZZlo1G9pHqckconF/t8QQfl8FcY=";
             fetchSubmodules = true;
           };
           
@@ -245,8 +260,8 @@
             echo "cargo-prove has been successfully installed to $PRJ_ROOT/bin/cargo-prove"
           '';
 
-          # Build WASM script
-          build-wasm = pkgs.writeShellScriptBin "build-wasm" ''
+          # Build app script
+          build-app = pkgs.writeShellScriptBin "build-app" ''
             #!/usr/bin/env bash
             # Script to build the WASM binary for Valence coprocessor
 
@@ -269,8 +284,8 @@
               ${config.packages.install-cargo-prove}/bin/install-cargo-prove
             fi
 
-            # Step 2: Build the WASM binary using the nix wasm-shell
-            echo "Building WASM with nightly Rust toolchain..."
+            # Step 2: Build the app using the nix wasm-shell
+            echo "Building app with nightly Rust toolchain..."
             echo "Current directory before build: $PWD"
             echo "PRJ_ROOT is: $PRJ_ROOT"
             echo "Target release directory before build: $PRJ_ROOT/target/wasm32-unknown-unknown/release/"
@@ -293,13 +308,13 @@
               exit 1
             fi
 
-            # Step 3: Build the SP1 circuit using sp1-shell
+            # Step 3: Build the SP1 circuit using circuit-shell
             echo "Building SP1 circuit..."
             echo "Using cargo-prove from: $PRJ_ROOT/bin/cargo-prove"
             
-            nix develop .#sp1-shell -c bash -c 'pwd; echo "Inside nix develop (sp1-shell): Building SP1 circuit..."; cd "$PRJ_ROOT/docker/build/program-circuit/program" && pwd && echo "Toolchain information from sp1-shell:" && cargo-prove prove --version && cargo-prove prove build --ignore-rust-version; ' || \
+            nix develop .#circuit-shell -c bash -c 'pwd; echo "Inside nix develop (circuit-shell): Building SP1 circuit..."; cd "$PRJ_ROOT/docker/build/program-circuit/program" && pwd && echo "Toolchain information from circuit-shell:" && cargo-prove prove --version && cargo-prove prove build --ignore-rust-version; ' || \
             {
-              echo "SP1 build failed (executed via sp1-shell), but we'll continue with dev mode"
+              echo "SP1 build failed (executed via circuit-shell), but we'll continue with dev mode"
               echo "SP1 circuit build failed. Will continue with WASM-only deployment (dev mode)."
               echo "WASM build completed successfully!"
               echo ""
@@ -337,7 +352,7 @@
               echo "Generating a fallback dummy ELF for dev mode deployment."
               mkdir -p "$PRJ_ROOT/target/sp1/optimized"
               # Call generate-sp1-elf to output to the correct location
-              ${config.packages.generate-sp1-elf}/bin/generate-sp1-elf "$PRJ_ROOT/target/sp1/optimized/valence-coprocessor-app-circuit"
+              ${config.packages.generate-mock-elf}/bin/generate-mock-elf "$PRJ_ROOT/target/sp1/optimized/valence-coprocessor-app-circuit"
               echo "Fallback dummy ELF generated at: $PRJ_ROOT/target/sp1/optimized/valence-coprocessor-app-circuit"
               # Update CIRCUIT_PATH and CIRCUIT_FOUND for subsequent messages
               CIRCUIT_PATH="$PRJ_ROOT/target/sp1/optimized/valence-coprocessor-app-circuit"
@@ -351,119 +366,6 @@
             echo "The SP1 circuit is available at: $PRJ_ROOT/target/sp1/optimized/valence-coprocessor-app-circuit (either built or fallback)"
           '';
 
-          # Deploy to service script
-          deploy-to-service = pkgs.writeShellScriptBin "deploy-to-service" ''
-            #!/usr/bin/env bash
-            echo "--- deploy-to-service script started ---"
-            # Deploy WASM binary directly to the co-processor service using curl
-
-            set -e
-
-            # Ensure PRJ_ROOT is available
-            if [ -z "$PRJ_ROOT" ]; then
-              export PRJ_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")"
-            fi
-
-            WASM_PATH="$PRJ_ROOT/target/wasm32-unknown-unknown/optimized/valence_coprocessor_app_lib.wasm"
-            # This path should always contain an ELF, either real or dummy, due to build-wasm modifications
-            CIRCUIT_PATH_FOR_DEPLOYMENT="$PRJ_ROOT/target/sp1/optimized/valence-coprocessor-app-circuit" 
-            
-            # Use environment variable if set, otherwise use default
-            SERVICE_URL=''${VALENCE_SERVICE_URL:-http://localhost:37281/api/registry/controller}
-            SERVICE_HOST=''${SERVICE_URL%/api*}
-
-            # Ensure the WASM binary exists
-            if [ ! -f "$WASM_PATH" ]; then
-              echo "Error: WASM binary not found at $WASM_PATH"
-              echo "Please run 'nix run .#build-wasm' first to build the WASM binary"
-              exit 1
-            fi
-
-            # Ensure the CIRCUIT_PATH_FOR_DEPLOYMENT exists
-            if [ ! -f "$CIRCUIT_PATH_FOR_DEPLOYMENT" ]; then
-              echo "Error: Circuit ELF not found at $CIRCUIT_PATH_FOR_DEPLOYMENT"
-              echo "This file should have been created by 'build-wasm', either from a successful SP1 build or as a fallback."
-              echo "Please run 'nix run .#build-wasm' first."
-              exit 1
-            fi
-            echo "Using circuit ELF from: $CIRCUIT_PATH_FOR_DEPLOYMENT for deployment."
-
-            # Check service status
-            echo "Checking service status at $SERVICE_HOST/api/status..."
-            if ! curl -s --connect-timeout 5 -X GET "$SERVICE_HOST/api/status" > /dev/null; then
-              echo "Error: Failed to connect to the co-processor service at $SERVICE_HOST"
-              echo "Please ensure the service is running at $SERVICE_HOST"
-              exit 1
-            fi
-            echo "Service is responsive. Proceeding with deployment."
-
-            echo "Deploying WASM binary to co-processor service..."
-            echo "WASM binary: $WASM_PATH"
-            
-            # Force dev_mode: true for this deployment to test mock verification
-            echo "Forcing dev_mode: true for deployment payload to test mock verification."
-            DEV_MODE_FOR_PAYLOAD=true # JSON boolean true, not string "true"
-            
-            echo "Service URL: $SERVICE_URL"
-
-            # Base64 encode the WASM binary
-            echo "Base64 encoding WASM binary..."
-            WASM_BASE64=$(openssl base64 -A -in "$WASM_PATH")
-
-            # Base64 encode the circuit ELF (real or dummy from build-wasm)
-            echo "Base64 encoding Circuit ELF from $CIRCUIT_PATH_FOR_DEPLOYMENT..."
-            CIRCUIT_BASE64_FOR_PAYLOAD=$(openssl base64 -A -in "$CIRCUIT_PATH_FOR_DEPLOYMENT")
-
-            # Prepare the request payload - always include the circuit field, forced to dev mode
-            REQUEST_PAYLOAD="{\"controller\": \"$WASM_BASE64\", \"circuit\": \"$CIRCUIT_BASE64_FOR_PAYLOAD\"}"
-
-            echo "Deploying with payload snippet (circuit hash omitted for brevity):"
-            printf '{"controller": "%s...", "circuit": "%s..."}\n' \
-              "$(echo "$WASM_BASE64" | cut -c1-30)" \
-              "$(echo "$CIRCUIT_BASE64_FOR_PAYLOAD" | cut -c1-30)"
-
-
-            # Deploy to the co-processor service using a more reliable method
-            echo "Sending deployment request to $SERVICE_URL..."
-            
-            # Use a temporary file for the response
-            TEMP_OUTPUT=$(mktemp)
-            
-            http_code=$(curl -s -o "$TEMP_OUTPUT" -w "%{http_code}" \
-              --connect-timeout 10 -X POST "$SERVICE_URL" \
-              -H "Content-Type: application/json" \
-              -d "$REQUEST_PAYLOAD")
-
-            if [ "$http_code" -ne 200 ]; then
-              echo "Error: Received HTTP code $http_code from service"
-              echo "Response:"
-              cat "$TEMP_OUTPUT"
-              rm "$TEMP_OUTPUT"
-              exit 1
-            fi
-
-            # Read the response
-            RESPONSE=$(cat "$TEMP_OUTPUT")
-            rm "$TEMP_OUTPUT"
-
-            # Extract the program ID
-            PROGRAM_ID=$(echo "$RESPONSE" | grep -o '"controller":"[^"]*"' | cut -d'"' -f4)
-
-            if [ -n "$PROGRAM_ID" ]; then
-              echo "Deployment successful!"
-              echo "Program ID: $PROGRAM_ID"
-              echo ""
-              echo "To generate a proof, run:"
-              if [ "$DEV_MODE_FOR_PAYLOAD" = "true" ]; then
-                echo "echo '{\"name\": \"Valence\"}' | curl -s -X POST \"$SERVICE_URL/$PROGRAM_ID/prove\" -H \"Content-Type: application/json\" -d '{\"args\":{\"name\":\"Valence\"}, \"dev_mode\": true}'"
-              else
-              echo "echo '{\"name\": \"Valence\"}' | curl -s -X POST \"$SERVICE_URL/$PROGRAM_ID/prove\" -H \"Content-Type: application/json\" -d '{\"args\":{\"name\":\"Valence\"}}'"
-              fi
-            else
-              echo "Deployment failed. Response:"
-              echo "$RESPONSE"
-            fi
-          '';
 
           # Full pipeline script
           full-pipeline = pkgs.writeShellScriptBin "full-pipeline" ''
@@ -492,7 +394,7 @@
             # Step 1: Build the WASM binary
             echo ""
             echo "Step 1: Building WASM binary..."
-            ${config.packages.build-wasm}/bin/build-wasm
+            ${config.packages.build-app}/bin/build-app
 
             # Check if the SP1 circuit exists
             CIRCUIT_PATH="$PRJ_ROOT/target/sp1/optimized/valence-coprocessor-app-circuit"
@@ -509,25 +411,24 @@
             # Step 2: Deploy to the co-processor service
             echo ""
             echo "Step 2: Deploying to co-processor service..."
-            # DEPLOY_OUTPUT=$(${config.packages.deploy-to-service}/bin/deploy-to-service) # Old way
             
             # New way: capture output and exit code separately
             DEPLOY_SERVICE_LOG_FILE=$(mktemp)
-            echo "Capturing deploy-to-service output to $DEPLOY_SERVICE_LOG_FILE"
+            echo "Capturing deploy-app output to $DEPLOY_SERVICE_LOG_FILE"
             
-            set +e # Allow deploy-to-service to fail without exiting full-pipeline immediately
-            ${config.packages.deploy-to-service}/bin/deploy-to-service > "$DEPLOY_SERVICE_LOG_FILE" 2>&1
+            set +e # Allow deploy-app to fail without exiting full-pipeline immediately
+            ${config.packages.deploy-app}/bin/deploy-app circuit > "$DEPLOY_SERVICE_LOG_FILE" 2>&1
             DEPLOY_SERVICE_EXIT_CODE=$?
             set -e # Re-enable set -e
 
             DEPLOY_OUTPUT=$(cat "$DEPLOY_SERVICE_LOG_FILE")
-            echo "--- Output from deploy-to-service (exit code $DEPLOY_SERVICE_EXIT_CODE): ---"
+            echo "--- Output from deploy-app (exit code $DEPLOY_SERVICE_EXIT_CODE): ---"
             echo "$DEPLOY_OUTPUT"
-            echo "--- End of deploy-to-service output ---"
+            echo "--- End of deploy-app output ---"
             rm "$DEPLOY_SERVICE_LOG_FILE"
 
             if [ $DEPLOY_SERVICE_EXIT_CODE -ne 0 ]; then
-              echo "Error: deploy-to-service failed with exit code $DEPLOY_SERVICE_EXIT_CODE. See output above."
+              echo "Error: deploy-app failed with exit code $DEPLOY_SERVICE_EXIT_CODE. See output above."
               exit 1
             fi
             
@@ -646,7 +547,7 @@
           };
           
           # Generate SP1 ELF script - now using SP1's toolchain
-          generate-sp1-elf = pkgs.writeShellScriptBin "generate-sp1-elf" ''
+          generate-mock-elf = pkgs.writeShellScriptBin "generate-mock-elf" ''
             #!/usr/bin/env bash
             # Script to generate a minimal valid ELF file for SP1 zkVM
             
@@ -687,8 +588,8 @@
             echo "Note: This is a minimal ELF file for testing purposes only."
           '';
 
-          # Valence Deploy - mirrors cargo-valence deploy functionality
-          valence-deploy = pkgs.writeShellScriptBin "valence-deploy" ''
+          # Deploy App - mirrors cargo-valence deploy functionality
+          deploy-app = pkgs.writeShellScriptBin "deploy-app" ''
             #!/usr/bin/env bash
             # Deploy circuit to Valence coprocessor - mirrors cargo-valence deploy
             
@@ -699,9 +600,10 @@
             CONTROLLER_PATH="./crates/controller"
             CIRCUIT_NAME="valence-coprocessor-app-circuit"
             VERBOSE=false
+            DEPLOY_TYPE="circuit"  # Default to circuit
             
             usage() {
-              echo "Usage: valence-deploy [OPTIONS] deploy circuit"
+              echo "Usage: deploy-app [OPTIONS] [circuit]"
               echo ""
               echo "Options:"
               echo "  --socket <HOST:PORT>    Use public coprocessor service (like prover.timewave.computer:37281)"
@@ -710,15 +612,19 @@
               echo "  --verbose              Enable verbose output"
               echo "  -h, --help             Show this help message"
               echo ""
+              echo "Arguments:"
+              echo "  circuit                 Deploy the circuit (default behavior)"
+              echo ""
               echo "Examples:"
               echo "  # Deploy to local service (default localhost:37281)"
-              echo "  valence-deploy deploy circuit"
+              echo "  deploy-app circuit"
+              echo "  deploy-app              # circuit is implied"
               echo ""
               echo "  # Deploy to public service"
-              echo "  valence-deploy --socket prover.timewave.computer:37281 deploy circuit"
+              echo "  deploy-app --socket prover.timewave.computer:37281 circuit"
               echo ""
               echo "  # Deploy with custom controller path"
-              echo "  valence-deploy --controller ./my-controller --circuit my-circuit deploy circuit"
+              echo "  deploy-app --controller ./my-controller --circuit my-circuit circuit"
             }
             
             # Parse arguments
@@ -760,19 +666,21 @@
                   usage
                   exit 0
                   ;;
-                deploy)
-                  if [ "$2" = "circuit" ]; then
-                    COMMAND="deploy-circuit"
-                    shift 2
-                  else
-                    echo "Error: Unknown deploy target '$2'. Expected 'circuit'"
-                    exit 1
-                  fi
+                circuit)
+                  DEPLOY_TYPE="circuit"
+                  shift
                   ;;
                 *)
-                  echo "Error: Unknown option '$1'"
-                  usage
-                  exit 1
+                  # If it's not an option and not "circuit", it's an error
+                  if [[ "$1" != -* ]]; then
+                    echo "Error: Unknown argument '$1'. Expected 'circuit' or no argument."
+                    usage
+                    exit 1
+                  else
+                    echo "Error: Unknown option '$1'"
+                    usage
+                    exit 1
+                  fi
                   ;;
               esac
             done
@@ -805,7 +713,7 @@
             
             # Step 1: Build the WASM binary and circuit
             echo "Building WASM binary and circuit..."
-            ${config.packages.build-wasm}/bin/build-wasm
+            ${config.packages.build-app}/bin/build-app
             
             # Check required files
             WASM_PATH="$PRJ_ROOT/target/wasm32-unknown-unknown/optimized/valence_coprocessor_app_lib.wasm"
@@ -819,7 +727,7 @@
             if [ ! -f "$CIRCUIT_PATH" ]; then
               echo "Warning: SP1 circuit not found at $CIRCUIT_PATH"
               echo "Generating fallback circuit for development mode..."
-              ${config.packages.generate-sp1-elf}/bin/generate-sp1-elf "$CIRCUIT_PATH"
+              ${config.packages.generate-mock-elf}/bin/generate-mock-elf "$CIRCUIT_PATH"
             fi
             
             # Step 2: Check service availability
@@ -887,9 +795,9 @@
               echo ""
               echo "To generate a proof:"
               if [ "$USE_PUBLIC_SERVICE" = true ]; then
-                echo "  valence-prove --socket $PUBLIC_SOCKET -j '{\"value\": 42}' -p /var/share/proof.bin $CONTROLLER_ID"
+                echo "  prove-app --socket $PUBLIC_SOCKET $CONTROLLER_ID '{\"value\": 42}' \"/proof.bin\""
               else
-                echo "  valence-prove -j '{\"value\": 42}' -p /var/share/proof.bin $CONTROLLER_ID"
+                echo "  prove-app $CONTROLLER_ID '{\"value\": 42}' \"/proof.bin\""
               fi
             else
               echo "Error: Failed to extract controller ID from response"
@@ -898,36 +806,32 @@
             fi
           '';
 
-          # Valence Prove - mirrors cargo-valence prove functionality  
-          valence-prove = pkgs.writeShellScriptBin "valence-prove" ''
+          # Derive VK - get verification key for a controller
+          derive-vk = pkgs.writeShellScriptBin "derive-vk" ''
             #!/usr/bin/env bash
-            # Generate proof using Valence coprocessor - mirrors cargo-valence prove
+            # Get verification key from Valence coprocessor
             
             set -e
             
             # Parse command line arguments
             USE_PUBLIC_SERVICE=false
-            ARGS_JSON=""
-            PATH_ARG=""
             CONTROLLER_ID=""
             VERBOSE=false
             
             usage() {
-              echo "Usage: valence-prove [OPTIONS] <CONTROLLER_ID>"
+              echo "Usage: derive-vk [OPTIONS] <CONTROLLER_ID>"
               echo ""
               echo "Options:"
               echo "  --socket <HOST:PORT>    Use public coprocessor service"
-              echo "  -j, --json <JSON>       JSON arguments to pass to the controller"
-              echo "  -p, --path <PATH>       Path where proof will be stored in virtual filesystem"
               echo "  --verbose              Enable verbose output"
               echo "  -h, --help             Show this help message"
               echo ""
               echo "Examples:"
-              echo "  # Get a verifying key"
-              echo "  valence-prove vk <CONTROLLER_ID>"
+              echo "  # Get verification key from local service"
+              echo "  derive-vk <CONTROLLER_ID>"
               echo ""
-              echo "  # Generate a proof with controller ID"
-              echo "  valence-prove prove <CONTROLLER_ID> '{\"value\": 42}' \"/path/in/fs.json\""
+              echo "  # Get verification key from public service"
+              echo "  derive-vk --socket prover.timewave.computer:37281 <CONTROLLER_ID>"
             }
             
             # Parse arguments
@@ -943,21 +847,129 @@
                     exit 1
                   fi
                   ;;
-                -j|--json)
-                  if [ -n "$2" ] && [[ "$2" != --* ]]; then
-                    ARGS_JSON="$2"
-                    shift 2
+                --verbose)
+                  VERBOSE=true
+                  shift
+                  ;;
+                -h|--help)
+                  usage
+                  exit 0
+                  ;;
+                *)
+                  if [ -z "$CONTROLLER_ID" ]; then
+                    CONTROLLER_ID="$1"
+                    shift
                   else
-                    echo "Error: --json requires a JSON argument"
+                    echo "Error: Unknown option '$1'"
+                    usage
                     exit 1
                   fi
                   ;;
-                -p|--path)
+              esac
+            done
+            
+            # Check required arguments
+            if [ -z "$CONTROLLER_ID" ]; then
+              echo "Error: CONTROLLER_ID is required"
+              usage
+              exit 1
+            fi
+            
+            # Determine service URL
+            if [ "$USE_PUBLIC_SERVICE" = true ]; then
+              if [[ "$PUBLIC_SOCKET" == *:* ]]; then
+                SERVICE_HOST="http://$PUBLIC_SOCKET"
+              else
+                SERVICE_HOST="http://$PUBLIC_SOCKET:37281"
+              fi
+              echo "Using public coprocessor service: $SERVICE_HOST"
+            else
+              SERVICE_HOST="http://localhost:37281"
+              echo "Using local coprocessor service: $SERVICE_HOST"
+            fi
+            
+            VK_URL="$SERVICE_HOST/api/registry/controller/$CONTROLLER_ID/vk"
+            
+            if [ "$VERBOSE" = true ]; then
+              echo "Controller ID: $CONTROLLER_ID"
+              echo "VK URL: $VK_URL"
+            fi
+            
+            # Check service availability
+            echo "Checking service availability..."
+            if ! curl -s --connect-timeout 5 "$SERVICE_HOST/api/status" > /dev/null; then
+              echo "Error: Cannot connect to coprocessor service at $SERVICE_HOST"
+              exit 1
+            fi
+            
+            # Get verification key
+            echo "Retrieving verification key..."
+            
+            TEMP_OUTPUT=$(mktemp)
+            
+            http_code=$(curl -s -o "$TEMP_OUTPUT" -w "%{http_code}" \
+              --connect-timeout 30 -X GET "$VK_URL")
+            
+            if [ "$http_code" -ne 200 ]; then
+              echo "Error: VK request failed with HTTP code $http_code"
+              echo "Response:"
+              cat "$TEMP_OUTPUT"
+              rm "$TEMP_OUTPUT"
+              exit 1
+            fi
+            
+            RESPONSE=$(cat "$TEMP_OUTPUT")
+            rm "$TEMP_OUTPUT"
+            
+            echo "Verification key retrieved successfully!"
+            echo "$RESPONSE"
+          '';
+
+          # Prove App - generate proof for a controller
+          prove-app = pkgs.writeShellScriptBin "prove-app" ''
+            #!/usr/bin/env bash
+            # Generate proof using Valence coprocessor - mirrors cargo-valence prove
+            
+            set -e
+            
+            # Parse command line arguments
+            USE_PUBLIC_SERVICE=false
+            ARGS_JSON=""
+            PATH_ARG=""
+            CONTROLLER_ID=""
+            VERBOSE=false
+            
+            usage() {
+              echo "Usage: prove-app [OPTIONS] <CONTROLLER_ID> <JSON_ARGS> <PATH>"
+              echo ""
+              echo "Options:"
+              echo "  --socket <HOST:PORT>    Use public coprocessor service"
+              echo "  --verbose              Enable verbose output"
+              echo "  -h, --help             Show this help message"
+              echo ""
+              echo "Arguments:"
+              echo "  CONTROLLER_ID           Controller ID to generate proof for"
+              echo "  JSON_ARGS              JSON arguments to pass to the controller"
+              echo "  PATH                   Path where proof will be stored in virtual filesystem"
+              echo ""
+              echo "Examples:"
+              echo "  # Generate a proof with controller ID"
+              echo "  prove-app <CONTROLLER_ID> '{\"value\": 42}' \"/path/in/fs.json\""
+              echo ""
+              echo "  # Generate a proof using public service"
+              echo "  prove-app --socket prover.timewave.computer:37281 <CONTROLLER_ID> '{\"value\": 42}' \"/proof.bin\""
+            }
+            
+            # Parse arguments
+            while [[ $# -gt 0 ]]; do
+              case $1 in
+                --socket)
                   if [ -n "$2" ] && [[ "$2" != --* ]]; then
-                    PATH_ARG="$2"
+                    PUBLIC_SOCKET="$2"
+                    USE_PUBLIC_SERVICE=true
                     shift 2
                   else
-                    echo "Error: --path requires a path argument"
+                    echo "Error: --socket requires a HOST:PORT argument"
                     exit 1
                   fi
                   ;;
@@ -969,47 +981,40 @@
                   usage
                   exit 0
                   ;;
-                vk)
-                  if [ -n "$2" ]; then
-                    COMMAND="vk"
-                    CONTROLLER_ID="$2"
-                    shift 2
-                  else
-                    echo "Error: vk requires a CONTROLLER_ID argument"
-                    exit 1
-                  fi
-                  ;;
-                prove)
-                  if [ -n "$2" ]; then
-                    COMMAND="prove"
-                    CONTROLLER_ID="$2"
-                    if [ -n "$3" ] && [[ "$3" != --* ]]; then
-                      ARGS_JSON="$3"
-                      if [ -n "$4" ] && [[ "$4" != --* ]]; then
-                        PATH_ARG="$4"
-                        shift 4
-                      else
-                        shift 3
-                      fi
-                    else
-                      shift 2
-                    fi
-                  else
-                    echo "Error: prove requires a CONTROLLER_ID argument"
-                    exit 1
-                  fi
-                  ;;
                 *)
-                  echo "Error: Unknown option '$1'"
-                  usage
-                  exit 1
+                  if [ -z "$CONTROLLER_ID" ]; then
+                    CONTROLLER_ID="$1"
+                    shift
+                  elif [ -z "$ARGS_JSON" ]; then
+                    ARGS_JSON="$1"
+                    shift
+                  elif [ -z "$PATH_ARG" ]; then
+                    PATH_ARG="$1"
+                    shift
+                  else
+                    echo "Error: Unknown option '$1'"
+                    usage
+                    exit 1
+                  fi
                   ;;
               esac
             done
             
             # Check required arguments
-            if [ -z "$COMMAND" ]; then
-              echo "Error: No command specified. Use 'vk' or 'prove'."
+            if [ -z "$CONTROLLER_ID" ]; then
+              echo "Error: CONTROLLER_ID is required"
+              usage
+              exit 1
+            fi
+            
+            if [ -z "$ARGS_JSON" ]; then
+              echo "Error: JSON_ARGS is required"
+              usage
+              exit 1
+            fi
+            
+            if [ -z "$PATH_ARG" ]; then
+              echo "Error: PATH is required"
               usage
               exit 1
             fi
@@ -1034,7 +1039,6 @@
             
             SERVICE_URL="$SERVICE_HOST/api/registry/controller"
             PROVE_URL="$SERVICE_URL/$CONTROLLER_ID/prove"
-            VK_URL="$SERVICE_URL/$CONTROLLER_ID/vk"
             
             if [ "$VERBOSE" = true ]; then
               echo "Controller ID: $CONTROLLER_ID"
@@ -1117,18 +1121,18 @@
               if [ "$VERBOSE" = true ]; then
                 cat "$STORAGE_TEMP_OUTPUT" | jq . 2>/dev/null || cat "$STORAGE_TEMP_OUTPUT"
               else
-                echo "Use valence-storage to retrieve the full proof data."
+                echo "Use get-proof to retrieve the full proof data."
               fi
             else
               echo "Warning: Could not retrieve proof from storage (this may be normal for async processing)"
-              echo "Use valence-storage later to check if the proof is ready."
+              echo "Use get-proof later to check if the proof is ready."
             fi
             
             rm "$STORAGE_TEMP_OUTPUT"
           '';
 
-          # Valence Storage - mirrors cargo-valence storage functionality
-          valence-storage = pkgs.writeShellScriptBin "valence-storage" ''
+          # Get Proof - retrieve proof data from coprocessor storage
+          get-proof = pkgs.writeShellScriptBin "get-proof" ''
             #!/usr/bin/env bash
             # Retrieve data from Valence coprocessor storage - mirrors cargo-valence storage
             
@@ -1141,26 +1145,23 @@
             VERBOSE=false
             
             usage() {
-              echo "Usage: valence-storage [OPTIONS] COMMAND <CONTROLLER_ID> [PATH]"
-              echo ""
-              echo "Commands:"
-              echo "  fs <CONTROLLER_ID> <PATH>   Retrieve a file from the virtual filesystem"
-              echo "  raw <CONTROLLER_ID>         Get the raw storage data"
+              echo "Usage: get-proof [OPTIONS] <CONTROLLER_ID> <PATH>"
               echo ""
               echo "Options:"
               echo "  --socket <HOST:PORT>        Use public coprocessor service"
               echo "  --verbose                   Enable verbose output"
               echo "  -h, --help                  Show this help message"
               echo ""
+              echo "Arguments:"
+              echo "  CONTROLLER_ID               Controller ID to retrieve proof from"
+              echo "  PATH                       Path to the proof file in virtual filesystem"
+              echo ""
               echo "Examples:"
-              echo "  # Retrieve a file from local service"
-              echo "  valence-storage fs <CONTROLLER_ID> PROOF.BIN"
+              echo "  # Retrieve a proof from local service"
+              echo "  get-proof <CONTROLLER_ID> PROOF.BIN"
               echo ""
-              echo "  # Retrieve a file from public service"
-              echo "  valence-storage --socket prover.timewave.computer:37281 fs <CONTROLLER_ID> PROOF.BIN"
-              echo ""
-              echo "  # Get raw storage from local service"
-              echo "  valence-storage raw <CONTROLLER_ID>"
+              echo "  # Retrieve a proof from public service"
+              echo "  get-proof --socket prover.timewave.computer:37281 <CONTROLLER_ID> PROOF.BIN"
             }
             
             # Parse arguments
@@ -1184,55 +1185,31 @@
                   usage
                   exit 0
                   ;;
-                fs)
-                  if [ -n "$2" ]; then
-                    COMMAND="fs"
-                    CONTROLLER_ID="$2"
-                    if [ -n "$3" ] && [[ "$3" != --* ]]; then
-                      STORAGE_PATH="$3"
-                      shift 3
-                    else
-                      echo "Error: fs requires a PATH argument"
-                      exit 1
-                    fi
-                  else
-                    echo "Error: fs requires a CONTROLLER_ID argument"
-                    exit 1
-                  fi
-                  ;;
-                raw)
-                  if [ -n "$2" ]; then
-                    COMMAND="raw"
-                    CONTROLLER_ID="$2"
-                    shift 2
-                  else
-                    echo "Error: raw requires a CONTROLLER_ID argument"
-                    exit 1
-                  fi
-                  ;;
                 *)
-                  echo "Error: Unknown option '$1'"
-                  usage
-                  exit 1
+                  if [ -z "$CONTROLLER_ID" ]; then
+                    CONTROLLER_ID="$1"
+                    shift
+                  elif [ -z "$STORAGE_PATH" ]; then
+                    STORAGE_PATH="$1"
+                    shift
+                  else
+                    echo "Error: Unknown option '$1'"
+                    usage
+                    exit 1
+                  fi
                   ;;
               esac
             done
             
             # Check required arguments
-            if [ -z "$COMMAND" ]; then
-              echo "Error: No command specified. Use 'fs' or 'raw'."
-              usage
-              exit 1
-            fi
-            
             if [ -z "$CONTROLLER_ID" ]; then
               echo "Error: CONTROLLER_ID is required"
               usage
               exit 1
             fi
             
-            if [ "$COMMAND" = "fs" ] && [ -z "$STORAGE_PATH" ]; then
-              echo "Error: Storage path is required for 'fs' command"
+            if [ -z "$STORAGE_PATH" ]; then
+              echo "Error: PATH is required"
               usage
               exit 1
             fi
@@ -1256,8 +1233,7 @@
               exit 1
             fi
             
-            if [ "$COMMAND" = "fs" ]; then
-              # For filesystem command
+            # Retrieve file from filesystem
               # If path doesn't appear to be in FAT16 format (8.3) already, convert it
               if [[ ! "$STORAGE_PATH" =~ ^[A-Z0-9]{1,8}\.[A-Z0-9]{1,3}$ ]]; then
                 # Convert path to FAT-16 format (8.3 filename, case insensitive)
@@ -1321,48 +1297,6 @@
                 echo "No data found at path $FAT16_PATH"
                 echo "Full response: $RESPONSE"
               fi
-            elif [ "$COMMAND" = "raw" ]; then
-              # For raw storage command
-              STORAGE_URL="$SERVICE_HOST/api/registry/controller/$CONTROLLER_ID/storage/raw"
-              
-              echo "Retrieving raw storage data..."
-              
-              TEMP_OUTPUT=$(mktemp)
-              http_code=$(curl -s -o "$TEMP_OUTPUT" -w "%{http_code}" \
-                         --connect-timeout 10 -X GET "$STORAGE_URL")
-              
-              if [ "$http_code" -ne 200 ]; then
-                echo "Error: Raw storage query failed with HTTP code $http_code"
-                echo "Response:"
-                cat "$TEMP_OUTPUT"
-                rm "$TEMP_OUTPUT"
-                exit 1
-              fi
-              
-              RESPONSE=$(cat "$TEMP_OUTPUT")
-              rm "$TEMP_OUTPUT"
-              
-              # Extract base64 data
-              BASE64_DATA=$(echo "$RESPONSE" | jq -r .data 2>/dev/null)
-              
-              if [ -n "$BASE64_DATA" ] && [ "$BASE64_DATA" != "null" ]; then
-                echo "Raw storage data retrieved successfully!"
-                echo ""
-                
-                # Display file entries from raw storage
-                echo "Files in storage:"
-                echo "$BASE64_DATA" | base64 --decode | grep -a -o "[A-Z][A-Z0-9]*\\.[A-Z][A-Z0-9]*" | sort | uniq
-                
-                if [ "$VERBOSE" = true ]; then
-                  echo ""
-                  echo "Full response (base64):"
-                  echo "$BASE64_DATA"
-                fi
-              else
-                echo "No storage data found"
-                echo "Full response: $RESPONSE"
-              fi
-            fi
           '';
         };
 
@@ -1372,17 +1306,8 @@
           packages = [
             rustWithWasmTarget
             pkgs.wasm-bindgen-cli
-            pkgs.curl
-            pkgs.jq
             config.packages.install-cargo-prove
-            config.packages.build-wasm
-            config.packages.deploy-to-service
-            config.packages.full-pipeline
-          ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
-            pkgs.libiconv
-            pkgs.darwin.apple_sdk.frameworks.Security
-            pkgs.darwin.apple_sdk.frameworks.CoreFoundation
-          ];
+          ] ++ commonShellPackages ++ commonDarwinPackages;
           
           # Add environment variables - don't use RUSTFLAGS here
           env = pkgs.lib.optionals pkgs.stdenv.isDarwin [
@@ -1403,24 +1328,15 @@
           '';
         };
         
-        # SP1 development shell
-        devshells.sp1-shell = {
-          name = "sp1-shell";
+        # Circuit development shell
+        devshells.circuit-shell = {
+          name = "circuit-shell";
           packages = [
             pkgs.rustup
             sp1
             pkgs.llvmPackages.clang
             pkgs.llvmPackages.llvm
-            pkgs.curl
-            pkgs.jq
-            config.packages.build-wasm
-            config.packages.deploy-to-service
-            config.packages.full-pipeline
-          ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
-            pkgs.libiconv
-            pkgs.darwin.apple_sdk.frameworks.Security
-            pkgs.darwin.apple_sdk.frameworks.CoreFoundation
-          ];
+          ] ++ commonShellPackages ++ commonDarwinPackages;
           
           # Add environment variables
           env = pkgs.lib.optionals pkgs.stdenv.isDarwin [
@@ -1478,7 +1394,7 @@
             # Ensure $PRJ_ROOT/bin is in PATH for precedence if user/script placed something there
             export PATH="$PRJ_ROOT/bin:$PATH"
 
-            echo "--- sp1-shell setup ---"
+            echo "--- circuit-shell setup ---"
             # Attempt to prevent rustup from trying to manage itself if run as root by Nix builder
             export RUSTUP_PERMIT_COPY_RENAME_DIR=true
             # Set a common RUSTUP_HOME to avoid issues with default .rustup, especially in sandboxed Nix builds
@@ -1543,33 +1459,22 @@
             else
               echo "ERROR: 'cargo' (rustup shim) not found. This is unexpected after rustup setup."
             fi
-            echo "--- sp1-shell setup complete ---"
+            echo "--- circuit-shell setup complete ---"
           '';
         };
         
         # Default development shell with access to all scripts
         devshells.default = {
-          packages = [
-            pkgs.curl
-            pkgs.jq
+          packages = commonShellPackages ++ [
             config.packages.install-cargo-prove
-            config.packages.build-wasm
-            config.packages.deploy-to-service
-            config.packages.full-pipeline
           ];
           
           commands = [
             {
               category = "build";
-              name = "build-wasm-cmd";
-              help = "Build the WASM binary";
-              command = "build-wasm";
-            }
-            {
-              category = "deploy";
-              name = "deploy-to-service-cmd";
-              help = "Deploy WASM binary to the coprocessor service";
-              command = "deploy-to-service";
+              name = "build-app-cmd";
+              help = "Build the app";
+              command = "build-app";
             }
             {
               category = "pipeline";
@@ -1579,9 +1484,9 @@
             }
             {
               category = "shells";
-              name = "sp1";
-              help = "Enter the SP1 development shell";
-              command = "nix develop .#sp1-shell";
+              name = "circuit";
+              help = "Enter the circuit development shell";
+              command = "nix develop .#circuit-shell";
             }
             {
               category = "shells";
@@ -1596,17 +1501,17 @@
             echo "View available commands with: menu"
             echo ""
             echo "Quick commands:"
-            echo "  build-wasm          - Build the WASM binary"
-            echo "  deploy-to-service   - Deploy to the coprocessor service"
-            echo "  full-pipeline       - Run complete pipeline (build, deploy, proof)"
+            echo "  build-app           - Build the app"
+            echo "  deploy-app          - Deploy to the coprocessor service"
+            echo "  full-pipeline       - Run complete pipeline (build, deploy, prove)"
           '';
         };
 
         # Set up apps that can be run with 'nix run'
         apps = {
-          build-wasm = {
+          build-app = {
             type = "app";
-            program = "${config.packages.build-wasm}/bin/build-wasm";
+            program = "${config.packages.build-app}/bin/build-app";
           };
           
           install-cargo-prove = {
@@ -1614,35 +1519,36 @@
             program = "${config.packages.install-cargo-prove}/bin/install-cargo-prove";
           };
           
-          deploy-to-service = {
-            type = "app";
-            program = "${config.packages.deploy-to-service}/bin/deploy-to-service";
-          };
           
           full-pipeline = {
             type = "app";
             program = "${config.packages.full-pipeline}/bin/full-pipeline";
           };
           
-          generate-sp1-elf = {
+          generate-mock-elf = {
             type = "app";
-            program = "${config.packages.generate-sp1-elf}/bin/generate-sp1-elf";
+            program = "${config.packages.generate-mock-elf}/bin/generate-mock-elf";
           };
           
           # New Valence commands that mirror cargo-valence functionality
-          valence-deploy = {
+          deploy-app = {
             type = "app";
-            program = "${config.packages.valence-deploy}/bin/valence-deploy";
+            program = "${config.packages.deploy-app}/bin/deploy-app";
           };
           
-          valence-prove = {
+          derive-vk = {
             type = "app";
-            program = "${config.packages.valence-prove}/bin/valence-prove";
+            program = "${config.packages.derive-vk}/bin/derive-vk";
           };
           
-          valence-storage = {
+          prove-app = {
             type = "app";
-            program = "${config.packages.valence-storage}/bin/valence-storage";
+            program = "${config.packages.prove-app}/bin/prove-app";
+          };
+          
+          get-proof = {
+            type = "app";
+            program = "${config.packages.get-proof}/bin/get-proof";
           };
         };
       };
