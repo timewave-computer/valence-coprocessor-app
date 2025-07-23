@@ -1,35 +1,41 @@
 {
   description = "Valence coprocessor app";
 
-  nixConfig.extra-experimental-features = "nix-command flakes";
-  nixConfig.extra-substituters = "https://coffeetables.cachix.org";
-  nixConfig.extra-trusted-public-keys = ''
-    coffeetables.cachix.org-1:BCQXDtLGFVo/rTG/J4omlyP/jbtNtsZIKHBMTjAWt8g=
-  '';
+  nixConfig = {
+    extra-experimental-features = "nix-command flakes";
+    allow-import-from-derivation = true;
+    extra-substituters = [
+      "https://coffeetables.cachix.org"
+      "https://timewave.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "coffeetables.cachix.org-1:BCQXDtLGFVo/rTG/J4omlyP/jbtNtsZIKHBMTjAWt8g="
+      "timewave.cachix.org-1:nu3Uqsm3sikI9xFK3Mt4AD4Q6z+j6eS9+kND1vtznq4="
+    ];
+  };
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-24.11";
     
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
 
     flake-parts.url = "github:hercules-ci/flake-parts";
-
     devshell.url = "github:numtide/devshell";
+    crate2nix.url = "github:timewave-computer/crate2nix";
+    sp1-nix.url = "github:timewave-computer/sp1.nix";
+    fp-addons.url = "github:timewave-computer/flake-parts-addons";
   };
 
   outputs = {
     self,
     nixpkgs,
-    rust-overlay,
     flake-parts,
     ...
   } @ inputs:
-    flake-parts.lib.mkFlake {inherit inputs;} ({moduleWithSystem, ...}: {
+    flake-parts.lib.mkFlake {inherit inputs;} ({lib, moduleWithSystem, ...}: {
       imports = [
         inputs.devshell.flakeModule
+        inputs.crate2nix.flakeModule
+        inputs.fp-addons.flakeModules.tools
       ];
 
       systems = ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"];
@@ -41,7 +47,21 @@
         pkgs,
         system,
         ...
-      }: let
+      }: {
+        crate2nix = {
+          cargoNix = ./Cargo.nix;
+          devshell.name = "default";
+          profile = "optimized";
+          crateOverrides = inputs'.sp1-nix.tools.crateOverrides // {
+            valence-coprocessor-app-circuit = attrs: {
+              meta.mainProgram = "valence-coprocessor-app-circuit";
+            };
+            valence-coprocessor-app-controller = attrs: {
+              meta.mainProgram = "valence-coprocessor-app-controller";  
+            };
+          };
+        };
+      } // (let
         # Common packages used across shells
         commonShellPackages = [
           pkgs.curl
@@ -57,208 +77,22 @@
           pkgs.darwin.apple_sdk.frameworks.CoreFoundation
         ];
 
-        # Add rust-overlay
-        overlays = [ rust-overlay.overlays.default ];
-        pkgsWithOverlays = import nixpkgs {
-          inherit system overlays;
-        };
         
-        # Create a Rust with WASM target (nightly)
-        rustWithWasmTarget = pkgsWithOverlays.rust-bin.nightly.latest.default.override {
-          targets = [ "wasm32-unknown-unknown" ];
-          extensions = [ "rust-src" ];
-        };
-        
-        # Create a stable Rust with WASM target (fallback)
-        rustStableWithWasmTarget = pkgsWithOverlays.rust-bin.stable.latest.default.override {
-          targets = [ "wasm32-unknown-unknown" ];
-        };
 
-        # Inline implementation of sp1-rust.nix
-        sp1-rust = pkgs.stdenv.mkDerivation rec {
-          name = "sp1-rust";
-          version = "1.82.0";
-
-          dontStrip = true;
-
-          nativeBuildInputs = [
-            pkgs.stdenv.cc.cc.lib
-            pkgs.zlib
-          ] ++ (if pkgs.stdenv.isDarwin then [ pkgs.fixDarwinDylibNames ] else [ pkgs.autoPatchelfHook ]);
-
-          installPhase = ''
-            runHook preInstall
-            mkdir -p $out
-            cp -r ./* $out/
-            runHook postInstall
-          '';
-
-          src = let
-            fetchGitHubReleaseAsset =
-              {
-                owner,
-                repo,
-                tag,
-                asset,
-                hash,
-              }:
-              let 
-                tarball = pkgs.fetchurl {
-                  url = "https://github.com/${owner}/${repo}/releases/download/${tag}/${asset}";
-                  sha256 = hash;
-                };
-              in
-              pkgs.runCommand "extract-${asset}" { } ''
-                mkdir -p $out
-                tar -xzf ${tarball} -C $out
-              '';
-          in fetchGitHubReleaseAsset ({
-            owner = "succinctlabs";
-            repo = "rust";
-            tag = "succinct-1.82.0";
-          } // ({
-            "x86_64-linux" = {
-              asset = "rust-toolchain-x86_64-unknown-linux-gnu.tar.gz";
-              hash = "sha256-wXI2zVwfrVk28CR8PLq4xyepdlu65uamzt/+jER2M2k=";
-            };
-            "aarch64-linux" = {
-              asset = "rust-toolchain-aarch64-unknown-linux-gnu.tar.gz";
-              hash = "sha256-92P392Afp8wEhiLOo+l9KJtwMAcKtK0GxZchXGg3U54=";
-            };
-            "x86_64-darwin" = {
-              asset = "rust-toolchain-x86_64-apple-darwin.tar.gz";
-              hash = "sha256-sPQW8eo+qItsmgK1uxRh1r73DBLUXUtmtVUvjacGzp0=";
-            };
-            "aarch64-darwin" = {
-              asset = "rust-toolchain-aarch64-apple-darwin.tar.gz";
-              hash = "sha256-TyButIZ7LwQanQEwgSPjpEP8jMD6HGCYYoL+I5XAxs0=";
-            };
-          }.${pkgs.stdenv.system}));
-        };
-
-        # Inline implementation of sp1.nix
-        sp1 = pkgs.rustPlatform.buildRustPackage {
-          pname = "sp1";
-          version = "5.0.8";
-
-          nativeBuildInputs = [
-            sp1-rust
-            pkgs.pkg-config
-            pkgs.openssl
-          ];
-          
-          # Only build the sp1-cli package
-          cargoBuildFlags = [ "--package sp1-cli" ];
-          cargoHash = "sha256-0000000000000000000000000000000000000000000="; # Will be updated
-
-          src = pkgs.fetchFromGitHub {
-            owner = "succinctlabs";
-            repo = "sp1";
-            rev = "v5.0.8";
-            hash = "sha256-vdC81/5L9SNcDlXWZZlo1G9pHqckconF/t8QQfl8FcY=";
-            fetchSubmodules = true;
-          };
-          
-          doCheck = false;
-        };
+        # Use sp1-nix for proper SP1 toolchain management  
+        sp1-packages = inputs'.sp1-nix.packages;
       in {
         # Create packages for WASM building
         packages = {
-          # Use the inlined sp1-rust and sp1 instead of callPackage
-          inherit sp1-rust sp1;
+          # crate2nix generated packages
+          inherit (config.crate2nix.packages) 
+            valence-coprocessor-app-circuit
+            valence-coprocessor-app-controller;
           
-          # Build the WASM binary
-          wasm-binary = pkgs.stdenv.mkDerivation {
-            name = "valence-coprocessor-app-wasm";
-            version = "0.1.0";
-            
-            src = ./.;
-            
-            buildInputs = [
-              rustWithWasmTarget
-              pkgs.wasm-bindgen-cli
-            ];
-            
-            buildPhase = ''
-              # Use the Rust with WASM target to build the WASM binary
-              export HOME=$TMPDIR
-              export RUSTFLAGS="--cfg=web_sys_unstable_apis"
-              ${rustWithWasmTarget}/bin/cargo build --target wasm32-unknown-unknown --release -p valence-coprocessor-app-program
-            '';
-            
-            installPhase = ''
-              mkdir -p $out
-              cp target/wasm32-unknown-unknown/release/valence_coprocessor_app_program.wasm $out/valence_coprocessor_app_lib.wasm
-            '';
-          };
+          # Use sp1-nix packages (inherit what's available)
+          inherit (sp1-packages) sp1;
+          
 
-          # Script to install cargo-prove
-          install-cargo-prove = pkgs.writeShellScriptBin "install-cargo-prove" ''
-            #!/usr/bin/env bash
-            # This script downloads the cargo-prove binary for the current platform
-
-            set -e
-
-            # Ensure PRJ_ROOT is available
-            if [ -z "$PRJ_ROOT" ]; then
-              export PRJ_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")"
-            fi
-
-            PLATFORM="$(uname -s)"
-            ARCH="$(uname -m)"
-
-            # Create the bin directory if it doesn't exist
-            mkdir -p "$PRJ_ROOT/bin"
-
-            # Define the version to use
-            SP1_VERSION="v5.0.8"
-
-            # Determine the correct archive name based on platform and architecture
-            if [ "$PLATFORM" = "Darwin" ]; then
-              if [ "$ARCH" = "arm64" ]; then
-                PLATFORM_TARGET="darwin_arm64"
-              else
-                PLATFORM_TARGET="darwin_amd64"
-              fi
-            elif [ "$PLATFORM" = "Linux" ]; then
-              if [ "$ARCH" = "aarch64" ]; then
-                PLATFORM_TARGET="linux_arm64"
-              else
-                PLATFORM_TARGET="linux_amd64"
-              fi
-            else
-              echo "Unsupported platform: $PLATFORM"
-              exit 1
-            fi
-
-            ARCHIVE_NAME="cargo_prove_$SP1_VERSION""_$PLATFORM_TARGET.tar.gz"
-            DOWNLOAD_URL="https://github.com/succinctlabs/sp1/releases/download/$SP1_VERSION/$ARCHIVE_NAME"
-
-            echo "Installing cargo-prove for $PLATFORM_TARGET"
-            echo "Downloading from: $DOWNLOAD_URL"
-
-            # Create a temporary directory for extraction
-            TMP_DIR=$(mktemp -d)
-            trap 'rm -rf "$TMP_DIR"' EXIT
-
-            # Download the archive
-            curl -L "$DOWNLOAD_URL" -o "$TMP_DIR/$ARCHIVE_NAME" --progress-bar
-
-            # Extract the archive
-            tar -xzf "$TMP_DIR/$ARCHIVE_NAME" -C "$TMP_DIR"
-
-            # Copy the binary to our bin directory
-            cp "$TMP_DIR/cargo-prove" "$PRJ_ROOT/bin/"
-
-            # Make it executable
-            chmod +x "$PRJ_ROOT/bin/cargo-prove"
-
-            # Verify that it works
-            echo "Testing cargo-prove:"
-            "$PRJ_ROOT/bin/cargo-prove" prove --version || "$PRJ_ROOT/bin/cargo-prove"
-
-            echo "cargo-prove has been successfully installed to $PRJ_ROOT/bin/cargo-prove"
-          '';
 
           # Build app script
           build-app = pkgs.writeShellScriptBin "build-app" ''
@@ -278,11 +112,8 @@
             mkdir -p "$PRJ_ROOT/target/wasm32-unknown-unknown/optimized"
             mkdir -p "$PRJ_ROOT/target/sp1"
 
-            # Step 1: Install cargo-prove if needed
-            if [ ! -f "$PRJ_ROOT/bin/cargo-prove" ]; then
-              echo "Installing cargo-prove..."
-              ${config.packages.install-cargo-prove}/bin/install-cargo-prove
-            fi
+            # Step 1: cargo-prove is available from sp1-nix, no installation needed
+            echo "Using cargo-prove from sp1-nix..."
 
             # Step 2: Build the app using the nix wasm-shell
             echo "Building app with nightly Rust toolchain..."
@@ -291,16 +122,16 @@
             echo "Target release directory before build: $PRJ_ROOT/target/wasm32-unknown-unknown/release/"
             ls -la "$PRJ_ROOT/target/wasm32-unknown-unknown/release/" 2>/dev/null || echo "Release directory does not exist yet or is empty."
 
-            nix develop .#wasm-shell -c bash -c 'export RUSTFLAGS="--cfg=web_sys_unstable_apis"; echo "Inside nix develop (wasm-shell): Building valence-coprocessor-app-program..."; pwd; cargo build --target wasm32-unknown-unknown --release -p valence-coprocessor-app-program -v; echo "WASM Build command finished. Checking output..."; ls -la target/wasm32-unknown-unknown/release/;'
+            nix develop .#wasm-shell -c bash -c 'export RUSTFLAGS="--cfg=web_sys_unstable_apis"; echo "Inside nix develop (wasm-shell): Building valence-coprocessor-app-controller..."; pwd; cargo build --target wasm32-unknown-unknown --release -p valence-coprocessor-app-controller -v; echo "WASM Build command finished. Checking output..."; ls -la target/wasm32-unknown-unknown/release/;'
 
             echo "WASM Build process completed. Checking for WASM file..."
-            echo "Expected WASM file location: $PRJ_ROOT/target/wasm32-unknown-unknown/release/valence_coprocessor_app_program.wasm"
+            echo "Expected WASM file location: $PRJ_ROOT/target/wasm32-unknown-unknown/release/valence_coprocessor_app_controller.wasm"
             ls -la "$PRJ_ROOT/target/wasm32-unknown-unknown/release/" 2>/dev/null || echo "Release directory does not exist or is empty after build."
 
             # Copy the WASM to the expected location if it was built
-            if [ -f "$PRJ_ROOT/target/wasm32-unknown-unknown/release/valence_coprocessor_app_program.wasm" ]; then
+            if [ -f "$PRJ_ROOT/target/wasm32-unknown-unknown/release/valence_coprocessor_app_controller.wasm" ]; then
               echo "Copying WASM binary to optimized directory..."
-              cp "$PRJ_ROOT/target/wasm32-unknown-unknown/release/valence_coprocessor_app_program.wasm" "$PRJ_ROOT/target/wasm32-unknown-unknown/optimized/valence_coprocessor_app_lib.wasm"
+              cp "$PRJ_ROOT/target/wasm32-unknown-unknown/release/valence_coprocessor_app_controller.wasm" "$PRJ_ROOT/target/wasm32-unknown-unknown/optimized/valence_coprocessor_app_lib.wasm"
               echo "Copied to: $PRJ_ROOT/target/wasm32-unknown-unknown/optimized/valence_coprocessor_app_lib.wasm"
               ls -la "$PRJ_ROOT/target/wasm32-unknown-unknown/optimized/"
             else
@@ -312,7 +143,7 @@
             echo "Building SP1 circuit..."
             echo "Using cargo-prove from: $PRJ_ROOT/bin/cargo-prove"
             
-            nix develop .#circuit-shell -c bash -c 'pwd; echo "Inside nix develop (circuit-shell): Building SP1 circuit..."; cd "$PRJ_ROOT/docker/build/program-circuit/program" && pwd && echo "Toolchain information from circuit-shell:" && cargo-prove prove --version && cargo-prove prove build --ignore-rust-version; ' || \
+            nix develop .#circuit-shell -c bash -c 'pwd; echo "Inside nix develop (circuit-shell): Building SP1 circuit..."; cd "$PRJ_ROOT/crates/circuit" && pwd && echo "Toolchain information from circuit-shell:" && cargo-prove prove --version && cargo-prove prove build --ignore-rust-version; ' || \
             {
               echo "SP1 build failed (executed via circuit-shell), but we'll continue with dev mode"
               echo "SP1 circuit build failed. Will continue with WASM-only deployment (dev mode)."
@@ -323,10 +154,9 @@
 
             # Check both possible output locations for SP1 binary
             CIRCUIT_PATHS=(
-              "$PRJ_ROOT/docker/build/program-circuit/target/program.elf" # Primary path based on deployer
-              "$PRJ_ROOT/docker/build/program-circuit/program/elf/program-circuit" # Typical cargo-prove output for this crate
-              "$PRJ_ROOT/target/sp1/valence-coprocessor-app-circuit" # Old path, keep for now
-              "$PRJ_ROOT/target/sp1/circuit" # Old path, keep for now
+              "$PRJ_ROOT/crates/circuit/elf/valence-coprocessor-app-circuit" # Standard cargo-prove output
+              "$PRJ_ROOT/target/sp1/valence-coprocessor-app-circuit" # Alternative target location
+              "$PRJ_ROOT/target/sp1/circuit" # Fallback location
             )
             
             CIRCUIT_FOUND=false
@@ -1304,16 +1134,25 @@
         devshells.wasm-shell = {
           name = "wasm-shell";
           packages = [
-            rustWithWasmTarget
-            pkgs.wasm-bindgen-cli
-            config.packages.install-cargo-prove
+            pkgs.rustc
+            pkgs.wasm-bindgen-cli  
+            sp1-packages.sp1 or pkgs.rustc
           ] ++ commonShellPackages ++ commonDarwinPackages;
           
           # Add environment variables - don't use RUSTFLAGS here
-          env = pkgs.lib.optionals pkgs.stdenv.isDarwin [
+          env = [
+            {
+              name = "CC";
+              value = "${pkgs.clang}/bin/clang";
+            }
+          ] ++ lib.optionals pkgs.stdenv.isDarwin [
             {
               name = "LIBRARY_PATH";
-              value = "${pkgs.libiconv}/lib";
+              prefix = "${pkgs.darwin.libiconv}/lib:${pkgs.libiconv}/lib";
+            }
+            {
+              name = "MACOS_DEPLOYMENT_TARGET";
+              value = "10.03";
             }
           ];
           
@@ -1332,21 +1171,25 @@
         devshells.circuit-shell = {
           name = "circuit-shell";
           packages = [
-            pkgs.rustup
-            sp1
+            sp1-packages.sp1 or pkgs.rustc
             pkgs.llvmPackages.clang
             pkgs.llvmPackages.llvm
           ] ++ commonShellPackages ++ commonDarwinPackages;
           
           # Add environment variables
-          env = pkgs.lib.optionals pkgs.stdenv.isDarwin [
+          env = [
+            {
+              name = "CC";
+              value = "${pkgs.clang}/bin/clang";
+            }
+          ] ++ lib.optionals pkgs.stdenv.isDarwin [
             {
               name = "LIBRARY_PATH";
-              value = "${pkgs.libiconv}/lib";
+              prefix = "${pkgs.darwin.libiconv}/lib:${pkgs.libiconv}/lib";
             }
             {
-              name = "RUSTFLAGS";
-              value = "-L ${pkgs.libiconv}/lib";
+              name = "MACOS_DEPLOYMENT_TARGET";
+              value = "10.03";
             }
           ] ++ [
             {
@@ -1369,7 +1212,7 @@
             }
             {
               name = "sp1-build";
-              help = "Build an SP1 program";
+              help = "Build an SP1 circuit";
               command = "cargo prove build $@";
             }
             {
@@ -1384,89 +1227,23 @@
             }
           ];
           
-          # Add SP1 command aliases via bash.extra
+          # Add SP1 setup
           bash.extra = ''
             # Ensure PRJ_ROOT is available inside the shell
             if [ -z "$PRJ_ROOT" ]; then
               export PRJ_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")"
             fi
             
-            # Ensure $PRJ_ROOT/bin is in PATH for precedence if user/script placed something there
-            export PATH="$PRJ_ROOT/bin:$PATH"
-
-            echo "--- circuit-shell setup ---"
-            # Attempt to prevent rustup from trying to manage itself if run as root by Nix builder
-            export RUSTUP_PERMIT_COPY_RENAME_DIR=true
-            # Set a common RUSTUP_HOME to avoid issues with default .rustup, especially in sandboxed Nix builds
-            # Using a path within PRJ_ROOT might be an option if persistence across runs isn't an issue for the toolchain itself,
-            # or rely on the user's default ~/.rustup for interactive `nix develop`.
-            # For `nix run` commands, HOME might be /homeless-shelter. Let rustup use its default logic for now.
-            # Consider XDG_DATA_HOME if more control is needed: export RUSTUP_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/rustup"
-
-            echo "Current PATH: $PATH"
-            echo "Disabling rustup auto-self-update..."
-            rustup set auto-self-update disable || echo "Failed to disable rustup auto-self-update (may not be critical)."
-            
-            echo "Ensuring a default rustup toolchain (stable) is active if none..."
-            rustup default stable || echo "Failed to set rustup default stable (may not be critical if a toolchain is already active)."
-            echo "Rustup toolchain list:"
-            rustup toolchain list
-            echo "Cargo version from rustup default: $(cargo --version || echo 'cargo not found')"
-
-            echo "Locating cargo-prove..."
-            if command -v cargo-prove &> /dev/null; then
-                CARGO_PROVE_PATH=$(command -v cargo-prove)
-                echo "Found cargo-prove at: $CARGO_PROVE_PATH"
-                echo "Version: $($CARGO_PROVE_PATH prove --version || $CARGO_PROVE_PATH --version || echo 'version N/A')"
-                
-                SHOULD_INSTALL_TOOLCHAIN=true
-                # Check if the succinct toolchain is already installed and responsive
-                # Use grep -Fxq for fixed string, exact line match to avoid issues with spaces/suffixes
-                if rustup toolchain list | grep -Fxq "succinct"; then
-                  echo "Found existing 'succinct' toolchain in rustup."
-                  if cargo +succinct --version &> /dev/null; then
-                    echo "'succinct' toolchain is responsive. Checking its version..."
-                    SUCCINCT_CARGO_VERSION=$(cargo +succinct --version)
-                    echo "Detected succinct cargo version: $SUCCINCT_CARGO_VERSION"
-                    # We expect something like "cargo 1.89.0-nightly (056f5f4f3 2025-05-09)" for the current setup
-                    if [[ "$SUCCINCT_CARGO_VERSION" == *"1.89.0-nightly"* ]]; then
-                        echo "Detected expected succinct toolchain version. Skipping install-toolchain."
-                        SHOULD_INSTALL_TOOLCHAIN=false
-                    else
-                        echo "Succinct toolchain version ($SUCCINCT_CARGO_VERSION) does not match expected heuristic. Will reinstall."
-                    fi
-                  else
-                    echo "'succinct' toolchain found in rustup list but not responsive. Will reinstall."
-                  fi
-                else
-                  echo "'succinct' toolchain not found in rustup list. Will install."
-                fi
-
-                if [ "$SHOULD_INSTALL_TOOLCHAIN" = "true" ]; then
-                  echo "Installing/updating SP1 Rust toolchain ('succinct') via cargo-prove and rustup..."
-                  "$CARGO_PROVE_PATH" prove install-toolchain
-                fi
-            else
-                echo "ERROR: cargo-prove not found in PATH. Expected from 'sp1' package or '$PRJ_ROOT/bin'."
-            fi
-            
-            export RUSTUP_TOOLCHAIN=succinct
-            echo "RUSTUP_TOOLCHAIN set to 'succinct'."
-            
-            echo "Verifying 'succinct' toolchain cargo access (cargo +succinct --version):"
-            if command -v cargo &> /dev/null; then # cargo here should be rustup's shim
-              cargo +succinct --version || echo "Warning: 'cargo +succinct --version' failed. This might be an intermittent issue or the toolchain is still setting up."
-            else
-              echo "ERROR: 'cargo' (rustup shim) not found. This is unexpected after rustup setup."
-            fi
-            echo "--- circuit-shell setup complete ---"
+            echo "--- circuit-shell (sp1-nix) ---"
+            echo "SP1 tooling available from sp1-nix"
+            echo "Ready for SP1 circuit development"
           '';
         };
         
         # Default development shell with access to all scripts
         devshells.default = {
           packages = commonShellPackages ++ [
-            config.packages.install-cargo-prove
+            sp1-packages.sp1 or pkgs.rustc
           ];
           
           commands = [
@@ -1514,11 +1291,6 @@
             program = "${config.packages.build-app}/bin/build-app";
           };
           
-          install-cargo-prove = {
-            type = "app";
-            program = "${config.packages.install-cargo-prove}/bin/install-cargo-prove";
-          };
-          
           
           full-pipeline = {
             type = "app";
@@ -1551,6 +1323,6 @@
             program = "${config.packages.get-proof}/bin/get-proof";
           };
         };
-      };
+      });
     });
 }
