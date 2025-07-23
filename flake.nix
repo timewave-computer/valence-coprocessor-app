@@ -124,7 +124,7 @@
         # Inline implementation of sp1.nix
         sp1 = pkgs.rustPlatform.buildRustPackage {
           pname = "sp1";
-          version = "unstable-2025-03-06";
+          version = "5.0.8";
 
           nativeBuildInputs = [
             sp1-rust
@@ -134,13 +134,13 @@
           
           # Only build the sp1-cli package
           cargoBuildFlags = [ "--package sp1-cli" ];
-          cargoHash = "sha256-gI/N381IfIWnF4tfXM1eKLI93eCjEELg/a5gWQn/3EA=";
+          cargoHash = "sha256-0000000000000000000000000000000000000000000="; # Will be updated
 
           src = pkgs.fetchFromGitHub {
             owner = "succinctlabs";
             repo = "sp1";
-            rev = "9f202bf603b3cab5b7c9db0e8cf5524a3428fbee";
-            hash = "sha256-RpllsIlrGyYw6dInN0tTs7K1y4FiFmrxFSyt3/Xelkg=";
+            rev = "v5.0.8";
+            hash = "sha256-1ihmgkwl246zzv2qjwi4lwg6jvyld2cnbmjm1rf27xabzvbvrl5x";
             fetchSubmodules = true;
           };
           
@@ -196,7 +196,7 @@
             mkdir -p "$PRJ_ROOT/bin"
 
             # Define the version to use
-            SP1_VERSION="v4.2.0"
+            SP1_VERSION="v5.0.8"
 
             # Determine the correct archive name based on platform and architecture
             if [ "$PLATFORM" = "Darwin" ]; then
@@ -834,7 +834,7 @@
               fi
               exit 1
             fi
-            echo "Service is available ✓"
+            echo "Service is available"
             
             # Step 3: Deploy
             echo "Deploying circuit to coprocessor service..."
@@ -877,7 +877,7 @@
             
             if [ -n "$CONTROLLER_ID" ]; then
               echo ""
-              echo "✅ Deployment successful!"
+              echo "Deployment successful!"
               echo ""
               # Mirror cargo-valence output format
               echo "{\"controller\": \"$CONTROLLER_ID\", \"circuit\": \"$CIRCUIT_NAME\"}"
@@ -1091,7 +1091,7 @@
             RESPONSE=$(cat "$TEMP_OUTPUT")
             rm "$TEMP_OUTPUT"
             
-            echo "✅ Proof request submitted successfully!"
+            echo "Proof request submitted successfully!"
             echo "Response: $RESPONSE"
             
             # Wait a moment and try to retrieve the result
@@ -1113,14 +1113,14 @@
                                -d "$STORAGE_PAYLOAD")
             
             if [ "$storage_http_code" -eq 200 ]; then
-              echo "✅ Proof retrieved from storage!"
+              echo "Proof retrieved from storage!"
               if [ "$VERBOSE" = true ]; then
                 cat "$STORAGE_TEMP_OUTPUT" | jq . 2>/dev/null || cat "$STORAGE_TEMP_OUTPUT"
               else
                 echo "Use valence-storage to retrieve the full proof data."
               fi
             else
-              echo "⚠️  Could not retrieve proof from storage (this may be normal for async processing)"
+              echo "Warning: Could not retrieve proof from storage (this may be normal for async processing)"
               echo "Use valence-storage later to check if the proof is ready."
             fi
             
@@ -1304,7 +1304,7 @@
               BASE64_DATA=$(echo "$RESPONSE" | jq -r .data 2>/dev/null)
               
               if [ -n "$BASE64_DATA" ] && [ "$BASE64_DATA" != "null" ]; then
-                echo "✅ File retrieved successfully!"
+                echo "File retrieved successfully!"
                 echo ""
                 
                 # Decode and pretty-print the data
@@ -1346,7 +1346,7 @@
               BASE64_DATA=$(echo "$RESPONSE" | jq -r .data 2>/dev/null)
               
               if [ -n "$BASE64_DATA" ] && [ "$BASE64_DATA" != "null" ]; then
-                echo "✅ Raw storage data retrieved successfully!"
+                echo "Raw storage data retrieved successfully!"
                 echo ""
                 
                 # Display file entries from raw storage
