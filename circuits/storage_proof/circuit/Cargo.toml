@@ -1,0 +1,22 @@
+[package]
+name = "storage-proof-circuit"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "The Valence co-processor circuit definition."
+
+[dependencies]
+serde_json = { workspace = true }
+cosmwasm-std = { workspace = true }
+valence-authorization-utils = { workspace = true }
+valence-library-utils = { workspace = true }
+cw20 = { workspace = true }
+
+storage-proof-core.path = "../core"
+
+# valence deps
+valence-coprocessor.workspace = true
+
+# alloy
+alloy-rpc-types-eth = { workspace = true }
+alloy-primitives = { workspace = true }
