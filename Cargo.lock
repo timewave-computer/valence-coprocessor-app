@@ -8692,7 +8692,7 @@ dependencies = [
 [[package]]
 name = "valence-coordinator-sdk"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/valence-coordinator-sdk.git?branch=main#e0c1682ead99ce6571097a8a5a9bedc022303a51"
+source = "git+https://github.com/timewave-computer/valence-coordinator-sdk.git?rev=0157c59#0157c592d97367631ae20793b063b517b63de0b5"
 dependencies = [
  "alloy",
  "anyhow",

@@ -43,11 +43,12 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
         .expect("failed to convert neutron addr bytes to str");
 
     let evm_balance = proof.storage_proof[0].value;
-    let evm_balance_u128: u128 = evm_balance
-        .try_into()
-        .expect("failed to parse U256 -> u128");
+    let evm_balance: u128 = match evm_balance.try_into() {
+        Ok(bal) => bal,
+        Err(_) => panic!("U256 -> u128 parsing of evm balance failed ({evm_balance})"),
+    };
 
-    let zk_msg = build_zk_msg(neutron_addr.to_string(), evm_balance_u128);
+    let zk_msg = build_zk_msg(neutron_addr.to_string(), evm_balance);
 
     serde_json::to_vec(&zk_msg)
         .expect("failed to serialize the zk authorization message to json vec")
