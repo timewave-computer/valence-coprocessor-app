@@ -37,7 +37,7 @@ async fn main() -> anyhow::Result<()> {
         coprocessor_app_id,
     };
 
-    println!("neutron strategy config: {:?}", neutron_strategy_config);
+    println!("neutron strategy config: {neutron_strategy_config:?}");
 
     steps::setup_authorizations(&neutron_client, &neutron_strategy_config).await?;
 

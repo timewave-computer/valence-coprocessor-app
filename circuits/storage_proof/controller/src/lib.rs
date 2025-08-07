@@ -47,7 +47,7 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
 
     // 9 for usdc, possibly different index for most erc20
     let slot_key = mapping_slot_key(eth_addr, 9u64);
-    let slot_key = format!("{:#x}", slot_key);
+    let slot_key = format!("{slot_key:#x}");
 
     abi::log!("storage key = {slot_key}")?;
 

@@ -25,7 +25,7 @@ pub fn read_setup_inputs(cd: PathBuf) -> anyhow::Result<NeutronInputs> {
 
     let neutron_inputs: NeutronInputs = toml::from_str(&parameters)?;
 
-    println!("neutron inputs from step: {:?}", neutron_inputs);
+    println!("neutron inputs from step: {neutron_inputs:?}");
 
     Ok(neutron_inputs)
 }
