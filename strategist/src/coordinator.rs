@@ -11,8 +11,6 @@ use valence_domain_clients::{
 use crate::strategy::Strategy;
 
 const COORDINATOR_LOG_TARGET: &str = "COORDINATOR";
-const USDC_ERC20_ADDR: &str = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-const SRC_ETH_ADDR: &str = "0x8d41bb082C6050893d1eC113A104cc4C087F2a2a";
 
 // implement the ValenceCoordinator trait for the Strategy struct.
 // This trait defines the main loop of the strategy and inherits
@@ -34,9 +32,10 @@ impl ValenceCoordinator for Strategy {
             .to_string();
 
         let circuit_inputs = storage_proof_core::ControllerInputs {
-            erc20: USDC_ERC20_ADDR.to_string(),
-            eth_addr: SRC_ETH_ADDR.to_string(),
+            erc20_addr: self.erc20_addr.to_string(),
+            eth_addr: self.erc20_holder_addr.to_string(),
             neutron_addr: ntrn_addr.to_string(),
+            erc20_balances_map_storage_index: 9, // usdc is 9
         };
 
         let proof_request = serde_json::to_value(circuit_inputs)?;

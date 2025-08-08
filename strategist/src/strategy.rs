@@ -10,6 +10,11 @@ pub struct Strategy {
     /// strategy timeout (sec)
     pub timeout: u64,
 
+    /// source erc20 address
+    pub erc20_addr: String,
+    pub erc20_balances_storage_index: u64,
+    pub erc20_holder_addr: String,
+
     /// active neutron client and strategy config
     pub(crate) neutron_cfg: NeutronStrategyConfig,
     pub(crate) neutron_client: NeutronClient,
@@ -25,9 +30,14 @@ impl Strategy {
     pub async fn new(cfg: NeutronStrategyConfig) -> anyhow::Result<Self> {
         dotenv::dotenv().ok();
 
+        // fetch the env variables used to build the strategy
         let mnemonic = env::var("MNEMONIC")?;
         let label = env::var("LABEL")?;
+        let erc20_addr = env::var("ERC20_ADDR")?;
         let strategy_timeout: u64 = env::var("STRATEGY_TIMEOUT")?.parse()?;
+        let erc20_balances_storage_index: u64 =
+            env::var("ERC20_BALANCES_STORAGE_INDEX")?.parse()?;
+        let erc20_src_addr = env::var("ETH_SRC_ADDR")?;
 
         let neutron_client =
             NeutronClient::new(&cfg.grpc_url, &cfg.grpc_port, &mnemonic, &cfg.chain_id).await?;
@@ -40,6 +50,9 @@ impl Strategy {
             label,
             coprocessor_client,
             neutron_cfg: cfg,
+            erc20_addr,
+            erc20_balances_storage_index,
+            erc20_holder_addr: erc20_src_addr,
         })
     }
 }

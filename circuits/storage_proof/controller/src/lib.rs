@@ -34,7 +34,7 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     abi::log!("received a proof request with arguments {args_pretty}")?;
 
     let witness_inputs: ControllerInputs = serde_json::from_value(args)?;
-    let erc20_addr = Address::from_str(&witness_inputs.erc20)?;
+    let erc20_addr = Address::from_str(&witness_inputs.erc20_addr)?;
     let eth_addr = Address::from_str(&witness_inputs.eth_addr)?;
 
     let block =
@@ -45,8 +45,7 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
 
     let block = format!("{:#x}", block.number);
 
-    // 9 for usdc, possibly different index for most erc20
-    let slot_key = mapping_slot_key(eth_addr, 9u64);
+    let slot_key = mapping_slot_key(eth_addr, witness_inputs.erc20_balances_map_storage_index);
     let slot_key = format!("{slot_key:#x}");
 
     abi::log!("storage key = {slot_key}")?;
