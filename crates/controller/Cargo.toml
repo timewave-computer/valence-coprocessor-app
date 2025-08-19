@@ -3,10 +3,13 @@ name = "valence-coprocessor-app-controller"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
-description = "The Valence co-processor controller definition."
+description = "The Valence co-processor controller definition"
 
 [dependencies]
 anyhow.workspace = true
 serde_json.workspace = true
 valence-coprocessor.workspace = true
 valence-coprocessor-wasm.workspace = true
+
+[lib]
+crate-type = ["cdylib"]

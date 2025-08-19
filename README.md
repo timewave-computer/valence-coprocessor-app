@@ -1,156 +1,109 @@
 # Valence co-processor app template
 
-This is a template for a Valence app.
+This is a template for a co-processor app.
 
 ## Requirements
 
-- [Docker](https://docs.docker.com/get-started/)
-- [Rust](https://www.rust-lang.org/tools/install)
-- [Cargo Valence subcommand](https://github.com/timewave-computer/valence-coprocessor/tree/v0.4.7?tab=readme-ov-file#cli-helper)
-- (Optional): [Valence co-processor instance](https://github.com/timewave-computer/valence-coprocessor/tree/v0.3.1?tab=readme-ov-file#local-execution)
+- [Valence domain clients co-processor utils](https://github.com/timewave-computer/valence-domain-clients?tab=readme-ov-file#cli)
 
-## Instructions
+## Deploy
 
-#### Install Cargo Valence
+#### Build
 
-A CLI helper is provided to facilitate the use of standard operations like deploying a circuit, proving statements, and retrieving state information.
+The build process expects the following toolchains to be installed:
 
-To install:
+- [wasm32-unknown-unknown](https://doc.rust-lang.org/rustc/platform-support/wasm32-unknown-unknown.html)
+- [SP1](https://docs.succinct.xyz/docs/sp1/getting-started/install)
 
-```bash
-cargo install \
-  --git https://github.com/timewave-computer/valence-coprocessor.git \
-  --tag v0.4.7 \
-  --locked cargo-valence
+```shell
+valence-coprocessor build
 ```
 
-`cargo-valence` supports local development workflows, as well as connecting to the public coprocessor service at http://prover.timewave.computer:37281/
+#### Nix
 
-We will be using the public co-processor service. If you prefer to operate your own instance, omit the `--socket` parameter.
+Alternatively to manually installing build toolchains, we can use Nix. Notably, we endorse and facilitate Nix builds in our system. Currently, our platform exclusively supports WebAssembly (WASM) builds using Nix. As such, having SP1 installed is a necessity; we however plan to add SP1 Nix support.
 
-#### Deploy
-
-The circuit must be deployed with its controller. The controller is the responsible to compute the circuit witnesses, while the circuit is the responsible to assert the logical statements of the partial program.
-
-```sh
-cargo-valence --socket prover.timewave.computer:37281 \
-  deploy circuit \
-  --controller ./crates/controller \
-  --circuit valence-coprocessor-app-circuit
+```shell
+nix develop --command valence-coprocessor build --only-controller
 ```
 
-This will output the application id associated with the controller. Let's bind this id to an environment variable, for convenience.
+#### Publish
 
-```sh
-export CONTROLLER=$(cargo-valence --socket prover.timewave.computer:37281 \
-  deploy circuit \
-  --controller ./crates/controller \
-  --circuit valence-coprocessor-app-circuit | jq -r '.controller')
+Executing this command initiates the build process, which constructs all artifacts listed within the `valence.toml` configuration file. The resulting folder for these artifacts is designated in `valence.artifacts`, and it will house the runtime binary data along with the circuit files tailored for the ZkVM. These constructed elements will be delivered to the co-processor service upon deployment.
+
+```shell
+valence-coprocessor deploy
 ```
 
-#### Prove
+This command deploys all circuits defined in the 'valence.toml' file. The circuit IDs are subsequently listed.
 
-This command will queue a proof request for this circuit into the co-processor, returning a promise of execution.
-
-```sh
-cargo-valence --socket prover.timewave.computer:37281 \
-  prove -j '{"value": 42}' \
-  -p /var/share/proof.bin \
-  $CONTROLLER
+```json
+[
+  {
+    "id": "308ce5062e87628f50a0b0a3f4e8f8b66640a96c0983e35a44652e40b7809278",
+    "name": "app"
+  }
+]
 ```
 
-The argument `-j '{"value": 42}'` will be forwarded to `./crates/controller/src/lib.rs:get_witnesses`. The output of this function will be then forwarded to the circuit for proving.
+## Debug
 
-The command sends a proof request to the coprocessor's worker nodes. Once the proof is ready, it will be delivered to the program's entrypoint. The default implementation will then write the proof to the specified path within the program's virtual filesystem. Note that the virtual filesystem follows a FAT-16 structure, with file extensions limited to 3 characters and case-insensitive paths.
+The Valence Co-Processor Toolkit enables the inspection of pre-computation methods for witness sets in the context of circuit proofs.
 
-#### Storage
-
-Once the proof is computed by the backend, it will be delivered to the virtual filesystem. We can visualize it via the `storage` command.
-
-```sh
-cargo-valence --socket prover.timewave.computer:37281 \
-  storage \
-  -p /var/share/proof.bin \
-  $CONTROLLER | jq -r '.data' | base64 -d | jq
+```shell
+valence-coprocessor witnesses \
+  --circuit 308ce5062e87628f50a0b0a3f4e8f8b66640a96c0983e35a44652e40b7809278 \
+  --args '{"value": 42}'
 ```
 
-The output should be similar to the following structure:
+The output is the controller logs, and the computed witnesses:
 
 ```json
 {
-  "args": {
-    "value": 42
-  },
   "log": [
     "received a proof request with arguments {\"value\":42}"
   ],
-  "payload": {
-    "cmd": "store",
-    "path": "/var/share/proof.bin"
-  },
-  "proof": "2gFcRWJhZ25SQTZYbTBKRWpnSUxyYzl6bEVxT3l4dEJPdHgyU2R0Z3ZqS2pTd2QvQU5MREJYcElZUytLOUo2VXlwK25tMzNCTU8vQkQwOStDZkVZNUhYZytRNDJwRU9SRkdqeVZVUFBoaGU3bXBBY1JYM0lVcnJDRm45VG92MjFzSFg5dFdidmdpeXA4cE43QU9HeHQ2VWFaRHpXVTdCdDZsRzBwSGd6Tm9lR085WkRzU2NER3Z1cnJxWXpJeGVQNGtVRFBsMFZKaWNhTDlhQWRJbXlxb2d5VFFtNWx3Vm00L25qVHBoUDhFNEZMQ3pOWDlnQzduK0Z0SVRiaHFlVndVdU11R0dUQ0xBQjEwV3B6MTluRzZ6L2o4M0VHTnJuNTk2Qkh0RnNEbkFBNnVFZklYREQ4Z3lXTDFuN0RIRVVDek1JKzhCYjJTMS9rOWgzejBmOGxjWEFCTUUzS1E92ThBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBckFBQUFBQUFBQUE9PQ==",
-  "success": true
+  "witnesses": {
+    "proofs": [],
+    "root": [222,236,233,6,92,167,87,33,245,88,93,74,74,188,123,188,206,93,80,59,251,190,92,36,98,1,50,145,105,110,104,118],
+    "witnesses": [
+      {
+        "Data": [42,0,0,0,0,0,0,0]
+      }
+    ]
+  }
 }
 ```
 
-#### Public inputs
+## Prove
 
-We can also open the public inputs of the proof via the Valence helper:
+The Valence Co-Processor Toolkit enables proving a circuit with a given set of arguments.
 
-```sh
-cargo-valence --socket 104.171.203.127:37281 \
-  proof-inputs \
-  -p /var/share/proof.bin \
-  $CONTROLLER | jq -r '.inputs' | base64 -d | hexdump -C
+```shell
+valence-coprocessor prove \
+  --circuit 308ce5062e87628f50a0b0a3f4e8f8b66640a96c0983e35a44652e40b7809278 \
+  --args '{"value": 42}'
 ```
 
-Note: The first 32 bytes of the public inputs are reserved for the co-processor root.
+The generated artifact is a cryptographically secure proof document suitable for submission to an on-chain verifier.
 
-### Structure
-
-#### `./crates/circuit`
-
-The Valence Zero-Knowledge circuit. It serves as a recipient for witness data (state proofs or data) from the associated controller. It carries out assertions based on business logic and outputs a `Vec<u8>`, which is subsequently forwarded to on-chain applications.
-
-#### `./crates/controller`
-
-The Valence controller. Compiled WASM binary that the coprocessor service runs in order to compute the circuit witnesses from given JSON arguments. It features an entrypoint that accommodates user requests; it also receives the result of a proof computation by the service.
-
-### Nix Commands
-
-Commands mirroring `cargo-valence` functionality are available via Nix:
-
-```bash
-# Build WASM controller and SP1 circuit (with fallback dummy ELF).
-nix run .#build-wasm
-
-# Deploy to local service
-nix run .#valence-deploy -- deploy circuit
-
-# Deploy to public service
-nix run .#valence-deploy -- --socket <HOST:PORT> deploy circuit
-
-# Request proof (local)
-nix run .#valence-prove -- prove <CONTROLLER_ID> '{JSON_ARGS}' "<PATH_IN_FS>"`
-
-# Request proof (public)
-nix run .#valence-prove -- --socket <HOST:PORT> prove <CONTROLLER_ID> '{JSON_ARGS}' "<PATH_IN_FS>"
-
-# Retrieve file from VFS (local)
-nix run .#valence-storage -- fs <CONTROLLER_ID> <FILENAME.EXT>
-
-# Get raw storage data (local)
-nix run .#valence-storage -- raw <CONTROLLER_ID>
-
-# Retrieve file (public)
-nix run .#valence-storage -- --socket <HOST:PORT> fs <CONTROLLER_ID> <FILENAME.EXT>
-
-# Default dev shell
-nix develop
-
-# WASM dev shell
-nix develop .#wasm-shell
-
-# SP1 circuit dev shell
-nix develop .#sp1-shell
+```json
+{
+  "domain": {
+    "inputs": "3uzpBlynVyH1WF1KSrx7vM5dUDv7vlwkYgEykWluaHY=",
+    "proof": "pFlMWRfN3PMSmiEcGYzUgdNxnHVmuwOln72TOouvU0gsIoZeERCKbfy8bA4B27F8o2XIxFP
+QOP+KikbfluhH8BnEyT4sLNAY6rAw2Wc22UcIpsQkabZbdDhkxeFdtR5goZMVVRkvDSVKoklJPPYjvRMjo5/8
++NN/Bqk8dCV0tttnjTMVExR9d3Y+QhnwfXDitLsmjebAFcL0+b6+rgjdwQXuF+8iEnx7i7F37SExZ8JLLKrqo
+CqSQ9PGWIO9I2mOG0YtDxklwPeCEfgtDf+rZ9JyVsAzxb3o/RxVDAq4+/NdGFNyKNjkhHxe/lhItek6Kdlohh
+uyNQZ0izQcXJ2IaZyhopw="
+  },
+  "program": {
+    "inputs": "3uzpBlynVyH1WF1KSrx7vM5dUDv7vlwkYgEykWluaHYrAAAAAAAAAA==",
+    "proof": "pFlMWSUQMaQnsht+AgKaa+5QXcP+01iQTwK6mrVC7gaZ67VqEM0F5i0lWKbTiXbJU+oyqPY
+cLph78lZ5GY2Ulu3110QSxdy6C4AHGKoUxiah7UXxk6mA8WCH2Fl1OuiD47QSGCQeieUsOc4EFOoqRJs2enYH
+UZWe9Z30HP6HwQqCQb8VGz2nCKHEXVhvMqPFxNqBpB9z9gx1iuxYSZnTO8zy9CAJRIhxZv3JGCN72jzG4etAt
+0u658nRwCcAyk0REs0n2iWf3P8+I1Fcj7JQdxReR0p5W5kpNxHKeifPZpuiysb2BEH6hcfmQqZErWKFlz6z+x
+i7sAEo7xO+WieBxOVbg0E="
+  }
+}
 ```
