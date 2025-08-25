@@ -3,9 +3,12 @@ name = "storage-proof-circuit"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
-description = "The Valence co-processor circuit definition."
+description = "The Valence co-processor circuit definition"
 
 [dependencies]
+anyhow.workspace = true
+sp1-zkvm = "=5.0.8"
+valence-coprocessor-sp1.workspace = true
 serde_json = { workspace = true }
 cosmwasm-std = { workspace = true }
 valence-authorization-utils = { workspace = true }

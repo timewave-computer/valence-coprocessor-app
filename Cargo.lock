@@ -1011,10 +1011,21 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c775f0d12169cba7aae4caeb547bb6a50781c7449a8aa53793827c9ec4abf488"
 dependencies = [
- "ark-ec",
+ "ark-ec 0.4.2",
  "ark-ff 0.4.2",
  "ark-serialize 0.4.2",
  "ark-std 0.4.0",
+]
+
+[[package]]
+name = "ark-bn254"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d69eab57e8d2663efa5c63135b2af4f396d66424f88954c21104125ab6b3e6bc"
+dependencies = [
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-std 0.5.0",
 ]
 
 [[package]]
@@ -1024,7 +1035,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "defd9a439d56ac24968cca0571f598a61bc8c55f71d50a89cda591cb750670ba"
 dependencies = [
  "ark-ff 0.4.2",
- "ark-poly",
+ "ark-poly 0.4.2",
  "ark-serialize 0.4.2",
  "ark-std 0.4.0",
  "derivative",
@@ -1032,6 +1043,27 @@ dependencies = [
  "itertools 0.10.5",
  "num-traits",
  "rayon",
+ "zeroize",
+]
+
+[[package]]
+name = "ark-ec"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43d68f2d516162846c1238e755a7c4d131b892b70cc70c471a8e3ca3ed818fce"
+dependencies = [
+ "ahash",
+ "ark-ff 0.5.0",
+ "ark-poly 0.5.0",
+ "ark-serialize 0.5.0",
+ "ark-std 0.5.0",
+ "educe",
+ "fnv",
+ "hashbrown 0.15.4",
+ "itertools 0.13.0",
+ "num-bigint 0.4.6",
+ "num-integer",
+ "num-traits",
  "zeroize",
 ]
 
@@ -1075,6 +1107,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-ff"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a177aba0ed1e0fbb62aa9f6d0502e9b46dad8c2eab04c14258a1212d2557ea70"
+dependencies = [
+ "ark-ff-asm 0.5.0",
+ "ark-ff-macros 0.5.0",
+ "ark-serialize 0.5.0",
+ "ark-std 0.5.0",
+ "arrayvec",
+ "digest 0.10.7",
+ "educe",
+ "itertools 0.13.0",
+ "num-bigint 0.4.6",
+ "num-traits",
+ "paste",
+ "zeroize",
+]
+
+[[package]]
 name = "ark-ff-asm"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1092,6 +1144,16 @@ checksum = "3ed4aa4fe255d0bc6d79373f7e31d2ea147bcf486cba1be5ba7ea85abdb92348"
 dependencies = [
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "ark-ff-asm"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62945a2f7e6de02a31fe400aa489f0e0f5b2502e69f95f853adb82a96c7a6b60"
+dependencies = [
+ "quote",
+ "syn 2.0.104",
 ]
 
 [[package]]
@@ -1120,6 +1182,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-ff-macros"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09be120733ee33f7693ceaa202ca41accd5653b779563608f1234f78ae07c4b3"
+dependencies = [
+ "num-bigint 0.4.6",
+ "num-traits",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
+]
+
+[[package]]
 name = "ark-poly"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1130,6 +1205,21 @@ dependencies = [
  "ark-std 0.4.0",
  "derivative",
  "hashbrown 0.13.2",
+]
+
+[[package]]
+name = "ark-poly"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "579305839da207f02b89cd1679e50e67b4331e2f9294a57693e5051b7703fe27"
+dependencies = [
+ "ahash",
+ "ark-ff 0.5.0",
+ "ark-serialize 0.5.0",
+ "ark-std 0.5.0",
+ "educe",
+ "fnv",
+ "hashbrown 0.15.4",
 ]
 
 [[package]]
@@ -1148,8 +1238,21 @@ version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adb7b85a02b83d2f22f89bd5cac66c9c89474240cb6207cb1efc16d098e822a5"
 dependencies = [
- "ark-serialize-derive",
+ "ark-serialize-derive 0.4.2",
  "ark-std 0.4.0",
+ "digest 0.10.7",
+ "num-bigint 0.4.6",
+]
+
+[[package]]
+name = "ark-serialize"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f4d068aaf107ebcd7dfb52bc748f8030e0fc930ac8e360146ca54c1203088f7"
+dependencies = [
+ "ark-serialize-derive 0.5.0",
+ "ark-std 0.5.0",
+ "arrayvec",
  "digest 0.10.7",
  "num-bigint 0.4.6",
 ]
@@ -1163,6 +1266,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "ark-serialize-derive"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "213888f660fddcca0d257e88e54ac05bca01885f258ccdf695bafd77031bb69d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
 ]
 
 [[package]]
@@ -1184,6 +1298,16 @@ dependencies = [
  "num-traits",
  "rand 0.8.5",
  "rayon",
+]
+
+[[package]]
+name = "ark-std"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "246a225cc6131e9ee4f24619af0f19d67761fff15d7ccc22e42b80846e69449a"
+dependencies = [
+ "num-traits",
+ "rand 0.8.5",
 ]
 
 [[package]]
@@ -1684,7 +1808,7 @@ dependencies = [
  "reqwest 0.12.22",
  "serde_json",
  "toml",
- "valence-coprocessor",
+ "valence-coprocessor 0.3.12",
 ]
 
 [[package]]
@@ -2035,7 +2159,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aa2f53285517db3e33d825b3e46301efe845135778527e1295154413b2f0469e"
 dependencies = [
  "ark-bls12-381",
- "ark-ec",
+ "ark-ec 0.4.2",
  "ark-ff 0.4.2",
  "ark-serialize 0.4.2",
  "cosmwasm-core",
@@ -2715,6 +2839,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "educe"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d7bc049e1bd8cdeb31b68bbd586a9464ecf9f3944af3958a7a9d0f8b9799417"
+dependencies = [
+ "enum-ordinalize",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
+]
+
+[[package]]
 name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2795,6 +2931,26 @@ name = "enum-map-derive"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f282cfdfe92516eb26c2af8589c274c7c17681f5ecc03c18255fe741c6aa64eb"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
+]
+
+[[package]]
+name = "enum-ordinalize"
+version = "4.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fea0dcfa4e54eeb516fe454635a95753ddd39acda650ce703031c6973e315dd5"
+dependencies = [
+ "enum-ordinalize-derive",
+]
+
+[[package]]
+name = "enum-ordinalize-derive"
+version = "4.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d28318a75d4aead5c4db25382e8ef717932d0346600cacae6357eb5941bc5ff"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6919,6 +7075,16 @@ dependencies = [
 
 [[package]]
 name = "sha2"
+version = "0.10.8"
+source = "git+https://github.com/sp1-patches/RustCrypto-hashes?tag=patch-sha2-0.10.8-sp1-4.0.0#1f224388fdede7cef649bce0d63876d1a9e3f515"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "digest 0.10.7",
+]
+
+[[package]]
+name = "sha2"
 version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
@@ -7494,6 +7660,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "sp1-zkvm"
+version = "5.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d36441aa04268afe6684b4eca1726599bcb64892cbbe376dafc77c87f5e5fd0"
+dependencies = [
+ "cfg-if",
+ "getrandom 0.2.16",
+ "getrandom 0.3.3",
+ "lazy_static",
+ "libm",
+ "rand 0.8.5",
+ "sha2 0.10.9",
+ "sp1-lib",
+ "sp1-primitives",
+]
+
+[[package]]
 name = "speedate"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7533,30 +7716,33 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "storage-proof-circuit"
-version = "0.4.2"
+version = "0.5.0"
 dependencies = [
  "alloy-primitives 0.8.25",
  "alloy-rpc-types-eth",
+ "anyhow",
  "cosmwasm-std",
  "cw20",
  "serde_json",
+ "sp1-zkvm",
  "storage-proof-core",
  "valence-authorization-utils",
- "valence-coprocessor",
+ "valence-coprocessor 0.4.7",
+ "valence-coprocessor-sp1",
  "valence-library-utils",
 ]
 
 [[package]]
 name = "storage-proof-controller"
-version = "0.4.2"
+version = "0.5.0"
 dependencies = [
  "alloy-primitives 0.8.25",
  "alloy-rpc-types-eth",
  "anyhow",
  "serde_json",
  "storage-proof-core",
- "valence-coprocessor",
- "valence-coprocessor-wasm",
+ "valence-coprocessor 0.4.7",
+ "valence-coprocessor-wasm 0.4.7",
 ]
 
 [[package]]
@@ -8711,8 +8897,8 @@ dependencies = [
  "tokio",
  "toml",
  "valence-authorization-utils",
- "valence-coprocessor",
- "valence-coprocessor-wasm",
+ "valence-coprocessor 0.3.12",
+ "valence-coprocessor-wasm 0.3.12",
  "valence-domain-clients",
  "valence-lending-utils",
  "valence-processor-utils",
@@ -8737,6 +8923,67 @@ dependencies = [
 ]
 
 [[package]]
+name = "valence-coprocessor"
+version = "0.4.7"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.4.7#fbfd406dbf3d7681ba5f358ad0280f504f9f35bc"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "buf-fs",
+ "const-hex",
+ "hashbrown 0.15.4",
+ "msgpacker",
+ "serde",
+ "serde_json",
+ "tracing",
+ "valence-coprocessor-merkle",
+ "valence-coprocessor-types",
+ "zerocopy",
+]
+
+[[package]]
+name = "valence-coprocessor-merkle"
+version = "0.4.7"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.4.7#fbfd406dbf3d7681ba5f358ad0280f504f9f35bc"
+dependencies = [
+ "anyhow",
+ "hex",
+ "msgpacker",
+ "serde",
+ "valence-coprocessor-types",
+ "zerocopy",
+]
+
+[[package]]
+name = "valence-coprocessor-sp1"
+version = "0.4.7"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.4.7#fbfd406dbf3d7681ba5f358ad0280f504f9f35bc"
+dependencies = [
+ "ark-bn254",
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-serialize 0.5.0",
+ "serde",
+ "sha2 0.10.8",
+ "tracing",
+ "valence-coprocessor 0.4.7",
+]
+
+[[package]]
+name = "valence-coprocessor-types"
+version = "0.4.7"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.4.7#fbfd406dbf3d7681ba5f358ad0280f504f9f35bc"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "blake3",
+ "msgpacker",
+ "serde",
+ "tracing",
+ "zerocopy",
+]
+
+[[package]]
 name = "valence-coprocessor-wasm"
 version = "0.3.12"
 source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.3.12#5cb5b00e2494bfb54ac6ed49badcb54acbc6572e"
@@ -8746,7 +8993,20 @@ dependencies = [
  "msgpacker",
  "serde_json",
  "tracing",
- "valence-coprocessor",
+ "valence-coprocessor 0.3.12",
+]
+
+[[package]]
+name = "valence-coprocessor-wasm"
+version = "0.4.7"
+source = "git+https://github.com/timewave-computer/valence-coprocessor.git?tag=v0.4.7#fbfd406dbf3d7681ba5f358ad0280f504f9f35bc"
+dependencies = [
+ "anyhow",
+ "lru 0.14.0",
+ "msgpacker",
+ "serde_json",
+ "tracing",
+ "valence-coprocessor 0.4.7",
 ]
 
 [[package]]

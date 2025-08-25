@@ -13,7 +13,7 @@ resolver = "2"
 authors = ["Timewave Labs"]
 edition = "2021"
 license = "Apache-2.0"
-version = "0.4.2"
+version = "0.5.0"
 
 [workspace.dependencies]
 # general
@@ -40,8 +40,9 @@ cargo-valence = { git = "https://github.com/timewave-computer/valence-coprocesso
 valence-authorization-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "062a77e" }
 valence-processor-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "062a77e" }
 valence-domain-clients = "1.1.0"
-valence-coprocessor = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.3.12", default-features = false }
-valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.3.12", default-features = false }
+valence-coprocessor = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.4.7", default-features = false }
+valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.4.7", default-features = false }
+valence-coprocessor-sp1 = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.4.7", default-features = false }
 
 # cosmos
 cw20 = "2.0.0"

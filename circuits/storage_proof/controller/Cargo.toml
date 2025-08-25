@@ -3,14 +3,13 @@ name = "storage-proof-controller"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
-description = "The Valence co-processor controller definition."
+description = "The Valence co-processor controller definition"
 
 [dependencies]
 anyhow.workspace = true
 serde_json.workspace = true
 
 storage-proof-core.path = "../core"
-# common.path = "../../../common"
 
 # valence deps
 valence-coprocessor.workspace = true
@@ -19,3 +18,6 @@ valence-coprocessor-wasm.workspace = true
 # alloy
 alloy-primitives.workspace = true
 alloy-rpc-types-eth.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
