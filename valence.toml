@@ -4,5 +4,5 @@ version = "0.1.0"
 artifacts = ".valence/coprocessor/artifacts"
 
 [circuit.app]
-circuit = "valence-coprocessor-app-circuit"
-controller = "valence-coprocessor-app-controller"
+circuit = "storage-proof-circuit"
+controller = "storage-proof-controller"

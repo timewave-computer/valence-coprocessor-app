@@ -2006,7 +2006,7 @@ checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
 name = "common"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "serde",
 ]
@@ -2580,7 +2580,7 @@ checksum = "2a2330da5de22e8a3cb63252ce2abb30116bf5265e89c0e01bc17015ce30a476"
 
 [[package]]
 name = "deploy"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "bech32 0.11.0",
@@ -7747,7 +7747,7 @@ dependencies = [
 
 [[package]]
 name = "storage-proof-core"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "alloy-primitives 0.8.25",
  "alloy-rlp",
@@ -7762,7 +7762,7 @@ dependencies = [
 
 [[package]]
 name = "strategist"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
