@@ -1,18 +1,15 @@
-#![cfg_attr(not(test), no_std)]
-extern crate alloc;
-
-use core::str::FromStr;
-
-use alloc::{format, string::ToString as _, vec::Vec};
 use alloy_primitives::{hex, Address};
 use alloy_rpc_types_eth::EIP1186AccountProofResponse;
+use core::str::FromStr;
 use serde_json::{json, Value};
 use storage_proof_core::{proof::mapping_slot_key, ControllerInputs};
-use valence_coprocessor::{StateProof, Witness};
+use valence_coprocessor::{DomainData, StateProof, Witness};
 use valence_coprocessor_wasm::abi;
 
 const NETWORK: &str = "eth-mainnet";
 const DOMAIN: &str = "ethereum-electra-alpha";
+
+pub(crate) mod valence;
 
 // This component contains off-chain logic executed as Wasm within the
 // Valence ZK Coprocessor's sandboxed environment.
@@ -30,8 +27,10 @@ const DOMAIN: &str = "ethereum-electra-alpha";
 //
 // expects ControllerInputs serialized as json
 pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
-    let args_pretty = serde_json::to_string_pretty(&args)?;
-    abi::log!("received a proof request with arguments {args_pretty}")?;
+    abi::log!(
+        "received a proof request with arguments {}",
+        serde_json::to_string_pretty(&args)?
+    )?;
 
     let witness_inputs: ControllerInputs = serde_json::from_value(args)?;
     let erc20_addr = Address::from_str(&witness_inputs.erc20_addr)?;
@@ -40,20 +39,19 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     let block =
         abi::get_latest_block(DOMAIN)?.ok_or_else(|| anyhow::anyhow!("no valid domain block"))?;
 
-    let root = block.root;
-    abi::log!("root: {}", hex::encode(root))?;
+    let state_root = block.root;
+    abi::log!("root: {}", hex::encode(state_root))?;
 
-    let block = format!("{:#x}", block.number);
+    let block_number_hex = format!("{:#x}", block.number);
 
     let slot_key = mapping_slot_key(eth_addr, witness_inputs.erc20_balances_map_storage_index);
-    let slot_key = format!("{slot_key:#x}");
 
-    abi::log!("storage key = {slot_key}")?;
+    abi::log!("storage key = {}", format!("{slot_key:#x}"))?;
 
     let proof = abi::alchemy(
         NETWORK,
         "eth_getProof",
-        &json!([erc20_addr, [slot_key], block]),
+        &json!([erc20_addr, [slot_key], block_number_hex]),
     )?;
 
     let proof: EIP1186AccountProofResponse = serde_json::from_value(proof)?;
@@ -61,21 +59,20 @@ pub fn get_witnesses(args: Value) -> anyhow::Result<Vec<Witness>> {
     let proof = serde_json::to_vec(&proof)?;
 
     let state_proof = StateProof {
-        domain: DOMAIN.into(),
-        root,
+        domain: DomainData::identifier_from_parts(DOMAIN),
         payload: Default::default(),
         proof,
+        number: block.number,
+        state_root,
     };
 
-    let witnesses = [
+    Ok([
         // witness 0: eth address state proof
         Witness::StateProof(state_proof),
         // witness 1: neutron addr (destination)
         Witness::Data(witness_inputs.neutron_addr.as_bytes().to_vec()),
     ]
-    .to_vec();
-
-    Ok(witnesses)
+    .to_vec())
 }
 
 pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
@@ -84,17 +81,22 @@ pub fn entrypoint(args: Value) -> anyhow::Result<Value> {
         serde_json::to_string(&args).unwrap_or_default()
     )?;
 
-    let cmd = args["payload"]["cmd"].as_str().unwrap();
+    let cmd = args["payload"]["cmd"]
+        .as_str()
+        .ok_or_else(|| anyhow::anyhow!("undefined command"))?;
 
     match cmd {
         "store" => {
-            let path = args["payload"]["path"].as_str().unwrap().to_string();
-            let bytes = serde_json::to_vec(&args).unwrap();
+            let path = args["payload"]["path"]
+                .as_str()
+                .ok_or_else(|| anyhow::anyhow!("unexpected input"))?
+                .to_string();
+            let bytes = serde_json::to_vec(&args)?;
 
-            abi::set_storage_file(&path, &bytes).unwrap();
+            abi::set_storage_file(&path, &bytes)?;
         }
 
-        _ => panic!("unknown entrypoint command"),
+        _ => anyhow::bail!("unknown entrypoint command"),
     }
 
     Ok(args)
