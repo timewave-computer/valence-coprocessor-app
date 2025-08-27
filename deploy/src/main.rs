@@ -25,7 +25,7 @@ async fn main() -> anyhow::Result<()> {
         steps::instantiate_contracts(&neutron_client, neutron_inputs.code_ids).await?;
 
     let coprocessor_app_id =
-        steps::deploy_coprocessor_app(current_dir.clone(), &instantiation_outputs.cw20)?;
+        steps::deploy_coprocessor_app(current_dir.clone(), &instantiation_outputs.cw20).await?;
 
     let neutron_strategy_config = NeutronStrategyConfig {
         grpc_url: neutron_inputs.grpc_url,

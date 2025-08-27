@@ -1,10 +1,14 @@
 use std::{fs, path::PathBuf};
 
+use valence_domain_clients::{
+    clients::coprocessor::CoprocessorClient, coprocessor::base_client::CoprocessorBaseClient,
+};
+
 const CIRCUIT_CONSTS_PATH: &str = "circuits/storage_proof/core/src/consts.rs";
 const CONTROLLER_PATH: &str = "./circuits/storage_proof/controller";
 const CIRCUIT_WORKSPACE_ID: &str = "storage-proof-circuit";
 
-pub fn deploy_coprocessor_app(cd: PathBuf, cw20_addr: &str) -> anyhow::Result<String> {
+pub async fn deploy_coprocessor_app(cd: PathBuf, cw20_addr: &str) -> anyhow::Result<String> {
     println!("deploying coprocessor app...");
 
     // this can also be done with env passing.
@@ -18,18 +22,15 @@ pub fn deploy_coprocessor_app(cd: PathBuf, cw20_addr: &str) -> anyhow::Result<St
     fs::write(&generated_addr_path, generated_addr_content)?;
     println!("embedded CW20 address into {generated_addr_path:?}");
 
-    let cargo_valence_app = cargo_valence::App::default();
+    // TODO: build these during runtime
+    let circuit_bytes: Vec<u8> = vec![];
+    let controller_bytes: Vec<u8> = vec![];
 
-    let circuit_deployment_response =
-        cargo_valence_app.deploy_circuit(Some(CONTROLLER_PATH), CIRCUIT_WORKSPACE_ID)?;
+    let cp_client = CoprocessorClient::default();
 
-    let controller_id = circuit_deployment_response
-        .get("controller")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .ok_or_else(|| {
-            anyhow::anyhow!("failed to extract controller_id from circuit deployment response: {circuit_deployment_response}")
-        })?;
+    let controller_id = cp_client
+        .deploy_controller(&controller_bytes, &circuit_bytes, None)
+        .await?;
 
     println!("controller_id: {controller_id}");
 
