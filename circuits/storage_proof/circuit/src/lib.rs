@@ -1,9 +1,3 @@
-#![no_std]
-
-extern crate alloc;
-
-use alloc::string::{String, ToString as _};
-use alloc::vec::Vec;
 use alloy_rpc_types_eth::EIP1186AccountProofResponse;
 
 use storage_proof_core::consts::CW20_ADDR;
@@ -20,7 +14,7 @@ use valence_authorization_utils::{
     zk_authorization::ZkMessage,
 };
 
-pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
+pub fn circuit(witnesses: Vec<Witness>) -> anyhow::Result<Vec<u8>> {
     assert!(
         witnesses.len() == 2,
         "Expected 2 witnesses: account state proof and neutron addr"
@@ -50,8 +44,9 @@ pub fn circuit(witnesses: Vec<Witness>) -> Vec<u8> {
 
     let zk_msg = build_zk_msg(neutron_addr.to_string(), evm_balance);
 
-    serde_json::to_vec(&zk_msg)
-        .expect("failed to serialize the zk authorization message to json vec")
+    let zk_msg = serde_json::to_vec(&zk_msg)?;
+
+    Ok(zk_msg)
 }
 
 pub fn build_zk_msg(recipient: String, amount: u128) -> ZkMessage {
