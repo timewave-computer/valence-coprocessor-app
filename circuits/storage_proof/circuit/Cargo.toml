@@ -23,3 +23,9 @@ valence-coprocessor.workspace = true
 # alloy
 alloy-rpc-types-eth = { workspace = true }
 alloy-primitives = { workspace = true }
+
+[build-dependencies]
+sp1-build.workspace = true
+
+[features]
+circuit = []
