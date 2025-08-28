@@ -1,4 +1,4 @@
-use alloy_primitives::{Address, B256, U256, keccak256};
+use alloy_primitives::{keccak256, Address, B256, U256};
 use alloy_rpc_types_eth::EIP1186AccountProofResponse;
 use alloy_trie::Nibbles;
 use anyhow::ensure;

@@ -26,7 +26,7 @@ pub async fn setup_authorizations(
 
     let authorization_permissioned_mode =
         AuthorizationModeInfo::Permissioned(PermissionTypeInfo::WithoutCallLimit(vec![
-            my_address.to_string(),
+            my_address.to_string()
         ]));
 
     // creating cw20 minting zk authorization

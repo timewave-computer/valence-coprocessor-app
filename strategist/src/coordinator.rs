@@ -47,7 +47,7 @@ impl ValenceCoordinator for Strategy {
             .prove(&self.neutron_cfg.coprocessor_app_id, &proof_request)
             .await?;
 
-        info!(target: COORDINATOR_LOG_TARGET, "received zkp: {:?}", resp);
+        info!(target: COORDINATOR_LOG_TARGET, "received zkp: {resp:?}");
 
         // extract the program and domain parameters by decoding the zkp
         let program_proof = decode(resp.program)?;
@@ -60,7 +60,7 @@ impl ValenceCoordinator for Strategy {
             .neutron_client
             .query_contract_state(&self.neutron_cfg.cw20, &cw20_bal_query)
             .await?;
-        info!(target: COORDINATOR_LOG_TARGET, "cw20 balance pre-proof: {:?}", cw20_balance);
+        info!(target: COORDINATOR_LOG_TARGET, "cw20 balance pre-proof: {cw20_balance:?}");
 
         // execute the zk authorization. this will perform the verification
         // and, if successful, push the msg to the processor
@@ -83,7 +83,7 @@ impl ValenceCoordinator for Strategy {
             .neutron_client
             .query_contract_state(&self.neutron_cfg.cw20, cw20_bal_query)
             .await?;
-        info!(target: COORDINATOR_LOG_TARGET, "cw20 balance post-proof: {:?}", cw20_balance);
+        info!(target: COORDINATOR_LOG_TARGET, "cw20 balance post-proof: {cw20_balance:?}");
 
         Ok(())
     }
