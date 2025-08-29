@@ -12,24 +12,37 @@ pub struct Hash32(pub [u8; 32]);
 /// - program that the shard belongs to
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShardMetadata {
-    /// shared metadata version
-    shard_metadata_version: String,
-    /// top level program information
-    program_info: Program,
-    /// Authorization contract address (domain-specific origin)
-    shard_id: [Hash32; MAX_ITEMS],
-    /// Optional SemVer-style string
-    shard_version: Option<String>,
-    /// Valence domain namespace (e.g., "ethereum") that this hash is anchored into
-    anchor_domain: String,
-    /// Valence verification gateway version
-    valence_version: String,
+    /// top level program information. this can be shared
+    /// across multiple shards.
+    pub program_info: Program,
+
+    /// target shard information
+    pub shard: Shard,
 
     /// compiled artifact hashes and vks
-    artifacts: Artifacts,
+    pub artifacts: Artifacts,
 
     /// developer origin information
-    origin: Origin,
+    pub dev_origin: Origin,
+
+    /// Application-defined extra metadata
+    pub additional_metadata: Option<Hash32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Shard {
+    /// shared metadata version
+    pub shard_metadata_version: String,
+    /// hash of the authorization contract address (domain-specific)
+    pub shard_id: Hash32,
+    /// Optional SemVer-style string
+    pub shard_version: Option<String>,
+
+    /// Valence domain namespace (e.g., "ethereum") that this hash is anchored into
+    pub anchor_domain: String,
+
+    /// Valence verification gateway version
+    pub valence_version: String,
 }
 
 /// information about the program which this shard belongs to.
@@ -37,13 +50,13 @@ pub struct ShardMetadata {
 /// of those shards should have an identical program object
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Program {
-    /// program IDs (e.g., historical upgrades or replicas)
-    pub program_id: [Hash32; MAX_ITEMS],
+    /// program ID
+    pub program_id: Hash32,
     /// Optional SemVer-style string
     pub program_version: Option<String>,
 }
 
-/// hashes of the compiled elf binaries and verification
+/// hashes of the compiled circuits and verification
 /// keys stored on-chain
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Artifacts {
@@ -55,11 +68,14 @@ pub struct Artifacts {
     /// SHA-256 of verification keys (as stored onchain)
     pub verification_keys: [Hash32; MAX_ITEMS],
 
-    /// IDs of authorized executions associated with accounts
-    pub registry_id: [Hash32; MAX_ITEMS],
+    /// labels associated with authorized executions
+    // TODO: do we want to hash these?
+    // also is this the right place for auth labels and route?
+    pub authorization_labels: [String; MAX_ITEMS],
 
-    /// Should include verifier version
-    pub route: String,
+    /// Route used by the verification gateway, e.g.
+    /// - ethereum/1.0.0/sp1/2.0.0
+    pub verification_route: String,
 }
 
 /// metadata about the Valence Program developer
@@ -74,7 +90,4 @@ pub struct Origin {
     pub repo_url: String,
     /// Git commit (SHA-1 or SHA-256)
     pub repo_commit_hash: Hash32,
-
-    /// Application-defined extra metadata
-    pub additional_metadata: Option<Hash32>,
 }
