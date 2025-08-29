@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+pub mod coprocessor_metadata;
+
 pub const ZK_MINT_CW20_LABEL: &str = "zk_mint_cw20";
 
 pub const INPUTS_DIR: &str = "deploy/src/inputs";
