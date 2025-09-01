@@ -91,11 +91,11 @@
           ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: circuit: ''
             mkdir -p ${valence.toml.valence.artifacts}/${name}
             nix build '.#${circuit.circuit}'
-            install --mode=644 result/bin/* ${valence.toml.valence.artifacts}/${name}/circuit.bin
+            ${pkgs.coreutils}/bin/install --mode=644 result/bin/* ${valence.toml.valence.artifacts}/${name}/circuit.bin
             rm result
 
             nix build '.#${circuit.controller}'
-            install --mode=644 result/* ${valence.toml.valence.artifacts}/${name}/controller.bin
+            ${pkgs.coreutils}/bin/install --mode=644 result/* ${valence.toml.valence.artifacts}/${name}/controller.bin
             rm result
           '') valence.toml.circuit)}
         '';
