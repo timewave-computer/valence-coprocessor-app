@@ -25,7 +25,7 @@ alloy-rpc-types-eth = { workspace = true }
 alloy-primitives = { workspace = true }
 
 [build-dependencies]
-sp1-build.workspace = true
+sp1-build = { workspace = true, optional = true }
 
 [features]
-circuit = []
+circuit = [ "dep:sp1-build" ]
