@@ -1,14 +1,115 @@
+TODO: rewrite this according to the latest format
+
 # Valence co-processor app template
 
-This is a template for a co-processor app.
+This is a template for a Valence co-processor app.
+
+It is configured for an application that leverages ZK storage proofs in order
+to proof ERC20 contract storage (balance) entries. Generated proofs are then
+used to execute zk-gated functions on the Valence Authorizations contract
+which in turn triggers a cw20 contract mint on Neutron.
+
+## Structure
+
+### `./circuits`
+
+The Valence Zero-Knowledge circuits directory.
+
+Inside it you will find `storage_proof` circuit, controller, and core crates that
+will perform erc20 storage proofs.
+
+#### Circuit
+
+It serves as a recipient for witness data (state proofs or data) from the associated controller. It carries out assertions based on business logic and outputs a `Vec<u8>`, which is subsequently forwarded to on-chain applications.
+
+#### Controller
+
+Compiled WASM binary that the coprocessor service runs in order to compute the circuit witnesses from given JSON arguments. It features an entrypoint that accommodates user requests; it also receives the result of a proof computation by the service.
+
+#### Core
+
+Core crate will contain any types, methods, or other helpers that may be relevant to both the circuit and controller.
+
+### `./deploy`
+
+Valence Program and Circuit deployment script.
+
+### `./strategist`
+
+Valence Coordinator that submits proof requests to the co-processor, and posts the proofs
+to the Valence Authorizations contract on Neutron.
 
 ## Requirements
 
+- [Docker](https://docs.docker.com/get-started/)
+- [Rust](https://www.rust-lang.org/tools/install)
+- (only for manual debugging): [Cargo Valence subcommand](https://github.com/timewave-computer/valence-coprocessor/tree/v0.3.12?tab=readme-ov-file#cli-helper)
+- (Optional): [Valence co-processor instance](https://github.com/timewave-computer/valence-coprocessor/tree/v0.3.12?tab=readme-ov-file#local-execution)
 - [Valence domain clients co-processor utils](https://github.com/timewave-computer/valence-domain-clients?tab=readme-ov-file#cli)
 
 ## Deploy
 
-#### Build
+There are two ways to interact with your co-processor application:
+
+1. manual approach where you can leverage the `cargo-valence` package
+  to deploy and test your circuit via CLI
+2. automated approach where `deploy` crate binary will do the deployment
+  for you. After that, running the `strategist` crate binary will submit
+  the proof requests and verify their results on-chain.
+
+### Automated Instructions
+
+Outlined below are the automated deployment and runtime instructions that
+will enable the e2e flow of erc20 -> cw20 ZK-based queries.
+
+#### Mnemonic setup
+
+Full flow will involve transaction execution on Neutron. To enable that,
+a mnemonic with available ntrn token balances is needed.
+
+To configure your mnemonic, run the following:
+
+```bash
+cp .example.env .env
+```
+
+Then open the created `.env` file and replace `todo` with your mnemonic seed phrase.
+
+#### Run the deployment script
+
+`deploy` crate `main.rs` contains an automated script which will perform the
+following actions:
+
+1. Fetch the mnemonic from `env`
+2. Read the input parameters from `deploy/src/inputs/neutron_inputs.toml`
+3. Instantiate the neutron program on-chain
+4. Compile and deploy the co-processor application
+5. Set up the on-chain authorizations
+6. Produce the setup artifacts which will be used as runtime inputs
+
+You can execute the sequence above by running:
+
+```bash
+RUST_LOG=info cargo run -p deploy
+```
+
+#### Execute the runtime script
+
+After the deployment script produces valid output artifact in `artifacts/neutron_strategy_config.toml`,
+you are ready to start the coordinator that will submit the proof requests and post them on-chain.
+
+You can start the coordinator by running:
+
+```bash
+RUST_LOG=info cargo run -p strategist
+```
+
+### Manual instructions
+
+This section contains the instructions for manual interaction and debugging of a
+co-processor app.
+
+#### Install Cargo Valence
 
 The build process expects the following toolchains to be installed:
 
@@ -23,6 +124,15 @@ valence-coprocessor build
 
 Alternatively to manually installing build toolchains, we can use Nix. Notably, we endorse and facilitate Nix builds in our system. Currently, our platform exclusively supports WebAssembly (WASM) builds using Nix. As such, having SP1 installed is a necessity; we however plan to add SP1 Nix support.
 
+#### Deploy
+
+The circuit must be deployed with its controller. The controller is the responsible to compute the circuit witnesses, while the circuit is the responsible to assert the logical statements of the partial program.
+
+```sh
+cargo-valence --socket https://service.coprocessor.valence.zone \
+  deploy circuit \
+  --controller ./circuits/storage_proof/controller \
+  --circuit storage-proof-circuit
 ```shell
 nix develop --command valence-coprocessor build --only-controller
 ```

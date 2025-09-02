@@ -1,0 +1,18 @@
+[package]
+name = "storage-proof-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true, default-features = false, features = ["derive"] }
+
+alloy-primitives = { workspace = true }
+alloy-rlp = { workspace = true }
+alloy-trie = { workspace = true }
+alloy-rpc-types-eth = { workspace = true }
+
+[dev-dependencies]
+hex = { workspace = true }
+alloy-serde = { workspace = true }

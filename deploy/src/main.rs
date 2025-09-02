@@ -1,0 +1,51 @@
+mod steps;
+
+use std::env;
+
+use common::NeutronStrategyConfig;
+use valence_domain_clients::clients::neutron::NeutronClient;
+
+pub(crate) const VALENCE_NEUTRON_VERIFICATION_ROUTER: &str =
+    "neutron1qef59cy20tf89mfhcj7mwnl22tq6ff9cmppqm4xm4d3u0s5hrsms4x5wlz";
+pub(crate) const VERIFICATION_ROUTE: &str = "0001/sp1/5.0.8/groth16";
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    dotenv::dotenv().ok();
+    let mnemonic = env::var("MNEMONIC")?;
+    let current_dir = env::current_dir()?;
+
+    let neutron_inputs = steps::read_setup_inputs(current_dir.clone())?;
+
+    let neutron_client = NeutronClient::new(
+        &neutron_inputs.grpc_url,
+        &neutron_inputs.grpc_port,
+        &mnemonic,
+        &neutron_inputs.chain_id,
+    )
+    .await?;
+
+    let instantiation_outputs =
+        steps::instantiate_contracts(&neutron_client, neutron_inputs.code_ids).await?;
+
+    let coprocessor_app_id =
+        steps::deploy_coprocessor_app(current_dir.clone(), &instantiation_outputs.cw20).await?;
+
+    let neutron_strategy_config = NeutronStrategyConfig {
+        grpc_url: neutron_inputs.grpc_url,
+        grpc_port: neutron_inputs.grpc_port,
+        chain_id: neutron_inputs.chain_id,
+        authorizations: instantiation_outputs.authorizations,
+        processor: instantiation_outputs.processor,
+        cw20: instantiation_outputs.cw20,
+        coprocessor_app_id,
+    };
+
+    println!("neutron strategy config: {neutron_strategy_config:?}");
+
+    steps::setup_authorizations(&neutron_client, &neutron_strategy_config).await?;
+
+    steps::write_setup_artifacts(current_dir, neutron_strategy_config)?;
+
+    Ok(())
+}

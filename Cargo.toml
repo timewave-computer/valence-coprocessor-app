@@ -1,5 +1,12 @@
 [workspace]
-members = ["crates/circuit", "crates/controller"]
+members = [
+    "circuits/storage_proof/circuit",
+    "circuits/storage_proof/controller",
+    "circuits/storage_proof/core",
+    "deploy",
+    "strategist/",
+    "common",
+]
 resolver = "2"
 
 [workspace.package]
@@ -9,10 +16,56 @@ license = "Apache-2.0"
 version = "0.5.0"
 
 [workspace.dependencies]
+# general
 anyhow = { version = "1.0.83", default-features = false }
 serde_json = { version = "1.0.140", default-features = false, features = [
-  "alloc",
+    "alloc",
 ] }
+tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread"] }
+serde = { version = "1.0.207", default-features = false, features = ["derive"] }
+async-trait = "0.1.77"
+env_logger = "0.10.0"
+dotenv = "0.15"
+toml = "0.8"
+log = { version = "0.4.22" }
+multi_log = "0.1.2"
+hex = "0.4.3"
+sp1-build = "=5.0.8"
+sp1-sdk = { version = "=5.0.8", default-features = false }
+bincode = "1.3.3"
+
+# valence
+valence-coordinator-sdk = { git = "https://github.com/timewave-computer/valence-coordinator-sdk.git", rev = "5a28898" }
+valence-library-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "6bc9ebb" }
+valence-authorization-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "6bc9ebb" }
+valence-processor-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "6bc9ebb" }
+valence-domain-clients = { version = "1.1.0", default-features = true }
 valence-coprocessor = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.4.7", default-features = false }
-valence-coprocessor-sp1 = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.4.7", default-features = false }
 valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.4.7", default-features = false }
+valence-coprocessor-sp1 = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.4.7", default-features = false }
+
+# cosmos
+cw20 = "2.0.0"
+cw20-base = "2.0.0"
+cosmwasm-std = { version = "2.1.3" }
+cosmrs = { version = "0.21.1" }
+
+# evm & alloy
+alloy-rpc-types-eth = { version = "0.9.2", default-features = false, features = [
+    "serde",
+] }
+alloy-trie = { version = "0.7.8", default-features = false, features = [
+    "ethereum",
+    "serde",
+] }
+alloy-rlp = { version = "0.3.12", default-features = false, features = [
+    "derive",
+] }
+alloy-primitives = { version = "0.8.15", default-features = false }
+alloy-serde = { version = "0.9.2", default-features = false }
+alloy-sol-types = { version = "0.8.15", default-features = false, features = [
+    "eip712-serde",
+] }
+
+[patch.crates-io]
+valence-domain-clients = { git = "https://github.com/timewave-computer/valence-domain-clients", rev = "5435959" }

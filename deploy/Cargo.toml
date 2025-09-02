@@ -1,0 +1,24 @@
+[package]
+name = "deploy"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bech32 = "0.11.0"
+tokio = { workspace = true }
+serde = { workspace = true }
+dotenv = { workspace = true }
+toml = { workspace = true }
+valence-domain-clients = { workspace = true }
+hex = { workspace = true }
+valence-authorization-utils = { workspace = true }
+valence-processor-utils = { workspace = true }
+cw20 = { workspace = true }
+cw20-base = { workspace = true }
+common = { path = "./../common" }
+valence-library-utils = { workspace = true }
+sp1-sdk = { workspace = true }
+bincode = { workspace = true }
+cosmwasm-std = { workspace = true }
+anyhow = { workspace = true }
+valence-coprocessor.workspace = true
