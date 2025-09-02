@@ -1,6 +1,8 @@
+TODO: rewrite this according to the latest format
+
 # Valence co-processor app template
 
-This is a template for a Valence app.
+This is a template for a Valence co-processor app.
 
 It is configured for an application that leverages ZK storage proofs in order
 to proof ERC20 contract storage (balance) entries. Generated proofs are then
@@ -43,8 +45,9 @@ to the Valence Authorizations contract on Neutron.
 - [Rust](https://www.rust-lang.org/tools/install)
 - (only for manual debugging): [Cargo Valence subcommand](https://github.com/timewave-computer/valence-coprocessor/tree/v0.3.12?tab=readme-ov-file#cli-helper)
 - (Optional): [Valence co-processor instance](https://github.com/timewave-computer/valence-coprocessor/tree/v0.3.12?tab=readme-ov-file#local-execution)
+- [Valence domain clients co-processor utils](https://github.com/timewave-computer/valence-domain-clients?tab=readme-ov-file#cli)
 
-## Instructions
+## Deploy
 
 There are two ways to interact with your co-processor application:
 
@@ -108,20 +111,18 @@ co-processor app.
 
 #### Install Cargo Valence
 
-A CLI helper is provided to facilitate the use of standard operations like deploying a circuit, proving statements, and retrieving state information.
+The build process expects the following toolchains to be installed:
 
-To install:
+- [wasm32-unknown-unknown](https://doc.rust-lang.org/rustc/platform-support/wasm32-unknown-unknown.html)
+- [SP1](https://docs.succinct.xyz/docs/sp1/getting-started/install)
 
-```bash
-cargo install \
-  --git https://github.com/timewave-computer/valence-coprocessor.git \
-  --tag v0.3.12 \
-  --locked cargo-valence
+```shell
+valence-coprocessor build
 ```
 
-`cargo-valence` supports local development workflows, as well as connecting to the public coprocessor service at http://prover.timewave.computer:37281/
+#### Nix
 
-We will be using the public co-processor service. If you prefer to operate your own instance, omit the `--socket` parameter.
+Alternatively to manually installing build toolchains, we can use Nix. Notably, we endorse and facilitate Nix builds in our system. Currently, our platform exclusively supports WebAssembly (WASM) builds using Nix. As such, having SP1 installed is a necessity; we however plan to add SP1 Nix support.
 
 #### Deploy
 
@@ -132,66 +133,87 @@ cargo-valence --socket https://service.coprocessor.valence.zone \
   deploy circuit \
   --controller ./circuits/storage_proof/controller \
   --circuit storage-proof-circuit
+```shell
+nix develop --command valence-coprocessor build --only-controller
 ```
 
-This will output the application id associated with the controller. Let's bind this id to an environment variable, for convenience.
+#### Publish
 
-```sh
-export CONTROLLER=$(cargo-valence --socket https://service.coprocessor.valence.zone \
-  deploy circuit \
-  --controller ./circuits/storage_proof/controller \
-  --circuit storage-proof-circuit | jq -r '.controller')
+Executing this command initiates the build process, which constructs all artifacts listed within the `valence.toml` configuration file. The resulting folder for these artifacts is designated in `valence.artifacts`, and it will house the runtime binary data along with the circuit files tailored for the ZkVM. These constructed elements will be delivered to the co-processor service upon deployment.
+
+```shell
+valence-coprocessor deploy
 ```
 
-#### Prove
+This command deploys all circuits defined in the 'valence.toml' file. The circuit IDs are subsequently listed.
 
-This command will queue a proof request for this circuit into the co-processor, returning a promise of execution.
-
-```sh
-cargo-valence --socket https://service.coprocessor.valence.zone \
-  prove -j '{"erc20":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48","eth_addr":"0x8d41bb082C6050893d1eC113A104cc4C087F2a2a","neutron_addr": "neutron1m6w8n0hluq7avn40hj0n6jnj8ejhykfrwfnnjh"}' \
-  -p /var/share/proof.bin \
-  $CONTROLLER
+```json
+[
+  {
+    "id": "308ce5062e87628f50a0b0a3f4e8f8b66640a96c0983e35a44652e40b7809278",
+    "name": "app"
+  }
+]
 ```
 
-The argument `-j '{"erc20":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48","eth_addr":"0x8d41bb082C6050893d1eC113A104cc4C087F2a2a","neutron_addr": "neutron1m6w8n0hluq7avn40hj0n6jnj8ejhykfrwfnnjh"}'` will be forwarded to `circuits/storage_proof/controller/src/lib.rs:get_witnesses`. The output of this function will be then forwarded to the circuit for proving.
+## Debug
 
-The command sends a proof request to the coprocessor's worker nodes. Once the proof is ready, it will be delivered to the program's entrypoint. The default implementation will then write the proof to the specified path within the program's virtual filesystem. Note that the virtual filesystem follows a FAT-16 structure, with file extensions limited to 3 characters and case-insensitive paths.
+The Valence Co-Processor Toolkit enables the inspection of pre-computation methods for witness sets in the context of circuit proofs.
 
-#### Storage
-
-Once the proof is computed by the backend, it will be delivered to the virtual filesystem. We can visualize it via the `storage` command.
-
-```sh
-cargo-valence --socket https://service.coprocessor.valence.zone \
-  storage \
-  -p /var/share/proof.bin \
-  $CONTROLLER | jq -r '.data' | base64 -d | jq
+```shell
+valence-coprocessor witnesses \
+  --circuit 308ce5062e87628f50a0b0a3f4e8f8b66640a96c0983e35a44652e40b7809278 \
+  --args '{"value": 42}'
 ```
 
-The output should be similar to the following structure:
+The output is the controller logs, and the computed witnesses:
 
 ```json
 {
-  "log": [],
-  "payload": {
-    "cmd": "store",
-    "path": "/var/share/proof.bin"
-  },
-  "proof": "2gFccEZsTVdRU1FBbE94V0hHaTJMd0JsQW4ySXdISmF2L2JCaEgrL0E3SnN3VC9DNythQmdYTXBTUkd2MDM3MjBGMjhhUytuK3VyOXVhTng2QWVxZG5CTWRMTERGZ0ZSOFluNDJ3bWVkbnhpMS9iQ1Y0MkFvNGRUVTN6VjdMSVVDTW1sdENBV0J6cTRqNExCNU9vbHN6MWcxN2U4enRCVEJJd0FZTE8yRytWMlhadktZZFRHWVpINUthM3VtSjNWRVlyU1JYTmREUUxUeEEyWHAzSUVRU3FZRUl5aE8wa0JOanJIeUkwMUVRL1k3U3BISVZQdnFCbW5rOWJBajd3TVVwZENqVnBjQTRZMnZiTlZURkdad2ZSWnFVZDV3SEc1Y2pOY2VBTjg0QmVXQUIyUkJJRkRtU042WW9DaEJjZWN6V0hUSTR5T25mcVlQSkI1R0s5ZkRPU050dC9UV2c92gOMRmFYZm9SZjZrcnRWajFVQjNicm5ScXVtcStSMkQ5VEhGbzltTFphYUdaUjdJbkpsWjJsemRISjVJam93TENKaWJHOWphMTl1ZFcxaVpYSWlPakFzSW1SdmJXRnBiaUk2SW0xaGFXNGlMQ0poZFhSb2IzSnBlbUYwYVc5dVgyTnZiblJ5WVdOMElqcHVkV3hzTENKdFpYTnpZV2RsSWpwN0ltVnVjWFZsZFdWZmJYTm5jeUk2ZXlKcFpDSTZNQ3dpYlhObmN5STZXM3NpWTI5emJYZGhjMjFmWlhobFkzVjBaVjl0YzJjaU9uc2liWE5uSWpvaVpYbEtkR0ZYTlRCSmFuQTNTVzVLYkZreWJIZGhWMVoxWkVOSk5rbHROV3hrV0ZKNVlqSTBlR0pVV2pOUFJ6UjNZVWQ0TVdOVVpHaGtiVFF3VFVkb2NVMUhOREpoYlRWeFQwZFdjV0ZJYkhKYWJrb3pXbTAxZFdGdFoybE1RMHBvWWxjNU1XSnVVV2xQYVVrelRWUnJlRTFxWTNoSmJqRTVJbjE5WFN3aWMzVmljbTkxZEdsdVpTSTZleUpoZEc5dGFXTWlPbnNpWm5WdVkzUnBiMjV6SWpwYmV5SmtiMjFoYVc0aU9pSnRZV2x1SWl3aWJXVnpjMkZuWlY5a1pYUmhhV3h6SWpwN0ltMWxjM05oWjJWZmRIbHdaU0k2SW1OdmMyMTNZWE50WDJWNFpXTjFkR1ZmYlhObklpd2liV1Z6YzJGblpTSTZleUp1WVcxbElqb2liV2x1ZENJc0luQmhjbUZ0YzE5eVpYTjBjbWxqZEdsdmJuTWlPbTUxYkd4OWZTd2lZMjl1ZEhKaFkzUmZZV1JrY21WemN5STZleUo4YkdsaWNtRnllVjloWTJOdmRXNTBYMkZrWkhKOElqb2libVYxZEhKdmJqRTFjelJqZDNKemNYVTJibkF5TWpobU56VTVhMmcxWVhvM1pIVndjelozZVhsaGJteGtZV1JvWkRVeWVqbHNkSGwyY0d0eE1EQnplVEp3SW4xOVhTd2ljbVYwY25sZmJHOW5hV01pT201MWJHd3NJbVY0Y0dseVlYUnBiMjVmZEdsdFpTSTZiblZzYkgxOUxDSndjbWx2Y21sMGVTSTZJbTFsWkdsMWJTSXNJbVY0Y0dseVlYUnBiMjVmZEdsdFpTSTZiblZzYkgxOWZRPT0=",
-  "success": true
+  "log": [
+    "received a proof request with arguments {\"value\":42}"
+  ],
+  "witnesses": {
+    "proofs": [],
+    "root": [222,236,233,6,92,167,87,33,245,88,93,74,74,188,123,188,206,93,80,59,251,190,92,36,98,1,50,145,105,110,104,118],
+    "witnesses": [
+      {
+        "Data": [42,0,0,0,0,0,0,0]
+      }
+    ]
+  }
 }
 ```
 
-#### Public inputs
+## Prove
 
-We can also open the public inputs of the proof via the Valence helper:
+The Valence Co-Processor Toolkit enables proving a circuit with a given set of arguments.
 
-```sh
-cargo-valence --socket https://service.coprocessor.valence.zone \
-  proof-inputs \
-  -p /var/share/proof.bin \
-  $CONTROLLER | jq -r '.inputs' | base64 -d | hexdump -C
+```shell
+valence-coprocessor prove \
+  --circuit 308ce5062e87628f50a0b0a3f4e8f8b66640a96c0983e35a44652e40b7809278 \
+  --args '{"value": 42}'
 ```
 
-Note: The first 32 bytes of the public inputs are reserved for the co-processor root.
+The generated artifact is a cryptographically secure proof document suitable for submission to an on-chain verifier.
+
+```json
+{
+  "domain": {
+    "inputs": "3uzpBlynVyH1WF1KSrx7vM5dUDv7vlwkYgEykWluaHY=",
+    "proof": "pFlMWRfN3PMSmiEcGYzUgdNxnHVmuwOln72TOouvU0gsIoZeERCKbfy8bA4B27F8o2XIxFP
+QOP+KikbfluhH8BnEyT4sLNAY6rAw2Wc22UcIpsQkabZbdDhkxeFdtR5goZMVVRkvDSVKoklJPPYjvRMjo5/8
++NN/Bqk8dCV0tttnjTMVExR9d3Y+QhnwfXDitLsmjebAFcL0+b6+rgjdwQXuF+8iEnx7i7F37SExZ8JLLKrqo
+CqSQ9PGWIO9I2mOG0YtDxklwPeCEfgtDf+rZ9JyVsAzxb3o/RxVDAq4+/NdGFNyKNjkhHxe/lhItek6Kdlohh
+uyNQZ0izQcXJ2IaZyhopw="
+  },
+  "program": {
+    "inputs": "3uzpBlynVyH1WF1KSrx7vM5dUDv7vlwkYgEykWluaHYrAAAAAAAAAA==",
+    "proof": "pFlMWSUQMaQnsht+AgKaa+5QXcP+01iQTwK6mrVC7gaZ67VqEM0F5i0lWKbTiXbJU+oyqPY
+cLph78lZ5GY2Ulu3110QSxdy6C4AHGKoUxiah7UXxk6mA8WCH2Fl1OuiD47QSGCQeieUsOc4EFOoqRJs2enYH
+UZWe9Z30HP6HwQqCQb8VGz2nCKHEXVhvMqPFxNqBpB9z9gx1iuxYSZnTO8zy9CAJRIhxZv3JGCN72jzG4etAt
+0u658nRwCcAyk0REs0n2iWf3P8+I1Fcj7JQdxReR0p5W5kpNxHKeifPZpuiysb2BEH6hcfmQqZErWKFlz6z+x
+i7sAEo7xO+WieBxOVbg0E="
+  }
+}
+```
