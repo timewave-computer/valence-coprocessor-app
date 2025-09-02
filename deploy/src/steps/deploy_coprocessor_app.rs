@@ -67,6 +67,7 @@ fn read_build_binary(circuit_name: &str, binary_name: &str) -> anyhow::Result<Ve
 }
 
 async fn nix_build_all() -> anyhow::Result<()> {
+    println!("compiling the circuits...");
     let output = tokio::process::Command::new("nix")
         .args(["run"])
         .output()

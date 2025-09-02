@@ -6,10 +6,7 @@ use valence_domain_clients::{
     cosmos::{base_client::BaseClient, grpc_client::GrpcSigningClient, wasm_client::WasmClient},
 };
 
-use crate::steps::read_input::CodeIds;
-
-const VALENCE_NEUTRON_VERIFICATION_GATEWAY: &str =
-    "neutron1l3fgzcqse0xw84hdpytg7vcp04kcdm95wes2zd6ap8kpujmv9cwsv45wwk";
+use crate::{steps::read_input::CodeIds, VALENCE_NEUTRON_VERIFICATION_ROUTER};
 
 pub struct InstantiationOutputs {
     pub cw20: String,
@@ -81,27 +78,28 @@ pub async fn instantiate_contracts(
     println!("Processor instantiated: {processor_address}");
 
     // Set the verification gateway address on the authorization contract
-    let set_verification_gateway_msg =
+    let set_verification_router_msg =
         valence_authorization_utils::msg::ExecuteMsg::PermissionedAction(
-            valence_authorization_utils::msg::PermissionedMsg::SetVerificationGateway {
-                verification_gateway: VALENCE_NEUTRON_VERIFICATION_GATEWAY.to_string(),
+            valence_authorization_utils::msg::PermissionedMsg::SetVerificationRouter {
+                address: VALENCE_NEUTRON_VERIFICATION_ROUTER.to_string(),
             },
         );
 
-    let set_verification_gateway_rx = neutron_client
+    println!("Setting authorizations verification router: {VALENCE_NEUTRON_VERIFICATION_ROUTER}");
+    let set_verification_router_rx = neutron_client
         .execute_wasm(
             &authorization_address,
-            set_verification_gateway_msg,
+            set_verification_router_msg,
             vec![],
             None,
         )
         .await?;
 
     neutron_client
-        .poll_for_tx(&set_verification_gateway_rx.hash)
+        .poll_for_tx(&set_verification_router_rx.hash)
         .await?;
 
-    println!("Set verification gateway address to {VALENCE_NEUTRON_VERIFICATION_GATEWAY}");
+    println!("Verification router set!");
 
     let cw20_init_msg = cw20_base::msg::InstantiateMsg {
         name: "test_playground".to_string(),

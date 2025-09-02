@@ -11,6 +11,8 @@ use valence_domain_clients::{
     cosmos::{base_client::BaseClient, grpc_client::GrpcSigningClient, wasm_client::WasmClient},
 };
 
+use crate::VERIFICATION_ROUTE;
+
 pub async fn setup_authorizations(
     neutron_client: &NeutronClient,
     ntrn_strategy_config: &NeutronStrategyConfig,
@@ -56,6 +58,8 @@ async fn create_zk_cw20_mint_authorization(
         registry: 0,
         vk: Binary::from(sp1_program_vk.bytes32().as_bytes()),
         validate_last_block_execution: false,
+        verification_route: VERIFICATION_ROUTE.to_string(),
+        metadata_hash: Binary::default(),
     };
 
     let create_zk_authorization = valence_authorization_utils::msg::ExecuteMsg::PermissionedAction(

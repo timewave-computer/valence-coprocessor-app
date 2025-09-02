@@ -50,8 +50,8 @@ impl ValenceCoordinator for Strategy {
         info!(target: COORDINATOR_LOG_TARGET, "received zkp: {resp:?}");
 
         // extract the program and domain parameters by decoding the zkp
-        let program_proof = decode(resp.program)?;
-        let domain_proof = decode(resp.domain)?;
+        let (program_proof, program_inputs) = decode(resp.program)?;
+        let (domain_proof, _) = decode(resp.domain)?;
 
         let cw20_bal_query = Cw20QueryMsg::Balance {
             address: ntrn_addr.to_string(),
@@ -70,6 +70,7 @@ impl ValenceCoordinator for Strategy {
             &self.neutron_cfg.authorizations,
             ZK_MINT_CW20_LABEL,
             program_proof,
+            program_inputs,
             domain_proof,
         )
         .await?;

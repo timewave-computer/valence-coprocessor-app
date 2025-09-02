@@ -35,10 +35,10 @@ sp1-sdk = { version = "=5.0.8", default-features = false }
 bincode = "1.3.3"
 
 # valence
-valence-coordinator-sdk = { git = "https://github.com/timewave-computer/valence-coordinator-sdk.git", rev = "b1e213a" }
-valence-library-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "062a77e" }
-valence-authorization-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "062a77e" }
-valence-processor-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "062a77e" }
+valence-coordinator-sdk = { git = "https://github.com/timewave-computer/valence-coordinator-sdk.git", rev = "5a28898" }
+valence-library-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "6bc9ebb" }
+valence-authorization-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "6bc9ebb" }
+valence-processor-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "6bc9ebb" }
 valence-domain-clients = { version = "1.1.0", default-features = true }
 valence-coprocessor = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.4.7", default-features = false }
 valence-coprocessor-wasm = { git = "https://github.com/timewave-computer/valence-coprocessor.git", tag = "v0.4.7", default-features = false }

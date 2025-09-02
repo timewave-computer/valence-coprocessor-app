@@ -5,6 +5,10 @@ use std::env;
 use common::NeutronStrategyConfig;
 use valence_domain_clients::clients::neutron::NeutronClient;
 
+pub(crate) const VALENCE_NEUTRON_VERIFICATION_ROUTER: &str =
+    "neutron1qef59cy20tf89mfhcj7mwnl22tq6ff9cmppqm4xm4d3u0s5hrsms4x5wlz";
+pub(crate) const VERIFICATION_ROUTE: &str = "0001/sp1/5.0.8/groth16";
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
