@@ -26,7 +26,7 @@ pub struct Strategy {
 impl Strategy {
     /// strategy initializer that takes in a `StrategyConfig`, and uses it
     /// to initialize the respective domain clients. prerequisite to starting
-    /// the strategist.
+    /// the coordinator.
     pub async fn new(cfg: NeutronStrategyConfig) -> anyhow::Result<Self> {
         dotenv::dotenv().ok();
 

@@ -1898,6 +1898,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
+name = "coordinator"
+version = "0.5.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "common",
+ "cw20",
+ "dotenv",
+ "log",
+ "serde",
+ "serde_json",
+ "storage-proof-core",
+ "tokio",
+ "toml 0.8.23",
+ "valence-coordinator-sdk",
+ "valence-domain-clients",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2399,30 +2418,6 @@ name = "data-encoding"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a2330da5de22e8a3cb63252ce2abb30116bf5265e89c0e01bc17015ce30a476"
-
-[[package]]
-name = "deploy"
-version = "0.5.0"
-dependencies = [
- "anyhow",
- "bech32 0.11.0",
- "bincode",
- "common",
- "cosmwasm-std",
- "cw20",
- "cw20-base",
- "dotenv",
- "hex",
- "serde",
- "sp1-sdk",
- "tokio",
- "toml 0.8.23",
- "valence-authorization-utils",
- "valence-coprocessor",
- "valence-domain-clients",
- "valence-library-utils",
- "valence-processor-utils",
-]
 
 [[package]]
 name = "der"
@@ -5807,6 +5802,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "provisioner"
+version = "0.5.0"
+dependencies = [
+ "anyhow",
+ "bech32 0.11.0",
+ "bincode",
+ "common",
+ "cosmwasm-std",
+ "cw20",
+ "cw20-base",
+ "dotenv",
+ "hex",
+ "serde",
+ "sp1-sdk",
+ "tokio",
+ "toml 0.8.23",
+ "valence-authorization-utils",
+ "valence-coprocessor",
+ "valence-domain-clients",
+ "valence-library-utils",
+ "valence-processor-utils",
+]
+
+[[package]]
 name = "quick-error"
 version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7533,25 +7552,6 @@ dependencies = [
  "hex",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "strategist"
-version = "0.5.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "common",
- "cw20",
- "dotenv",
- "log",
- "serde",
- "serde_json",
- "storage-proof-core",
- "tokio",
- "toml 0.8.23",
- "valence-coordinator-sdk",
- "valence-domain-clients",
 ]
 
 [[package]]

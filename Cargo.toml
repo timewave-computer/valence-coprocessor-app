@@ -3,8 +3,8 @@ members = [
     "apps/storage_proof/circuit",
     "apps/storage_proof/controller",
     "apps/storage_proof/core",
-    "deploy",
-    "strategist/",
+    "provisioner",
+    "coordinator",
     "common",
 ]
 resolver = "2"

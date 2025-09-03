@@ -1,5 +1,5 @@
 [package]
-name = "deploy"
+name = "provisioner"
 version.workspace = true
 edition.workspace = true
 

@@ -1,4 +1,4 @@
-pub mod coordinator;
+pub mod engine;
 pub mod strategy;
 
 use std::fs;
@@ -20,7 +20,7 @@ async fn main() -> anyhow::Result<()> {
     // initialize the logger
     valence_coordinator_sdk::telemetry::setup_logging(None)?;
 
-    info!(target: RUNNER, "starting the strategist runner");
+    info!(target: RUNNER, "starting the coordinator runner");
 
     let neutron_cfg_path = format!("{OUTPUTS_DIR}/neutron_strategy_config.toml");
 
@@ -33,15 +33,15 @@ async fn main() -> anyhow::Result<()> {
     let strategy = Strategy::new(neutron_cfg).await?;
 
     info!(target: RUNNER, "strategy initialized");
-    info!(target: RUNNER, "starting the strategist");
+    info!(target: RUNNER, "starting the coordinator");
 
-    let strategist_join_handle = strategy.start();
+    let coordinator_join_handle = strategy.start();
 
-    // join here will wait for the strategist thread to finish which should never happen
+    // join here will wait for the coordinator thread to finish which should never happen
     // in practice since it runs an infinite stayalive loop
-    match strategist_join_handle.join() {
-        Ok(t) => warn!(target: RUNNER, "strategist thread completed: {t:?}"),
-        Err(e) => warn!(target: RUNNER, "strategist thread completed with error: {e:?}"),
+    match coordinator_join_handle.join() {
+        Ok(t) => warn!(target: RUNNER, "coordinator thread completed: {t:?}"),
+        Err(e) => warn!(target: RUNNER, "coordinator thread completed with error: {e:?}"),
     }
 
     Ok(())

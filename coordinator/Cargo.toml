@@ -1,5 +1,5 @@
 [package]
-name = "strategist"
+name = "coordinator"
 version.workspace = true
 edition.workspace = true
 

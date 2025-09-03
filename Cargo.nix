@@ -55,10 +55,20 @@ rec {
       # File a bug if you depend on any for non-debug work!
       debug = internal.debugCrate { inherit packageId; };
     };
-    "deploy" = rec {
-      packageId = "deploy";
+    "coordinator" = rec {
+      packageId = "coordinator";
       build = internal.buildRustCrateWithFeatures {
-        packageId = "deploy";
+        packageId = "coordinator";
+      };
+
+      # Debug support which might change between releases.
+      # File a bug if you depend on any for non-debug work!
+      debug = internal.debugCrate { inherit packageId; };
+    };
+    "provisioner" = rec {
+      packageId = "provisioner";
+      build = internal.buildRustCrateWithFeatures {
+        packageId = "provisioner";
       };
 
       # Debug support which might change between releases.
@@ -89,16 +99,6 @@ rec {
       packageId = "storage-proof-core";
       build = internal.buildRustCrateWithFeatures {
         packageId = "storage-proof-core";
-      };
-
-      # Debug support which might change between releases.
-      # File a bug if you depend on any for non-debug work!
-      debug = internal.debugCrate { inherit packageId; };
-    };
-    "strategist" = rec {
-      packageId = "strategist";
-      build = internal.buildRustCrateWithFeatures {
-        packageId = "strategist";
       };
 
       # Debug support which might change between releases.
@@ -7118,6 +7118,80 @@ heapless no_std (i.e. embedded) support
         features = {
         };
       };
+      "coordinator" = rec {
+        crateName = "coordinator";
+        version = "0.5.0";
+        edition = "2021";
+        crateBin = [
+          {
+            name = "coordinator";
+            path = "src/main.rs";
+            requiredFeatures = [ ];
+          }
+        ];
+        src = lib.cleanSourceWith { filter = sourceFilter;  src = ./coordinator; };
+        dependencies = [
+          {
+            name = "anyhow";
+            packageId = "anyhow";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "common";
+            packageId = "common";
+          }
+          {
+            name = "cw20";
+            packageId = "cw20";
+          }
+          {
+            name = "dotenv";
+            packageId = "dotenv";
+          }
+          {
+            name = "log";
+            packageId = "log";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            usesDefaultFeatures = false;
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+            usesDefaultFeatures = false;
+            features = [ "alloc" ];
+          }
+          {
+            name = "storage-proof-core";
+            packageId = "storage-proof-core";
+          }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "macros" "rt-multi-thread" ];
+          }
+          {
+            name = "toml";
+            packageId = "toml 0.8.23";
+          }
+          {
+            name = "valence-coordinator-sdk";
+            packageId = "valence-coordinator-sdk";
+          }
+          {
+            name = "valence-domain-clients";
+            packageId = "valence-domain-clients";
+          }
+        ];
+
+      };
       "core-foundation 0.10.1" = rec {
         crateName = "core-foundation";
         version = "0.10.1";
@@ -8804,100 +8878,6 @@ no_std-friendly implementations of modern formulas using const generics.
           "std" = [ "alloc" ];
         };
         resolvedDefaultFeatures = [ "alloc" "default" "std" ];
-      };
-      "deploy" = rec {
-        crateName = "deploy";
-        version = "0.5.0";
-        edition = "2021";
-        crateBin = [
-          {
-            name = "deploy";
-            path = "src/main.rs";
-            requiredFeatures = [ ];
-          }
-        ];
-        src = lib.cleanSourceWith { filter = sourceFilter;  src = ./deploy; };
-        dependencies = [
-          {
-            name = "anyhow";
-            packageId = "anyhow";
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "bech32";
-            packageId = "bech32 0.11.0";
-          }
-          {
-            name = "bincode";
-            packageId = "bincode";
-          }
-          {
-            name = "common";
-            packageId = "common";
-          }
-          {
-            name = "cosmwasm-std";
-            packageId = "cosmwasm-std";
-          }
-          {
-            name = "cw20";
-            packageId = "cw20";
-          }
-          {
-            name = "cw20-base";
-            packageId = "cw20-base";
-          }
-          {
-            name = "dotenv";
-            packageId = "dotenv";
-          }
-          {
-            name = "hex";
-            packageId = "hex";
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            usesDefaultFeatures = false;
-            features = [ "derive" ];
-          }
-          {
-            name = "sp1-sdk";
-            packageId = "sp1-sdk";
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "macros" "rt-multi-thread" ];
-          }
-          {
-            name = "toml";
-            packageId = "toml 0.8.23";
-          }
-          {
-            name = "valence-authorization-utils";
-            packageId = "valence-authorization-utils";
-          }
-          {
-            name = "valence-coprocessor";
-            packageId = "valence-coprocessor";
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "valence-domain-clients";
-            packageId = "valence-domain-clients";
-          }
-          {
-            name = "valence-library-utils";
-            packageId = "valence-library-utils";
-          }
-          {
-            name = "valence-processor-utils";
-            packageId = "valence-processor-utils";
-          }
-        ];
-
       };
       "der" = rec {
         crateName = "der";
@@ -20490,6 +20470,100 @@ equation coefficients
         ];
 
       };
+      "provisioner" = rec {
+        crateName = "provisioner";
+        version = "0.5.0";
+        edition = "2021";
+        crateBin = [
+          {
+            name = "provisioner";
+            path = "src/main.rs";
+            requiredFeatures = [ ];
+          }
+        ];
+        src = lib.cleanSourceWith { filter = sourceFilter;  src = ./provisioner; };
+        dependencies = [
+          {
+            name = "anyhow";
+            packageId = "anyhow";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "bech32";
+            packageId = "bech32 0.11.0";
+          }
+          {
+            name = "bincode";
+            packageId = "bincode";
+          }
+          {
+            name = "common";
+            packageId = "common";
+          }
+          {
+            name = "cosmwasm-std";
+            packageId = "cosmwasm-std";
+          }
+          {
+            name = "cw20";
+            packageId = "cw20";
+          }
+          {
+            name = "cw20-base";
+            packageId = "cw20-base";
+          }
+          {
+            name = "dotenv";
+            packageId = "dotenv";
+          }
+          {
+            name = "hex";
+            packageId = "hex";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            usesDefaultFeatures = false;
+            features = [ "derive" ];
+          }
+          {
+            name = "sp1-sdk";
+            packageId = "sp1-sdk";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "macros" "rt-multi-thread" ];
+          }
+          {
+            name = "toml";
+            packageId = "toml 0.8.23";
+          }
+          {
+            name = "valence-authorization-utils";
+            packageId = "valence-authorization-utils";
+          }
+          {
+            name = "valence-coprocessor";
+            packageId = "valence-coprocessor";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "valence-domain-clients";
+            packageId = "valence-domain-clients";
+          }
+          {
+            name = "valence-library-utils";
+            packageId = "valence-library-utils";
+          }
+          {
+            name = "valence-processor-utils";
+            packageId = "valence-processor-utils";
+          }
+        ];
+
+      };
       "quick-error" = rec {
         crateName = "quick-error";
         version = "1.2.3";
@@ -26674,80 +26748,6 @@ associated AlgorithmIdentifiers (i.e. OIDs)
           {
             name = "hex";
             packageId = "hex";
-          }
-        ];
-
-      };
-      "strategist" = rec {
-        crateName = "strategist";
-        version = "0.5.0";
-        edition = "2021";
-        crateBin = [
-          {
-            name = "strategist";
-            path = "src/main.rs";
-            requiredFeatures = [ ];
-          }
-        ];
-        src = lib.cleanSourceWith { filter = sourceFilter;  src = ./strategist; };
-        dependencies = [
-          {
-            name = "anyhow";
-            packageId = "anyhow";
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "async-trait";
-            packageId = "async-trait";
-          }
-          {
-            name = "common";
-            packageId = "common";
-          }
-          {
-            name = "cw20";
-            packageId = "cw20";
-          }
-          {
-            name = "dotenv";
-            packageId = "dotenv";
-          }
-          {
-            name = "log";
-            packageId = "log";
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            usesDefaultFeatures = false;
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-            usesDefaultFeatures = false;
-            features = [ "alloc" ];
-          }
-          {
-            name = "storage-proof-core";
-            packageId = "storage-proof-core";
-          }
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "macros" "rt-multi-thread" ];
-          }
-          {
-            name = "toml";
-            packageId = "toml 0.8.23";
-          }
-          {
-            name = "valence-coordinator-sdk";
-            packageId = "valence-coordinator-sdk";
-          }
-          {
-            name = "valence-domain-clients";
-            packageId = "valence-domain-clients";
           }
         ];
 
