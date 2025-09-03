@@ -1,10 +1,12 @@
+use std::time::Duration;
+
 use async_trait::async_trait;
 use common::ZK_MINT_CW20_LABEL;
 use cw20::{BalanceResponse, Cw20QueryMsg};
 use log::info;
 use valence_coordinator_sdk::coordinator::ValenceCoordinator;
 use valence_domain_clients::{
-    coprocessor::base_client::{Base64, CoprocessorBaseClient, Proof},
+    coprocessor::base_client::{Base64, CoprocessorBaseClient},
     cosmos::{grpc_client::GrpcSigningClient, wasm_client::WasmClient},
 };
 
@@ -22,6 +24,9 @@ impl ValenceCoordinator for Strategy {
     }
 
     async fn cycle(&mut self) -> anyhow::Result<()> {
+        info!(target: COORDINATOR_LOG_TARGET, "sleeping for {}sec...", self.timeout);
+        tokio::time::sleep(Duration::from_secs(self.timeout)).await;
+
         info!(target: COORDINATOR_LOG_TARGET, "{}: Starting cycle...", self.get_name());
 
         let ntrn_addr = self
@@ -35,7 +40,7 @@ impl ValenceCoordinator for Strategy {
             erc20_addr: self.erc20_addr.to_string(),
             eth_addr: self.erc20_holder_addr.to_string(),
             neutron_addr: ntrn_addr.to_string(),
-            erc20_balances_map_storage_index: 9, // usdc is 9
+            erc20_balances_map_storage_index: self.erc20_balances_storage_index,
         };
 
         let proof_request = serde_json::to_value(circuit_inputs)?;
@@ -49,9 +54,10 @@ impl ValenceCoordinator for Strategy {
 
         info!(target: COORDINATOR_LOG_TARGET, "received zkp: {resp:?}");
 
-        // extract the program and domain parameters by decoding the zkp
-        let (program_proof, program_inputs) = decode(resp.program)?;
-        let (domain_proof, _) = decode(resp.domain)?;
+        // extract the program and domain parameters by decoding the proof
+        let program_proof = Base64::decode(&resp.program.proof)?;
+        let program_inputs = Base64::decode(&resp.program.inputs)?;
+        let domain_proof = Base64::decode(&resp.domain.proof)?;
 
         let cw20_bal_query = Cw20QueryMsg::Balance {
             address: ntrn_addr.to_string(),
@@ -88,11 +94,4 @@ impl ValenceCoordinator for Strategy {
 
         Ok(())
     }
-}
-
-fn decode(a: Proof) -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
-    let proof = Base64::decode(&a.proof)?;
-    let inputs = Base64::decode(&a.inputs)?;
-
-    Ok((proof, inputs))
 }
