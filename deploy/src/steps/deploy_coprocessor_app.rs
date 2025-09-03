@@ -4,7 +4,7 @@ use valence_domain_clients::{
     clients::coprocessor::CoprocessorClient, coprocessor::base_client::CoprocessorBaseClient,
 };
 
-const CIRCUIT_CONSTS_PATH: &str = "circuits/storage_proof/core/src/consts.rs";
+const CIRCUIT_CONSTS_PATH: &str = "apps/storage_proof/core/src/consts.rs";
 const CIRCUIT_NAME: &str = "app";
 
 pub async fn deploy_coprocessor_app(cd: PathBuf, cw20_addr: &str) -> anyhow::Result<String> {
@@ -21,8 +21,7 @@ pub async fn deploy_coprocessor_app(cd: PathBuf, cw20_addr: &str) -> anyhow::Res
     println!("embedded CW20 address into {generated_addr_path:?}");
 
     // build the artifacts. this puts the resulting binaries under
-    // ".valence/coprocessor/artifacts", and it contains the "app" directory
-    // which is this particular deployment name.
+    // `valence.artifacts` value specified in `valence.toml`.
     nix_build_all().await?;
 
     // read the build binaries
@@ -41,7 +40,7 @@ pub async fn deploy_coprocessor_app(cd: PathBuf, cw20_addr: &str) -> anyhow::Res
 }
 
 fn read_build_binary(circuit_name: &str, binary_name: &str) -> anyhow::Result<Vec<u8>> {
-    const BUILD_ARTIFACTS_PATH: &str = ".valence/coprocessor/artifacts/app";
+    const BUILD_ARTIFACTS_PATH: &str = "artifacts/coprocessor/storage_proof";
 
     let artifacts_base: PathBuf = BUILD_ARTIFACTS_PATH.into();
 
@@ -67,7 +66,7 @@ fn read_build_binary(circuit_name: &str, binary_name: &str) -> anyhow::Result<Ve
 }
 
 async fn nix_build_all() -> anyhow::Result<()> {
-    println!("compiling the circuits...");
+    println!("compiling the zk_apps...");
     let output = tokio::process::Command::new("nix")
         .args(["run"])
         .output()

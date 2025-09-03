@@ -1,7 +1,7 @@
 deploy:
     cargo-valence --socket https://service.coprocessor.valence.zone \
       deploy circuit \
-      --controller ./circuits/storage_proof/controller \
+      --controller ./apps/storage_proof/controller \
       --circuit storage-proof-circuit | jq -r '.controller' > artifacts/.controller
 
 prove:

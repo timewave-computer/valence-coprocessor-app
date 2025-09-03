@@ -1,8 +1,8 @@
 [workspace]
 members = [
-    "circuits/storage_proof/circuit",
-    "circuits/storage_proof/controller",
-    "circuits/storage_proof/core",
+    "apps/storage_proof/circuit",
+    "apps/storage_proof/controller",
+    "apps/storage_proof/core",
     "deploy",
     "strategist/",
     "common",
