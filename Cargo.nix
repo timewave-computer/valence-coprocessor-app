@@ -20517,8 +20517,16 @@ equation coefficients
             packageId = "dotenv";
           }
           {
+            name = "env_logger";
+            packageId = "env_logger";
+          }
+          {
             name = "hex";
             packageId = "hex";
+          }
+          {
+            name = "log";
+            packageId = "log";
           }
           {
             name = "serde";
