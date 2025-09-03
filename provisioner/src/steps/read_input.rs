@@ -1,4 +1,5 @@
 use common::INPUTS_DIR;
+use log::info;
 use serde::Deserialize;
 use std::{fs, path::PathBuf};
 
@@ -17,15 +18,18 @@ pub struct CodeIds {
     pub cw20: u64,
 }
 
-pub fn read_setup_inputs(cd: PathBuf) -> anyhow::Result<NeutronInputs> {
-    println!("reading inputs...");
+const READ_INPUTS: &str = "READ_INPUTS";
 
+pub fn read_setup_inputs(cd: PathBuf) -> anyhow::Result<NeutronInputs> {
     let input_dir = cd.join(format!("{INPUTS_DIR}/neutron_inputs.toml"));
+
+    info!(target: READ_INPUTS, "reading inputs from {}...", input_dir.display());
+
     let parameters = fs::read_to_string(input_dir)?;
 
     let neutron_inputs: NeutronInputs = toml::from_str(&parameters)?;
 
-    println!("neutron inputs from step: {neutron_inputs:?}");
+    info!(target: READ_INPUTS, "neutron inputs from step: {neutron_inputs:?}");
 
     Ok(neutron_inputs)
 }

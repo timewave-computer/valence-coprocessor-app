@@ -4,11 +4,16 @@ mod steps;
 use std::env;
 
 use common::NeutronStrategyConfig;
+use log::info;
 use valence_domain_clients::clients::{coprocessor::CoprocessorClient, neutron::NeutronClient};
+
+const PROVISIONER: &str = "PROVISIONER";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
+    env_logger::init();
+
     let mnemonic = env::var("MNEMONIC")?;
     let current_dir = env::current_dir()?;
 
@@ -40,7 +45,7 @@ async fn main() -> anyhow::Result<()> {
         coprocessor_app_id,
     };
 
-    println!("neutron strategy config: {neutron_strategy_config:?}");
+    info!(target: PROVISIONER, "neutron strategy config: {neutron_strategy_config:?}");
 
     steps::setup_authorizations(&neutron_client, &cp_client, &neutron_strategy_config).await?;
 

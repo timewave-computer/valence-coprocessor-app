@@ -22,3 +22,5 @@ bincode = { workspace = true }
 cosmwasm-std = { workspace = true }
 anyhow = { workspace = true }
 valence-coprocessor.workspace = true
+log = { workspace = true }
+env_logger = { workspace = true }

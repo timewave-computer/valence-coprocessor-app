@@ -1,17 +1,20 @@
 use std::{fs, path::PathBuf};
 
+use log::info;
 use valence_domain_clients::{
     clients::coprocessor::CoprocessorClient, coprocessor::base_client::CoprocessorBaseClient,
 };
 
 use crate::consts::{BUILD_ARTIFACTS_PATH, CIRCUIT_CONSTS_PATH, CIRCUIT_NAME};
 
+const CO_PROCESSOR: &str = "CO-PROCESSOR";
+
 pub async fn deploy_coprocessor_app(
     cp_client: &CoprocessorClient,
     cd: PathBuf,
     cw20_addr: &str,
 ) -> anyhow::Result<String> {
-    println!("deploying coprocessor app...");
+    info!(target: CO_PROCESSOR, "deploying coprocessor app...");
 
     // this can also be done with env passing.
     // not obvious which one is cleaner yet.
@@ -21,7 +24,7 @@ pub async fn deploy_coprocessor_app(
     );
 
     fs::write(&generated_addr_path, generated_addr_content)?;
-    println!("embedded CW20 address into {generated_addr_path:?}");
+    info!(target: CO_PROCESSOR, "embedded CW20 address into {generated_addr_path:?}");
 
     // build the artifacts. this puts the resulting binaries under
     // `valence.artifacts` value specified in `valence.toml`.
@@ -35,7 +38,7 @@ pub async fn deploy_coprocessor_app(
         .deploy_controller(&controller_bytes, &circuit_bytes, None)
         .await?;
 
-    println!("controller_id: {controller_id}");
+    info!(target: CO_PROCESSOR, "controller_id: {controller_id}");
 
     Ok(controller_id)
 }
@@ -50,7 +53,7 @@ fn read_build_binary(circuit_name: &str, binary_name: &str) -> anyhow::Result<Ve
 
     let target_path_str = target_path.display();
 
-    println!("reading binary at path: {target_path_str}");
+    info!(target: CO_PROCESSOR, "reading binary at path: {target_path_str}");
 
     if !target_path.exists() {
         anyhow::bail!("{binary_name} binary not found at {target_path_str}");
@@ -59,13 +62,13 @@ fn read_build_binary(circuit_name: &str, binary_name: &str) -> anyhow::Result<Ve
     let raw_binary = fs::read(&target_path)
         .map_err(|e| anyhow::anyhow!("failed to read {binary_name} from {target_path_str}: {e}"))?;
 
-    println!("read {} {binary_name} bytes", raw_binary.len());
+    info!(target: CO_PROCESSOR, "read {} {binary_name} bytes", raw_binary.len());
 
     Ok(raw_binary)
 }
 
 async fn nix_build_all() -> anyhow::Result<()> {
-    println!("compiling the zk_apps...");
+    info!(target: CO_PROCESSOR, "compiling the zk_apps...");
     let output = tokio::process::Command::new("nix")
         .args(["run"])
         .output()
@@ -76,7 +79,7 @@ async fn nix_build_all() -> anyhow::Result<()> {
         anyhow::bail!("Failed to run `nix run`: {stderr}");
     }
 
-    println!("build success!");
+    info!(target: CO_PROCESSOR, "build success!");
 
     Ok(())
 }
