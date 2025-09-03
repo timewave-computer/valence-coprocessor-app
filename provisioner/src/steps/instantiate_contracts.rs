@@ -6,7 +6,7 @@ use valence_domain_clients::{
     cosmos::{base_client::BaseClient, grpc_client::GrpcSigningClient, wasm_client::WasmClient},
 };
 
-use crate::{steps::read_input::CodeIds, VALENCE_NEUTRON_VERIFICATION_ROUTER};
+use crate::{consts::VALENCE_NEUTRON_VERIFICATION_ROUTER, steps::read_input::CodeIds};
 
 pub struct InstantiationOutputs {
     pub cw20: String,

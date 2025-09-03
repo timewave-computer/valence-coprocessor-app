@@ -1,13 +1,10 @@
+mod consts;
 mod steps;
 
 use std::env;
 
 use common::NeutronStrategyConfig;
-use valence_domain_clients::clients::neutron::NeutronClient;
-
-pub(crate) const VALENCE_NEUTRON_VERIFICATION_ROUTER: &str =
-    "neutron1qef59cy20tf89mfhcj7mwnl22tq6ff9cmppqm4xm4d3u0s5hrsms4x5wlz";
-pub(crate) const VERIFICATION_ROUTE: &str = "0001/sp1/5.0.8/groth16";
+use valence_domain_clients::clients::{coprocessor::CoprocessorClient, neutron::NeutronClient};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -17,6 +14,7 @@ async fn main() -> anyhow::Result<()> {
 
     let neutron_inputs = steps::read_setup_inputs(current_dir.clone())?;
 
+    let cp_client = CoprocessorClient::default();
     let neutron_client = NeutronClient::new(
         &neutron_inputs.grpc_url,
         &neutron_inputs.grpc_port,
@@ -29,7 +27,8 @@ async fn main() -> anyhow::Result<()> {
         steps::instantiate_contracts(&neutron_client, neutron_inputs.code_ids).await?;
 
     let coprocessor_app_id =
-        steps::deploy_coprocessor_app(current_dir.clone(), &instantiation_outputs.cw20).await?;
+        steps::deploy_coprocessor_app(&cp_client, current_dir.clone(), &instantiation_outputs.cw20)
+            .await?;
 
     let neutron_strategy_config = NeutronStrategyConfig {
         grpc_url: neutron_inputs.grpc_url,
@@ -43,7 +42,7 @@ async fn main() -> anyhow::Result<()> {
 
     println!("neutron strategy config: {neutron_strategy_config:?}");
 
-    steps::setup_authorizations(&neutron_client, &neutron_strategy_config).await?;
+    steps::setup_authorizations(&neutron_client, &cp_client, &neutron_strategy_config).await?;
 
     steps::write_setup_artifacts(current_dir, neutron_strategy_config)?;
 

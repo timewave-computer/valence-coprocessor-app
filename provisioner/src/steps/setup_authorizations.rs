@@ -11,10 +11,11 @@ use valence_domain_clients::{
     cosmos::{base_client::BaseClient, grpc_client::GrpcSigningClient, wasm_client::WasmClient},
 };
 
-use crate::VERIFICATION_ROUTE;
+use crate::consts::VERIFICATION_ROUTE;
 
 pub async fn setup_authorizations(
     neutron_client: &NeutronClient,
+    cp_client: &CoprocessorClient,
     ntrn_strategy_config: &NeutronStrategyConfig,
 ) -> anyhow::Result<()> {
     println!("setting up authorizations...");
@@ -34,6 +35,7 @@ pub async fn setup_authorizations(
     // creating cw20 minting zk authorization
     create_zk_cw20_mint_authorization(
         neutron_client,
+        cp_client,
         ntrn_strategy_config,
         authorization_permissioned_mode,
     )
@@ -44,11 +46,11 @@ pub async fn setup_authorizations(
 
 async fn create_zk_cw20_mint_authorization(
     neutron_client: &NeutronClient,
+    cp_client: &CoprocessorClient,
     cfg: &NeutronStrategyConfig,
     authorization_mode: AuthorizationModeInfo,
 ) -> anyhow::Result<()> {
-    let coprocessor_client = CoprocessorClient::default();
-    let program_vk = coprocessor_client.get_vk(&cfg.coprocessor_app_id).await?;
+    let program_vk = cp_client.get_vk(&cfg.coprocessor_app_id).await?;
 
     let sp1_program_vk: SP1VerifyingKey = bincode::deserialize(&program_vk)?;
 

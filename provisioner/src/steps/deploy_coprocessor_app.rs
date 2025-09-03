@@ -4,10 +4,13 @@ use valence_domain_clients::{
     clients::coprocessor::CoprocessorClient, coprocessor::base_client::CoprocessorBaseClient,
 };
 
-const CIRCUIT_CONSTS_PATH: &str = "apps/storage_proof/core/src/consts.rs";
-const CIRCUIT_NAME: &str = "app";
+use crate::consts::{BUILD_ARTIFACTS_PATH, CIRCUIT_CONSTS_PATH, CIRCUIT_NAME};
 
-pub async fn deploy_coprocessor_app(cd: PathBuf, cw20_addr: &str) -> anyhow::Result<String> {
+pub async fn deploy_coprocessor_app(
+    cp_client: &CoprocessorClient,
+    cd: PathBuf,
+    cw20_addr: &str,
+) -> anyhow::Result<String> {
     println!("deploying coprocessor app...");
 
     // this can also be done with env passing.
@@ -28,8 +31,6 @@ pub async fn deploy_coprocessor_app(cd: PathBuf, cw20_addr: &str) -> anyhow::Res
     let circuit_bytes = read_build_binary(CIRCUIT_NAME, "circuit")?;
     let controller_bytes = read_build_binary(CIRCUIT_NAME, "controller")?;
 
-    let cp_client = CoprocessorClient::default();
-
     let controller_id = cp_client
         .deploy_controller(&controller_bytes, &circuit_bytes, None)
         .await?;
@@ -40,8 +41,6 @@ pub async fn deploy_coprocessor_app(cd: PathBuf, cw20_addr: &str) -> anyhow::Res
 }
 
 fn read_build_binary(circuit_name: &str, binary_name: &str) -> anyhow::Result<Vec<u8>> {
-    const BUILD_ARTIFACTS_PATH: &str = "artifacts/coprocessor/storage_proof";
-
     let artifacts_base: PathBuf = BUILD_ARTIFACTS_PATH.into();
 
     let target_path = artifacts_base
