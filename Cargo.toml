@@ -35,7 +35,7 @@ sp1-sdk = { version = "=5.0.8", default-features = false }
 bincode = "1.3.3"
 
 # valence
-valence-coordinator-sdk = { git = "https://github.com/timewave-computer/valence-coordinator-sdk.git", rev = "8aafa14" }
+valence-coordinator-sdk = { git = "https://github.com/timewave-computer/valence-coordinator-sdk.git", rev = "8bb11b8" }
 valence-library-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "6bc9ebb" }
 valence-authorization-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "6bc9ebb" }
 valence-processor-utils = { git = "https://github.com/timewave-computer/valence-protocol", rev = "6bc9ebb" }
