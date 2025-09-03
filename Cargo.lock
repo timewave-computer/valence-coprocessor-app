@@ -8651,7 +8651,7 @@ dependencies = [
 [[package]]
 name = "valence-coordinator-sdk"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/valence-coordinator-sdk.git?rev=5a28898#5a288985315363f0b137e0a04bb0536b8e0e1a81"
+source = "git+https://github.com/timewave-computer/valence-coordinator-sdk.git?rev=8aafa14#8aafa1455d7fc3a2368695b98c5bfb605077c353"
 dependencies = [
  "alloy",
  "anyhow",
@@ -8768,8 +8768,9 @@ dependencies = [
 
 [[package]]
 name = "valence-domain-clients"
-version = "1.1.0"
-source = "git+https://github.com/timewave-computer/valence-domain-clients?rev=5435959#5435959607d5093182155e61c83307d74d463227"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e5628e3814255a74aafe34c6db4befe043df8ad04b6bc1e19c4081d6a110677"
 dependencies = [
  "alloy",
  "alloy-signer-local",
