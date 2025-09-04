@@ -59,7 +59,7 @@ async fn main() -> anyhow::Result<()> {
     let current_dir = env::current_dir()?;
 
     let mnemonic = env::var("MNEMONIC")?;
-    let neutron_inputs = steps::read_setup_inputs(current_dir.clone())?;
+    let neutron_inputs = steps::read_setup_inputs("neutron_inputs.toml")?;
 
     let cp_client = CoprocessorClient::default();
     let neutron_client = NeutronClient::new(
@@ -113,7 +113,7 @@ async fn main() -> anyhow::Result<()> {
         };
         steps::setup_authorizations(&neutron_client, &cp_client, &neutron_strategy_config).await?;
 
-        steps::write_setup_artifacts(current_dir, neutron_strategy_config)?;
+        steps::write_setup_artifacts(neutron_strategy_config)?;
     }
 
     Ok(())

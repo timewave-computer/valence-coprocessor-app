@@ -36,14 +36,14 @@ impl ValenceCoordinator for Strategy {
             .address
             .to_string();
 
-        let circuit_inputs = storage_proof_core::ControllerInputs {
+        let controller_inputs = storage_proof_core::ControllerInputs {
             erc20_addr: self.erc20_addr.to_string(),
             eth_addr: self.erc20_holder_addr.to_string(),
             neutron_addr: ntrn_addr.to_string(),
             erc20_balances_map_storage_index: self.erc20_balances_storage_index,
         };
 
-        let proof_request = serde_json::to_value(circuit_inputs)?;
+        let proof_request = serde_json::to_value(controller_inputs)?;
         info!(target: COORDINATOR_LOG_TARGET, "posting proof request: {proof_request}");
 
         // submit the proof request to the coprocessor

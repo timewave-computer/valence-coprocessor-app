@@ -3,8 +3,7 @@ pub mod strategy;
 
 use std::fs;
 
-use common::NeutronStrategyConfig;
-use common::OUTPUTS_DIR;
+use common::{artifacts_dir, NeutronStrategyConfig};
 use dotenv::dotenv;
 use log::{info, warn};
 use strategy::Strategy;
@@ -22,9 +21,9 @@ async fn main() -> anyhow::Result<()> {
 
     info!(target: RUNNER, "starting the coordinator runner");
 
-    let neutron_cfg_path = format!("{OUTPUTS_DIR}/neutron_strategy_config.toml");
+    let neutron_cfg_path = artifacts_dir().join("neutron_strategy_config.toml");
 
-    info!(target: RUNNER, "Using ntrn config: {neutron_cfg_path}");
+    info!(target: RUNNER, "Using ntrn config: {}", neutron_cfg_path.display());
 
     let parameters = fs::read_to_string(neutron_cfg_path)?;
 

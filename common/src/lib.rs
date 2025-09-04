@@ -4,9 +4,6 @@ use serde::{Deserialize, Serialize};
 
 pub const ZK_MINT_CW20_LABEL: &str = "zk_mint_cw20";
 
-pub const INPUTS_DIR: &str = "provisioner/src/inputs";
-pub const OUTPUTS_DIR: &str = "artifacts";
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NeutronStrategyConfig {
     // node info
@@ -32,4 +29,8 @@ pub fn workspace_dir() -> PathBuf {
 
 pub fn artifacts_dir() -> PathBuf {
     workspace_dir().join("artifacts")
+}
+
+pub fn provisioner_dir() -> PathBuf {
+    workspace_dir().join("provisioner")
 }
