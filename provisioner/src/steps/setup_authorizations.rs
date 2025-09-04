@@ -12,8 +12,7 @@ use valence_domain_clients::{
     cosmos::{base_client::BaseClient, grpc_client::GrpcSigningClient, wasm_client::WasmClient},
 };
 
-use crate::consts::VERIFICATION_ROUTE;
-
+const VERIFICATION_ROUTE: &str = "0001/sp1/5.0.8/groth16";
 const AUTH_SETUP: &str = "AUTH_SETUP";
 
 pub async fn setup_authorizations(

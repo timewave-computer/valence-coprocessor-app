@@ -20497,6 +20497,11 @@ equation coefficients
             packageId = "bincode";
           }
           {
+            name = "clap";
+            packageId = "clap";
+            features = [ "derive" ];
+          }
+          {
             name = "common";
             packageId = "common";
           }

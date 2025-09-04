@@ -34,3 +34,7 @@ pub fn artifacts_dir() -> PathBuf {
 pub fn provisioner_dir() -> PathBuf {
     workspace_dir().join("provisioner")
 }
+
+pub fn zk_apps_dir() -> PathBuf {
+    workspace_dir().join("apps")
+}
