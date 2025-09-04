@@ -24,3 +24,4 @@ anyhow = { workspace = true }
 valence-coprocessor.workspace = true
 log = { workspace = true }
 env_logger = { workspace = true }
+clap = { version = "4.5.4", features = ["derive"] }

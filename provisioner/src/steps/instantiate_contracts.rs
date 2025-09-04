@@ -7,15 +7,12 @@ use valence_domain_clients::{
     cosmos::{base_client::BaseClient, grpc_client::GrpcSigningClient, wasm_client::WasmClient},
 };
 
-use crate::{consts::VALENCE_NEUTRON_VERIFICATION_ROUTER, steps::read_input::CodeIds};
+use crate::{
+    artifacts::InstantiationOutputs, consts::VALENCE_NEUTRON_VERIFICATION_ROUTER,
+    steps::read_input::CodeIds,
+};
 
 const CONTRACT_DEPLOYMENT: &str = "CONTRACT_DEPLOYMENT";
-
-pub struct InstantiationOutputs {
-    pub cw20: String,
-    pub processor: String,
-    pub authorizations: String,
-}
 
 pub async fn instantiate_contracts(
     neutron_client: &NeutronClient,

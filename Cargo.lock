@@ -5808,6 +5808,7 @@ dependencies = [
  "anyhow",
  "bech32 0.11.0",
  "bincode",
+ "clap",
  "common",
  "cosmwasm-std",
  "cw20",
