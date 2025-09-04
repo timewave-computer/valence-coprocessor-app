@@ -47,11 +47,10 @@ pub async fn deploy_coprocessor_app(
 }
 
 fn read_build_binary(circuit_name: &str, binary_name: &str) -> anyhow::Result<Vec<u8>> {
-    let target_path = artifacts_dir()
-        .join("coprocessor")
+    let coprocessor_artifacts_path = artifacts_dir().join("coprocessor");
+    let target_path = coprocessor_artifacts_path
         .join(circuit_name)
-        .with_file_name(binary_name)
-        .with_extension("bin");
+        .join(format!("{binary_name}.bin"));
 
     let target_path_str = target_path.display();
 
