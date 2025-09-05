@@ -15,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ "macos-latest", "ubuntu-latest" ]
+        os: [ "macos-13", "ubuntu-latest" ]
         nix: [ true, false ]
         docker: [ true, false ]
         exclude:
@@ -34,7 +34,7 @@ jobs:
         with:
           remove-browsers: true
       - name: Set up Docker
-        if: ${{ matrix.os == 'macos-latest' && matrix.docker }}
+        if: ${{ matrix.os == 'macos-13' && matrix.docker }}
         uses: docker/setup-docker-action@v4
         env:
           LIMA_START_ARGS: --cpus 4 --memory 8
