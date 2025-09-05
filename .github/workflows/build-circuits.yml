@@ -22,9 +22,14 @@ jobs:
           # Won't work, either nix or docker is needed
           - nix: false
             docker: false
-          # Unnecessary, script defaults to nix when both are available
+          # podman doesn't work on macos github runner image
+          - nix: true
+            docker: false
+            os: macos-latest
+          # unnecessary, only nix is used on x86_64-linux even if docker is available
           - nix: true
             docker: true
+            os: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install nix
