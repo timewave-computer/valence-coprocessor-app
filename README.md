@@ -12,6 +12,26 @@ selected ERC20 contract address on Ethereum mainnet. The balance
 observed during the proving process will be used to mint the equivalent
 amount of CW20 tokens on Neutron mainnet for a given address.
 
+```mermaid
+flowchart LR
+    subgraph ethereum
+    ERC20
+    end
+    subgraph neutron
+    Authorizations
+    Processor
+    CW20
+    SP1-verifier
+    end
+    coordinator -->|1. request zk proof| coprocessor
+    coprocessor -->|2. generate balance state proof| ERC20
+    coordinator -->|3. post proof| Authorizations
+    Authorizations --> |4. verify proof| SP1-verifier
+    Authorizations --> |5. enqueue decoded message| Processor
+    coordinator --> |6. tick| Processor
+    Processor --> |7. mint| CW20
+```
+
 > Note: currently the flow is uni-directional in that the proofs are only
 > generated for EVM state and verified on Neutron.
 >
