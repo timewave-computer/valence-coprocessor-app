@@ -3,6 +3,7 @@ set -e
 
 if command -v nix >/dev/null; then
   nix --extra-experimental-features "nix-command flakes" run -- "$@"
+  exit 0
 elif docker info >/dev/null 2>&1; then
   ENGINE=docker
   echo "Setting up nix within docker to build circuits"
