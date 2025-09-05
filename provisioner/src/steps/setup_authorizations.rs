@@ -1,5 +1,6 @@
 use common::{NeutronStrategyConfig, ZK_MINT_CW20_LABEL};
 use cosmwasm_std::Binary;
+use log::info;
 use sp1_sdk::{HashableKey, SP1VerifyingKey};
 use valence_authorization_utils::{
     authorization::{AuthorizationModeInfo, PermissionTypeInfo},
@@ -11,20 +12,22 @@ use valence_domain_clients::{
     cosmos::{base_client::BaseClient, grpc_client::GrpcSigningClient, wasm_client::WasmClient},
 };
 
-use crate::VERIFICATION_ROUTE;
+const VERIFICATION_ROUTE: &str = "0001/sp1/5.0.8/groth16";
+const AUTH_SETUP: &str = "AUTH_SETUP";
 
 pub async fn setup_authorizations(
     neutron_client: &NeutronClient,
+    cp_client: &CoprocessorClient,
     ntrn_strategy_config: &NeutronStrategyConfig,
 ) -> anyhow::Result<()> {
-    println!("setting up authorizations...");
+    info!(target: AUTH_SETUP, "setting up authorizations...");
     let my_address = neutron_client
         .get_signing_client()
         .await?
         .address
         .to_string();
 
-    println!("my address: {my_address}");
+    info!(target: AUTH_SETUP, "my address: {my_address}");
 
     let authorization_permissioned_mode =
         AuthorizationModeInfo::Permissioned(PermissionTypeInfo::WithoutCallLimit(vec![
@@ -34,6 +37,7 @@ pub async fn setup_authorizations(
     // creating cw20 minting zk authorization
     create_zk_cw20_mint_authorization(
         neutron_client,
+        cp_client,
         ntrn_strategy_config,
         authorization_permissioned_mode,
     )
@@ -44,11 +48,11 @@ pub async fn setup_authorizations(
 
 async fn create_zk_cw20_mint_authorization(
     neutron_client: &NeutronClient,
+    cp_client: &CoprocessorClient,
     cfg: &NeutronStrategyConfig,
     authorization_mode: AuthorizationModeInfo,
 ) -> anyhow::Result<()> {
-    let coprocessor_client = CoprocessorClient::default();
-    let program_vk = coprocessor_client.get_vk(&cfg.coprocessor_app_id).await?;
+    let program_vk = cp_client.get_vk(&cfg.coprocessor_app_id).await?;
 
     let sp1_program_vk: SP1VerifyingKey = bincode::deserialize(&program_vk)?;
 
@@ -68,7 +72,7 @@ async fn create_zk_cw20_mint_authorization(
         },
     );
 
-    println!("creating ZK authorization...");
+    info!(target: AUTH_SETUP, "creating ZK authorization...");
 
     let create_zk_auth_rx = neutron_client
         .execute_wasm(&cfg.authorizations, create_zk_authorization, vec![], None)
@@ -76,7 +80,7 @@ async fn create_zk_cw20_mint_authorization(
 
     neutron_client.poll_for_tx(&create_zk_auth_rx.hash).await?;
 
-    println!("ZK Authorization created successfully");
+    info!(target: AUTH_SETUP, "ZK Authorization created successfully");
 
     Ok(())
 }

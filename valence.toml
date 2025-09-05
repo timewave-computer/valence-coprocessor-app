@@ -1,8 +1,8 @@
 [valence]
 name = "valence-app"
 version = "0.1.0"
-artifacts = ".valence/coprocessor/artifacts"
+artifacts = "artifacts/coprocessor"
 
-[circuit.app]
+[circuit.storage_proof]
 circuit = "storage-proof-circuit"
 controller = "storage-proof-controller"

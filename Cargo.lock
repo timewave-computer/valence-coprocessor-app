@@ -1898,6 +1898,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
+name = "coordinator"
+version = "0.5.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "common",
+ "cw20",
+ "dotenv",
+ "log",
+ "serde",
+ "serde_json",
+ "storage-proof-core",
+ "tokio",
+ "toml 0.8.23",
+ "valence-coordinator-sdk",
+ "valence-domain-clients",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2399,30 +2418,6 @@ name = "data-encoding"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a2330da5de22e8a3cb63252ce2abb30116bf5265e89c0e01bc17015ce30a476"
-
-[[package]]
-name = "deploy"
-version = "0.5.0"
-dependencies = [
- "anyhow",
- "bech32 0.11.0",
- "bincode",
- "common",
- "cosmwasm-std",
- "cw20",
- "cw20-base",
- "dotenv",
- "hex",
- "serde",
- "sp1-sdk",
- "tokio",
- "toml 0.8.23",
- "valence-authorization-utils",
- "valence-coprocessor",
- "valence-domain-clients",
- "valence-library-utils",
- "valence-processor-utils",
-]
 
 [[package]]
 name = "der"
@@ -5807,6 +5802,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "provisioner"
+version = "0.5.0"
+dependencies = [
+ "anyhow",
+ "bech32 0.11.0",
+ "bincode",
+ "clap",
+ "common",
+ "cosmwasm-std",
+ "cw20",
+ "cw20-base",
+ "dotenv",
+ "env_logger",
+ "hex",
+ "log",
+ "serde",
+ "sp1-sdk",
+ "tokio",
+ "toml 0.8.23",
+ "valence-authorization-utils",
+ "valence-coprocessor",
+ "valence-domain-clients",
+ "valence-library-utils",
+ "valence-processor-utils",
+]
+
+[[package]]
 name = "quick-error"
 version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7536,25 +7558,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "strategist"
-version = "0.5.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "common",
- "cw20",
- "dotenv",
- "log",
- "serde",
- "serde_json",
- "storage-proof-core",
- "tokio",
- "toml 0.8.23",
- "valence-coordinator-sdk",
- "valence-domain-clients",
-]
-
-[[package]]
 name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8651,7 +8654,7 @@ dependencies = [
 [[package]]
 name = "valence-coordinator-sdk"
 version = "0.1.0"
-source = "git+https://github.com/timewave-computer/valence-coordinator-sdk.git?rev=5a28898#5a288985315363f0b137e0a04bb0536b8e0e1a81"
+source = "git+https://github.com/timewave-computer/valence-coordinator-sdk.git?rev=8bb11b8#8bb11b8552736517f9a9fef9402bab32cb99bd73"
 dependencies = [
  "alloy",
  "anyhow",
@@ -8768,8 +8771,9 @@ dependencies = [
 
 [[package]]
 name = "valence-domain-clients"
-version = "1.1.0"
-source = "git+https://github.com/timewave-computer/valence-domain-clients?rev=5435959#5435959607d5093182155e61c83307d74d463227"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e5628e3814255a74aafe34c6db4befe043df8ad04b6bc1e19c4081d6a110677"
 dependencies = [
  "alloy",
  "alloy-signer-local",

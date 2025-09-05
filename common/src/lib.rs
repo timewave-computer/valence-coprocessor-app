@@ -1,9 +1,8 @@
+use std::path::{Path, PathBuf};
+
 use serde::{Deserialize, Serialize};
 
 pub const ZK_MINT_CW20_LABEL: &str = "zk_mint_cw20";
-
-pub const INPUTS_DIR: &str = "deploy/src/inputs";
-pub const OUTPUTS_DIR: &str = "artifacts";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NeutronStrategyConfig {
@@ -19,4 +18,23 @@ pub struct NeutronStrategyConfig {
 
     // coprocessor app id
     pub coprocessor_app_id: String,
+}
+
+pub fn workspace_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("failed to cd to workspace root dir")
+        .to_path_buf()
+}
+
+pub fn artifacts_dir() -> PathBuf {
+    workspace_dir().join("artifacts")
+}
+
+pub fn provisioner_dir() -> PathBuf {
+    workspace_dir().join("provisioner")
+}
+
+pub fn zk_apps_dir() -> PathBuf {
+    workspace_dir().join("apps")
 }

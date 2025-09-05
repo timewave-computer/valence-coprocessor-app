@@ -1,7 +1,3 @@
-grpc_url = "http://rpc.neutron.quokkastake.io"
-grpc_port = "9090"
-chain_id = "neutron-1"
 authorizations = "neutron18kgvp5dn60d5u6lkzza7zger7x49fnzzu0xu46pmmzepr6hntdqs3mejax"
 processor = "neutron18522sf0d4ajjwqeccadlquqm3m6f9jzeh5tjk6uhz0v28zdnq5nslfxqla"
 cw20 = "neutron1y29h7gpmfcj4ujmatv5wrqvyxtwy2556uh6038htz8xr53z4ah4s3exmj5"
-coprocessor_app_id = "534301a97dee075ac1bfd0a99b6c4f04619f68367a5bcda61b6bf25743b935c8"

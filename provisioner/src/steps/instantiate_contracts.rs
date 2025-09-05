@@ -1,24 +1,23 @@
 use std::time::SystemTime;
 
 use cw20::MinterResponse;
+use log::info;
 use valence_domain_clients::{
     clients::neutron::NeutronClient,
     cosmos::{base_client::BaseClient, grpc_client::GrpcSigningClient, wasm_client::WasmClient},
 };
 
-use crate::{steps::read_input::CodeIds, VALENCE_NEUTRON_VERIFICATION_ROUTER};
+use crate::{artifacts::InstantiationOutputs, steps::read_input::CodeIds};
 
-pub struct InstantiationOutputs {
-    pub cw20: String,
-    pub processor: String,
-    pub authorizations: String,
-}
+const VALENCE_NEUTRON_VERIFICATION_ROUTER: &str =
+    "neutron1qef59cy20tf89mfhcj7mwnl22tq6ff9cmppqm4xm4d3u0s5hrsms4x5wlz";
+const CONTRACT_DEPLOYMENT: &str = "CONTRACT_DEPLOYMENT";
 
 pub async fn instantiate_contracts(
     neutron_client: &NeutronClient,
     code_ids: CodeIds,
 ) -> anyhow::Result<InstantiationOutputs> {
-    println!("instantiating contracts...");
+    info!(target: CONTRACT_DEPLOYMENT, "instantiating contracts...");
 
     let my_address = neutron_client
         .get_signing_client()
@@ -26,7 +25,7 @@ pub async fn instantiate_contracts(
         .address
         .to_string();
 
-    println!("runner address: {my_address}");
+    info!(target: CONTRACT_DEPLOYMENT, "runner address: {my_address}");
 
     let now = SystemTime::now();
     let salt_raw = now
@@ -40,7 +39,7 @@ pub async fn instantiate_contracts(
         .await?
         .address;
 
-    println!("predicted processor addr: {predicted_processor_address}");
+    info!(target: CONTRACT_DEPLOYMENT, "predicted processor addr: {predicted_processor_address}");
 
     // Owner will initially be the deploy address and eventually will be transferred to the owned address
     let authorization_instantiate_msg = valence_authorization_utils::msg::InstantiateMsg {
@@ -49,7 +48,7 @@ pub async fn instantiate_contracts(
         processor: predicted_processor_address.clone(),
     };
 
-    println!("instantiating authorization address...");
+    info!(target: CONTRACT_DEPLOYMENT, "instantiating authorization address...");
     let authorization_address = neutron_client
         .instantiate2(
             code_ids.authorizations,
@@ -59,7 +58,7 @@ pub async fn instantiate_contracts(
             salt.clone(),
         )
         .await?;
-    println!("Authorization instantiated: {authorization_address}");
+    info!(target: CONTRACT_DEPLOYMENT, "Authorization instantiated: {authorization_address}");
 
     let processor_instantiate_msg = valence_processor_utils::msg::InstantiateMsg {
         authorization_contract: authorization_address.clone(),
@@ -75,7 +74,7 @@ pub async fn instantiate_contracts(
             salt.clone(),
         )
         .await?;
-    println!("Processor instantiated: {processor_address}");
+    info!(target: CONTRACT_DEPLOYMENT, "Processor instantiated: {processor_address}");
 
     // Set the verification gateway address on the authorization contract
     let set_verification_router_msg =
@@ -85,7 +84,7 @@ pub async fn instantiate_contracts(
             },
         );
 
-    println!("Setting authorizations verification router: {VALENCE_NEUTRON_VERIFICATION_ROUTER}");
+    info!(target: CONTRACT_DEPLOYMENT, "Setting authorizations verification router: {VALENCE_NEUTRON_VERIFICATION_ROUTER}");
     let set_verification_router_rx = neutron_client
         .execute_wasm(
             &authorization_address,
@@ -99,7 +98,7 @@ pub async fn instantiate_contracts(
         .poll_for_tx(&set_verification_router_rx.hash)
         .await?;
 
-    println!("Verification router set!");
+    info!(target: CONTRACT_DEPLOYMENT, "Verification router set!");
 
     let cw20_init_msg = cw20_base::msg::InstantiateMsg {
         name: "test_playground".to_string(),
@@ -122,7 +121,7 @@ pub async fn instantiate_contracts(
         )
         .await?;
 
-    println!("CW20 Instantiated: {cw20_addr}");
+    info!(target: CONTRACT_DEPLOYMENT, "CW20 Instantiated: {cw20_addr}");
 
     let outputs = InstantiationOutputs {
         cw20: cw20_addr,
