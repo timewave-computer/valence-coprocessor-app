@@ -68,7 +68,7 @@ If you do not have nix package manager availble on your system, below are some e
 > We plan on enabling Docker-based builds in the near future
 
 You can verify the nix installation by running the following command which
-should build all zk apps in the `apps/` directory:
+should build all co-processor circuits defined in `valence.toml`:
 
 ```sh
 nix run
