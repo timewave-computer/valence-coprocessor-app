@@ -19,8 +19,8 @@ jobs:
         nix: [ true, false ]
         docker: [ true, false ]
         exclude:
-          nix: false
-          docker: false
+          - nix: false
+            docker: false
     steps:
       - uses: actions/checkout@v4
       - name: Install nix
