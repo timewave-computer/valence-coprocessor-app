@@ -34,7 +34,7 @@ jobs:
         with:
           remove-browsers: true
       - name: Install docker on MacOS
-        if: ${{ matrix.os == "macos-latest" && matrix.docker }}
+        if: ${{ matrix.os == 'macos-latest' && matrix.docker }}
         run: |
           brew install docker colima
           colima start
