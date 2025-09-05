@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-if command -v nix >/dev/null && false; then
+if command -v nix >/dev/null; then
   nix --extra-experimental-features "nix-command flakes" run -- "$@"
 elif docker info >/dev/null 2>&1; then
   ENGINE=docker

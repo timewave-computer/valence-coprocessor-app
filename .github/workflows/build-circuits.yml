@@ -30,7 +30,7 @@ jobs:
         with:
           remove-browsers: true
       - name: Remove docker
-        if: ! matrix.docker
+        if: ${{ ! matrix.docker }}
         run: sudo rm -f $(which docker)
       - name: Build circuits
         run: ./build-circuits.sh
