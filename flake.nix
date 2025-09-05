@@ -1,12 +1,6 @@
 {
   description = "Valence coprocessor app";
 
-  nixConfig.extra-experimental-features = "nix-command flakes";
-  nixConfig.extra-substituters = "https://coffeetables.cachix.org";
-  nixConfig.extra-trusted-public-keys = ''
-    coffeetables.cachix.org-1:BCQXDtLGFVo/rTG/J4omlyP/jbtNtsZIKHBMTjAWt8g=
-  '';
-
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-25.05";
     
@@ -89,14 +83,50 @@
 
         apps.default.program = pkgs.writeShellScriptBin "build-circuits" ''
           ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: circuit: ''
+            set -e
+            nix develop --command update-cargo-nix
             mkdir -p ${valence.toml.valence.artifacts}/${name}
-            nix build '.#${circuit.circuit}'
-            ${pkgs.coreutils}/bin/install --mode=644 result/bin/* ${valence.toml.valence.artifacts}/${name}/circuit.bin
-            rm result
+            # check if x86_64-linux packages can be built
+            if nix build --impure --inputs-from . --expr \
+              'let pkgs = import (builtins.getFlake "nixpkgs") { system = "x86_64-linux"; }; in
+                pkgs.writeText "test-system" (toString builtins.currentTime)' 2>/dev/null
+            then
+              nix build '.#packages.x86_64-linux.${circuit.circuit}' '.#packages.x86_64-linux.${circuit.controller}'
+              install --mode=644 result/bin/* ${valence.toml.valence.artifacts}/${name}/circuit.bin
+              install --mode=644 result-1/* ${valence.toml.valence.artifacts}/${name}/controller.bin
+            else
+              if docker info >/dev/null 2>/dev/null; then
+                ENGINE=docker
+                echo "Setting up x86_64-linux emulation with docker"
+              else
+                ENGINE=${pkgs.podman}/bin/podman
+                echo "Setting up x86_64-linux emulation with podman (docker unavailable)"
+                podman machine init || true
+                podman machine start 2>/dev/null || true
+              fi
 
-            nix build '.#${circuit.controller}'
-            ${pkgs.coreutils}/bin/install --mode=644 result/* ${valence.toml.valence.artifacts}/${name}/controller.bin
-            rm result
+              if $ENGINE image exists nix-circuit-builder; then
+                echo Loading existing builder image: nix-circuit-builder
+                $ENGINE create --name nix-circuit-builder --platform linux/amd64 -v "$(pwd)":/code -w /code -ti nix-circuit-builder bash
+              else 
+                $ENGINE create --name nix-circuit-builder \
+                  --platform linux/amd64 -v "$(pwd)":/code -w /code -ti nixpkgs/nix-flakes sh -c \
+                  "echo filter-syscalls = false >> /etc/nix/nix.conf && git config --global --add safe.directory '*' && exec bash"
+              fi
+              $ENGINE start nix-circuit-builder
+              function cleanup {
+                echo "Saving build state to image: nix-circuit-builder"
+                $ENGINE commit nix-circuit-builder nix-circuit-builder
+                $ENGINE stop nix-circuit-builder
+                $ENGINE rm nix-circuit-builder
+              }
+              trap cleanup EXIT
+              PREFIX="$ENGINE exec -t nix-circuit-builder"
+              $PREFIX nix build '.#${circuit.circuit}' '.#${circuit.controller}'
+              $PREFIX sh -c "install --mode=644 result/bin/* ${valence.toml.valence.artifacts}/${name}/circuit.bin"
+              $PREFIX sh -c "install --mode=644 result-1/* ${valence.toml.valence.artifacts}/${name}/controller.bin"
+            fi
+            rm result result-1
           '') valence.toml.circuit)}
         '';
 
@@ -108,6 +138,7 @@
             taplo
             toml-cli
             lld
+            cargo
           ];
           
           env = [
