@@ -21,21 +21,60 @@ amount of CW20 tokens on Neutron mainnet for a given address.
 ### Project filetree
 
 ```md
-├── apps            # TODO: describe
+├── apps            # contains the co-processor applications (circuits and controllers).
 │   └── ...
-├── artifacts       # TODO: describe
+├── artifacts       # stores the co-processor builds and on-chain deployment artifacts
 │   └── ...
-├── Cargo.nix       # TODO: describe
-├── Cargo.toml      # TODO: describe
-├── common          # TODO: describe
+├── Cargo.nix       # defines the Nix build for the Rust workspace
+├── Cargo.toml      # main Cargo manifest for the workspace
+├── common          # crate with common utilities and definitions
 │   └── ...
-├── coordinator     # TODO: describe
+├── coordinator     # coordinator service that orchestrates the runtime
 │   └── ...
-├── flake.nix       # TODO: describe
-├── provisioner     # TODO: describe
+├── flake.nix       # nix flake that defines the development environment and builds
+├── provisioner     # provisioner service that prepares the system for runtime
 │   └── ...
-└── valence.toml    # TODO: describe
+└── valence.toml    # path layouts and other information relevant during the builds
 ```
+
+## System environment setup
+
+System environment setup involves configuring your on-chain signing capabilities
+and preparing your development environment for building and runtime.
+
+Outlined below is the fastest way to running each part of the coprocessor-app.
+If you wish to delve deeper into the system environment setup, take a look
+at the [environment setup docs](docs/environment.md).
+
+### Setup for on-chain interactions
+
+In order to submit transactions on-chain, a mnemonic seed phrase is needed.
+To configure your mnemonic, run the following command:
+
+```sh
+cp .example.env .env
+```
+
+Then open the created `.env` file and replace `todo` with your seed phrase.
+
+### Local development environment setup
+
+At this moment we exclusively support nix-based builds.
+If you do not have nix package manager availble on your system, below are some easy ways to install it:
+
+- [Determinate Systems installer](https://docs.determinate.systems/getting-started/)
+- [Nix package manager](https://nixos.org/download/)
+
+> We plan on enabling Docker-based builds in the near future
+
+You can verify the nix installation by running the following command which
+should build all zk apps in the `apps/` directory:
+
+```sh
+nix run
+```
+
+The same command will be invoked during the provisioning run outlined below.
 
 ## Provisioning
 
