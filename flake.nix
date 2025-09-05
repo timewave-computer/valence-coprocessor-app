@@ -85,13 +85,13 @@
           ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: circuit: ''
             set -e
             nix develop --command update-cargo-nix
-            mkdir -p ${valence.toml.valence.artifacts}/${name}
             # check if x86_64-linux packages can be built
             if nix build --impure --inputs-from . --expr \
               'let pkgs = import (builtins.getFlake "nixpkgs") { system = "x86_64-linux"; }; in
                 pkgs.writeText "test-system" (toString builtins.currentTime)' 2>/dev/null
             then
               nix build '.#packages.x86_64-linux.${circuit.circuit}' '.#packages.x86_64-linux.${circuit.controller}'
+              mkdir -p ${valence.toml.valence.artifacts}/${name}
               install --mode=644 result/bin/* ${valence.toml.valence.artifacts}/${name}/circuit.bin
               install --mode=644 result-1/* ${valence.toml.valence.artifacts}/${name}/controller.bin
             else
@@ -105,7 +105,7 @@
                 podman machine start 2>/dev/null || true
               fi
 
-              if $ENGINE image exists nix-circuit-builder; then
+              if $ENGINE image inspect nix-circuit-builder >/dev/null 2>&1; then
                 echo Loading existing builder image: nix-circuit-builder
                 $ENGINE create --name nix-circuit-builder --platform linux/amd64 -v "$(pwd)":/code -w /code -ti nix-circuit-builder bash
               else 
@@ -123,10 +123,11 @@
               trap cleanup EXIT
               PREFIX="$ENGINE exec -t nix-circuit-builder"
               $PREFIX nix build '.#${circuit.circuit}' '.#${circuit.controller}'
+              mkdir -p ${valence.toml.valence.artifacts}/${name}
               $PREFIX sh -c "install --mode=644 result/bin/* ${valence.toml.valence.artifacts}/${name}/circuit.bin"
               $PREFIX sh -c "install --mode=644 result-1/* ${valence.toml.valence.artifacts}/${name}/controller.bin"
             fi
-            rm result result-1
+            rm -f result result-1
           '') valence.toml.circuit)}
         '';
 
