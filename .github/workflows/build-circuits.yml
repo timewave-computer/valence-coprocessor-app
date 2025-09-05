@@ -25,7 +25,7 @@ jobs:
           # podman doesn't work on macos github runner image
           - nix: true
             docker: false
-            os: macos-latest
+            os: macos-13
           # unnecessary, only nix is used on x86_64-linux even if docker is available
           - nix: true
             docker: true
