@@ -101,7 +101,7 @@
               else
                 ENGINE=${pkgs.podman}/bin/podman
                 echo "Setting up x86_64-linux emulation with podman (docker unavailable)"
-                $ENGINE machine init || true
+                $ENGINE machine init 2>/dev/null || true
                 $ENGINE machine start 2>/dev/null || true
               fi
 
@@ -119,6 +119,9 @@
                 $ENGINE commit nix-circuit-builder nix-circuit-builder
                 $ENGINE stop nix-circuit-builder
                 $ENGINE rm nix-circuit-builder
+                if [[ "$ENGINE" == "podman" ]]; then
+                  $ENGINE machine stop
+                fi
               }
               trap cleanup EXIT
               PREFIX="$ENGINE exec -t nix-circuit-builder"
