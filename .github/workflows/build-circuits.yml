@@ -1,0 +1,24 @@
+name: build circuits
+
+on:
+  push:
+    branches: main
+  pull_request:
+    branches: main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ "macos-latest", "ubuntu-latest" ]
+        nix: [ true, false ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nix
+        if: matrix.nix
+        uses: nixbuild/nix-quick-install-action@v32
+
+      - name: Build circuits
+        run: ./build-circuits.sh
