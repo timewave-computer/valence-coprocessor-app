@@ -19,8 +19,12 @@ jobs:
         nix: [ true, false ]
         docker: [ true, false ]
         exclude:
+          # Won't work, either nix or docker is needed
           - nix: false
             docker: false
+          # Unnecessary, script defaults to nix when both are available
+          - nix: true
+            docker: true
     steps:
       - uses: actions/checkout@v4
       - name: Install nix
@@ -29,6 +33,11 @@ jobs:
       - uses: mathio/gha-cleanup@v1
         with:
           remove-browsers: true
+      - name: Install docker on MacOS
+        if: ${{ matrix.os == "macos-latest" && matrix.docker }}
+        run: |
+          brew install docker colima
+          colima start
       - name: Remove docker
         if: ${{ ! matrix.docker }}
         run: sudo rm -f $(which docker)
