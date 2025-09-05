@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
-if false; then
+if command -v nix >dev/null; then
   nix --extra-experimental-features "nix-command flakes" run
-elif docker info >/dev/null 2>/dev/null; then
+elif docker info >/dev/null 2>&1; then
   ENGINE=docker
   echo "Setting up nix within docker to build circuits"
-elif command -v podman >/dev/null 2>/dev/null; then
+elif command -v podman >/dev/null 2>&1; then
   ENGINE=podman
   echo "Setting up nix within podman to build circuits"
 
@@ -18,7 +18,7 @@ else
   exit 1
 fi 
 
-if $ENGINE image list | grep nix-circuit-builder >/dev/null; then
+if $ENGINE image inspect nix-circuit-builder >/dev/null 2>&1; then
   echo Loading existing builder image: nix-circuit-builder
   $ENGINE create --name nix-circuit-builder --platform linux/amd64 -v "$(pwd)":/code -w /code -ti nix-circuit-builder bash
 else 
