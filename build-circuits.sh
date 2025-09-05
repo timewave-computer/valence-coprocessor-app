@@ -31,6 +31,9 @@ function cleanup {
   $ENGINE commit nix-circuit-builder nix-circuit-builder
   $ENGINE stop nix-circuit-builder
   $ENGINE rm nix-circuit-builder
+  if [[ "$ENGINE" == "podman" ]]; then
+    $ENGINE machine stop
+  fi
 }
 trap cleanup EXIT
 $ENGINE start nix-circuit-builder
