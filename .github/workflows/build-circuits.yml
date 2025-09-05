@@ -33,11 +33,11 @@ jobs:
       - uses: mathio/gha-cleanup@v1
         with:
           remove-browsers: true
-      - name: Install docker on MacOS
+      - name: Set up Docker
         if: ${{ matrix.os == 'macos-latest' && matrix.docker }}
-        run: |
-          brew install docker colima
-          colima start
+        uses: docker/setup-docker-action@v4
+        env:
+          LIMA_START_ARGS: --cpus 4 --memory 8
       - name: Remove docker
         if: ${{ ! matrix.docker }}
         run: sudo rm -f $(which docker)
