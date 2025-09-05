@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-if command -v nix >dev/null; then
-  nix --extra-experimental-features "nix-command flakes" run
+if command -v nix >/dev/null && false; then
+  nix --extra-experimental-features "nix-command flakes" run -- "$@"
 elif docker info >/dev/null 2>&1; then
   ENGINE=docker
   echo "Setting up nix within docker to build circuits"
@@ -34,4 +34,4 @@ function cleanup {
 }
 trap cleanup EXIT
 $ENGINE start nix-circuit-builder
-$ENGINE exec -t nix-circuit-builder nix run
+$ENGINE exec -t -e NIX_ARGS="$NIX_ARGS" nix-circuit-builder nix run

@@ -84,13 +84,13 @@
         apps.default.program = pkgs.writeShellScriptBin "build-circuits" ''
           ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: circuit: ''
             set -e
-            nix develop --command update-cargo-nix
+            nix develop ''${NIX_ARGS:+$NIX_ARGS} --command update-cargo-nix
             # check if x86_64-linux packages can be built
             if nix build --impure --inputs-from . --expr \
               'let pkgs = import (builtins.getFlake "nixpkgs") { system = "x86_64-linux"; }; in
                 pkgs.writeText "test-system" (toString builtins.currentTime)' 2>/dev/null
             then
-              nix build '.#packages.x86_64-linux.${circuit.circuit}' '.#packages.x86_64-linux.${circuit.controller}'
+              nix build ''${NIX_ARGS:+$NIX_ARGS} '.#packages.x86_64-linux.${circuit.circuit}' '.#packages.x86_64-linux.${circuit.controller}'
               mkdir -p ${valence.toml.valence.artifacts}/${name}
               install --mode=644 result/bin/* ${valence.toml.valence.artifacts}/${name}/circuit.bin
               install --mode=644 result-1/* ${valence.toml.valence.artifacts}/${name}/controller.bin
@@ -122,7 +122,7 @@
               }
               trap cleanup EXIT
               PREFIX="$ENGINE exec -t nix-circuit-builder"
-              $PREFIX nix build '.#${circuit.circuit}' '.#${circuit.controller}'
+              $PREFIX nix build ''${NIX_ARGS:+$NIX_ARGS} '.#${circuit.circuit}' '.#${circuit.controller}'
               mkdir -p ${valence.toml.valence.artifacts}/${name}
               $PREFIX sh -c "install --mode=644 result/bin/* ${valence.toml.valence.artifacts}/${name}/circuit.bin"
               $PREFIX sh -c "install --mode=644 result-1/* ${valence.toml.valence.artifacts}/${name}/controller.bin"
