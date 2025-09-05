@@ -101,8 +101,8 @@
               else
                 ENGINE=${pkgs.podman}/bin/podman
                 echo "Setting up x86_64-linux emulation with podman (docker unavailable)"
-                podman machine init || true
-                podman machine start 2>/dev/null || true
+                $ENGINE machine init || true
+                $ENGINE machine start 2>/dev/null || true
               fi
 
               if $ENGINE image inspect nix-circuit-builder >/dev/null 2>&1; then
