@@ -31,7 +31,7 @@ jobs:
           remove-browsers: true
       - name: Remove docker
         if: ! matrix.docker
-        run: rm /usr/bin/docker
+        run: sudo rm -f $(which docker)
       - name: Build circuits
         run: ./build-circuits.sh
         env:
