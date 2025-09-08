@@ -68,35 +68,10 @@ This step deploys the following smart contracts on the Neutron network:
 - **Processor Contract**: processes the messages decoded from the verified ZK proofs
 - **CW20 Contract**: a token that is minted based on the verified proofs
 
-Authorization contract with its respective processor is the core of all Valence Programs deployed on-chain. You can read more about their design in the [official docs](https://docs.valence.zone/authorizations_processors/_overview.html).
-
-Unique thing about coprocessor-enabled Valence Programs is that authorization contracts are extended with an on-chain verification router.
-
-This is done in `provisioner/src/steps/instantiate_contracts.rs`:
-
-```rust
-// Set the verification gateway address on the authorization contract
-let set_verification_router_msg =
-    valence_authorization_utils::msg::ExecuteMsg::PermissionedAction(
-        valence_authorization_utils::msg::PermissionedMsg::SetVerificationRouter {
-            address: VALENCE_NEUTRON_VERIFICATION_ROUTER.to_string(),
-        },
-    );
-
-let set_verification_router_rx = neutron_client
-    .execute_wasm(
-        &authorization_address,
-        set_verification_router_msg,
-        vec![],
-        None,
-    )
-    .await?;
-```
-
-The purpose of verification router is to route incoming proof verification requests to the correct verifier contract. This is done to enable support for multiple ZK VMs and proving systems, both of which get identified with a string-based `verification_route` parameter which gets set in authorizations setup step. You can read more about the ZK integration with Valence on-chain contracts in the [official documentation](https://docs.valence.zone/zk/03_onchain_integration.html).
-
-After contract instantiation step is complete, addresses of the instantiated contracts are saved to `artifacts/instantiation_outputs.toml`,
+The addresses of the instantiated contracts are saved to `artifacts/instantiation_outputs.toml`,
 to be consumed by the co-processor deployment step.
+
+For a more in-depth explanation of the on-chain components, see the [technical details](./technical_details.md) document.
 
 ### 3. Deploy Co-processor App
 
@@ -115,53 +90,7 @@ This step links the on-chain contracts with the co-processor application by crea
 This way, proofs submitted to the authorizations contract will be verified and decoded into the `CosmWasm` message
 that will get pushed to the queue of the associated processor.
 
-This flow is performed in `provisioner/src/steps/setup_authorizations.rs`, and involves the following steps.
-
-**1. Getting the verifying key from the co-processor client**
-
-Using the `coprocessor_app_id` field returned after deploying our ZK app, we can query the `CoprocessorClient` to get the respective verifying key:
-
-```rust
-let program_vk = cp_client.get_vk(&cfg.coprocessor_app_id).await?;
-
-// deserialize the resulting bytes
-let sp1_program_vk: SP1VerifyingKey = bincode::deserialize(&program_vk)?;
-```
-
-**2. Creating the ZK Authorization**
-
-Using the verifying key from the previous step we can create the authorization.
-
-Another thing to note here is about the `verification_route` field. In this template,
-we are passing the following const value which uniquely identifies the proving system (`groth16`) and the ZK VM used to compile the respective circuit (`sp1/5.0.8`):
-
-```rust
-const VERIFICATION_ROUTE: &str = "0001/sp1/5.0.8/groth16";
-```
-
-With that, we can create the `ZkAuthorizationInfo` and submit it to the Neutron authorizations contract to bind our co-processor app to the on-chain program. We use the `ZK_MINT_CW20_LABEL` label to allow the coordinator to uniquely identify this authorization during its flow:
-
-```rust
-let zk_authorization = ZkAuthorizationInfo {
-    label: ZK_MINT_CW20_LABEL.to_string(),
-    mode: authorization_mode,
-    registry: 0,
-    vk: Binary::from(sp1_program_vk.bytes32().as_bytes()),
-    validate_last_block_execution: false,
-    verification_route: VERIFICATION_ROUTE.to_string(),
-    metadata_hash: Binary::default(),
-};
-
-let create_zk_authorization = valence_authorization_utils::msg::ExecuteMsg::PermissionedAction(
-    valence_authorization_utils::msg::PermissionedMsg::CreateZkAuthorizations {
-        zk_authorizations: vec![zk_authorization],
-    },
-);
-
-let create_zk_auth_rx = neutron_client
-    .execute_wasm(&cfg.authorizations, create_zk_authorization, vec![], None)
-    .await?;
-```
+For a more in-depth explanation of the authorization setup, see the [technical details](./technical_details.md) document.
 
 ### 5. Write Output
 
