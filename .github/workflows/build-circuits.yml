@@ -44,7 +44,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get -y install podman
+
       - name: Build circuits
         run: ./build-circuits.sh
         env:
           NIX_ARGS: "-vL"
+
+      - name: Show any artifact changes
+        run: git status --porcelain
+      - name: Validate committed artifacts
+        # should fail if any diffs are present
+        run: test -z "$(git status --porcelain)"
