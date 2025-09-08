@@ -58,8 +58,6 @@
         crate2nix = {
           devshell.name = "default";
         };
-        # Separate crate2nix build for cross compiling
-        # to not interfere with any main builds for executables
         crate2nix = {
           cargoNix = ./Cargo.nix;
           toolchain = {
