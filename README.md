@@ -17,19 +17,24 @@ flowchart LR
     subgraph ethereum
     ERC20
     end
+    subgraph coprocessor
+    controller
+    circuit
+    end
     subgraph neutron
     Authorizations
     Processor
     CW20
     SP1-verifier
     end
-    coordinator -->|1. request zk proof| coprocessor
-    coprocessor -->|2. generate balance state proof| ERC20
-    coordinator -->|3. post proof| Authorizations
-    Authorizations --> |4. verify proof| SP1-verifier
-    Authorizations --> |5. enqueue decoded message| Processor
-    coordinator --> |6. tick| Processor
-    Processor --> |7. mint| CW20
+    coordinator -->|1. request zk proof| controller
+    controller -->|2. eth_getProof| ERC20
+    controller -->|3. verify_proof| circuit
+    coordinator -->|4. post proof| Authorizations
+    Authorizations --> |5. verify proof| SP1-verifier
+    Authorizations --> |6. enqueue decoded message| Processor
+    coordinator --> |7. tick| Processor
+    Processor --> |8. mint| CW20
 ```
 
 > Note: currently the flow is uni-directional in that the proofs are only
