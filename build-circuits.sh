@@ -33,7 +33,7 @@ function cleanup {
   $ENGINE stop nix-circuit-builder
   $ENGINE rm nix-circuit-builder
   if [[ "$ENGINE" == "podman" ]]; then
-    $ENGINE machine stop
+    $ENGINE machine stop 2>/dev/null || true
   fi
 }
 trap cleanup EXIT
