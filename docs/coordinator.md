@@ -98,4 +98,4 @@ To run the coordinator, execute the following command:
 RUST_LOG=info cargo run --bin coordinator
 ```
 
-with that, the coordinator will begin looping until it is stopped.
+It will start the coordinator, which will then run in a continuous loop until manually stopped.

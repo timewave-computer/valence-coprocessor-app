@@ -62,7 +62,7 @@ flowchart LR
 System environment setup involves configuring your on-chain signing capabilities
 and preparing your development environment for building and runtime.
 
-Outlined below is the fastest way to running each part of the coprocessor-app.
+Outlined below is the fastest way to run each part of the coprocessor-app.
 If you wish to delve deeper into the system environment setup, take a look
 at the [environment setup docs](docs/environment.md).
 
@@ -80,7 +80,7 @@ Then open the created `.env` file and replace `todo` with your seed phrase.
 ### Local development environment setup
 
 At this moment we exclusively support nix-based builds.
-If you do not have nix package manager availble on your system, below are some easy ways to install it:
+If you do not have nix package manager available on your system, below are some easy ways to install it:
 
 - [Determinate Systems installer](https://docs.determinate.systems/getting-started/)
 - [Nix package manager](https://nixos.org/download/)

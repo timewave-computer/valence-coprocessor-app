@@ -16,7 +16,7 @@ cp .example.env .env
 
 After that, open the newly created `.env` file and replace the placeholder `todo` with your mnemonic seed phrase.
 
-```
+```sh
 MNEMONIC="your mnemonic seed phrase here"
 ```
 
@@ -46,7 +46,7 @@ nix develop
 
 This will download all of the required dependencies and drop you into a shell with those dependencies available.
 
-**Note:** Explicitly entering the development shell is not a necessity for developing coprocessor-apps.
+**Note:** Explicitly entering the development shell is not a necessity for developing co-processor apps.
 It is meant to serve the situations where more fine-grained control is needed for debugging or other purposes.
 
 ### Building the Code
