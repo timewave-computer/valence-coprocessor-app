@@ -1,0 +1,57 @@
+name: build circuits
+
+on:
+  push:
+    branches: main
+  pull_request:
+    branches: main
+
+jobs:
+  build:
+    name: >
+      ${{ matrix.os }}
+      ${{ matrix.docker && 'with docker' || 'without docker' }}
+      ${{ matrix.nix && 'with nix' || 'without nix' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ "ubuntu-latest" ]
+        nix: [ true, false ]
+        docker: [ true, false ]
+        exclude:
+          # unnecessary, only nix is used on x86_64-linux even if docker is available
+          - nix: true
+            docker: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install nix
+        if: matrix.nix
+        uses: nixbuild/nix-quick-install-action@v32
+      - uses: mathio/gha-cleanup@v1
+        with:
+          remove-browsers: true
+      - name: Set up Docker
+        if: ${{ matrix.os == 'macos-13' && matrix.docker }}
+        uses: docker/setup-docker-action@v4
+        env:
+          LIMA_START_ARGS: --cpus 4 --memory 8
+      - name: Remove docker
+        if: ${{ ! matrix.docker }}
+        run: sudo rm -f $(which docker)
+      - name: Install podman
+        # only install if neither nix or docker is available
+        if: ${{ ! matrix.docker && ! matrix.nix }}
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install podman
+
+      - name: Build circuits
+        run: ./build-circuits.sh
+        env:
+          NIX_ARGS: "-vL"
+
+      - name: Show any artifact changes
+        run: git status --porcelain
+      - name: Validate committed artifacts
+        # should fail if any diffs are present
+        run: test -z "$(git status --porcelain)"

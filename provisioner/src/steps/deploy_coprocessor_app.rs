@@ -70,8 +70,8 @@ fn read_build_binary(circuit_name: &str, binary_name: &str) -> anyhow::Result<Ve
 
 async fn nix_build_all() -> anyhow::Result<()> {
     info!(target: CO_PROCESSOR, "compiling the zk_apps...");
-    let output = tokio::process::Command::new("nix")
-        .args(["run"])
+    let output = tokio::process::Command::new("bash")
+        .args(["build-circuits.sh"])
         .output()
         .await?;
 

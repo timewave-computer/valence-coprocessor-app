@@ -1,12 +1,6 @@
 {
   description = "Valence coprocessor app";
 
-  nixConfig.extra-experimental-features = "nix-command flakes";
-  nixConfig.extra-substituters = "https://coffeetables.cachix.org";
-  nixConfig.extra-trusted-public-keys = ''
-    coffeetables.cachix.org-1:BCQXDtLGFVo/rTG/J4omlyP/jbtNtsZIKHBMTjAWt8g=
-  '';
-
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-25.05";
     
@@ -64,8 +58,6 @@
         crate2nix = {
           devshell.name = "default";
         };
-        # Separate crate2nix build for cross compiling
-        # to not interfere with any main builds for executables
         crate2nix = {
           cargoNix = ./Cargo.nix;
           toolchain = {
@@ -89,14 +81,54 @@
 
         apps.default.program = pkgs.writeShellScriptBin "build-circuits" ''
           ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: circuit: ''
-            mkdir -p ${valence.toml.valence.artifacts}/${name}
-            nix build '.#${circuit.circuit}'
-            ${pkgs.coreutils}/bin/install --mode=644 result/bin/* ${valence.toml.valence.artifacts}/${name}/circuit.bin
-            rm result
+            set -e
+            nix develop ''${NIX_ARGS:+$NIX_ARGS} --command update-cargo-nix
+            # check if x86_64-linux packages can be built
+            if nix build --impure --inputs-from . --expr \
+              'let pkgs = import (builtins.getFlake "nixpkgs") { system = "x86_64-linux"; }; in
+                pkgs.writeText "test-system" (toString builtins.currentTime)' 2>/dev/null
+            then
+              nix build ''${NIX_ARGS:+$NIX_ARGS} '.#packages.x86_64-linux.${circuit.circuit}' '.#packages.x86_64-linux.${circuit.controller}'
+              mkdir -p ${valence.toml.valence.artifacts}/${name}
+              install --mode=644 result/bin/* ${valence.toml.valence.artifacts}/${name}/circuit.bin
+              install --mode=644 result-1/* ${valence.toml.valence.artifacts}/${name}/controller.bin
+            else
+              if docker info >/dev/null 2>/dev/null; then
+                ENGINE=docker
+                echo "Setting up x86_64-linux emulation with docker"
+              else
+                ENGINE=${pkgs.podman}/bin/podman
+                echo "Setting up x86_64-linux emulation with podman (docker unavailable)"
+                $ENGINE machine init 2>/dev/null || true
+                $ENGINE machine start 2>/dev/null || true
+              fi
 
-            nix build '.#${circuit.controller}'
-            ${pkgs.coreutils}/bin/install --mode=644 result/* ${valence.toml.valence.artifacts}/${name}/controller.bin
-            rm result
+              if $ENGINE image inspect nix-circuit-builder >/dev/null 2>&1; then
+                echo Loading existing builder image: nix-circuit-builder
+                $ENGINE create --name nix-circuit-builder --platform linux/amd64 -v "$(pwd)":/code -w /code -ti nix-circuit-builder bash
+              else 
+                $ENGINE create --name nix-circuit-builder \
+                  --platform linux/amd64 -v "$(pwd)":/code -w /code -ti nixpkgs/nix-flakes sh -c \
+                  "echo filter-syscalls = false >> /etc/nix/nix.conf && git config --global --add safe.directory '*' && exec bash"
+              fi
+              $ENGINE start nix-circuit-builder
+              function cleanup {
+                echo "Saving build state to image: nix-circuit-builder"
+                $ENGINE commit nix-circuit-builder nix-circuit-builder
+                $ENGINE stop nix-circuit-builder
+                $ENGINE rm nix-circuit-builder
+                if [[ "$ENGINE" == "podman" ]]; then
+                  $ENGINE machine stop
+                fi
+              }
+              trap cleanup EXIT
+              PREFIX="$ENGINE exec -t nix-circuit-builder"
+              $PREFIX nix build ''${NIX_ARGS:+$NIX_ARGS} '.#${circuit.circuit}' '.#${circuit.controller}'
+              mkdir -p ${valence.toml.valence.artifacts}/${name}
+              $PREFIX sh -c "install --mode=644 result/bin/* ${valence.toml.valence.artifacts}/${name}/circuit.bin"
+              $PREFIX sh -c "install --mode=644 result-1/* ${valence.toml.valence.artifacts}/${name}/controller.bin"
+            fi
+            rm -f result result-1
           '') valence.toml.circuit)}
         '';
 
@@ -108,6 +140,7 @@
             taplo
             toml-cli
             lld
+            cargo
           ];
           
           env = [

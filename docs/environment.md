@@ -25,13 +25,13 @@ This mnemonic will be used by the provisioner and the coordinator to sign transa
 ## Local Development Environment
 
 We use [Nix](https://nixos.org/) to provide a reproducible development environment.
-In the future, Docker-based builds will be added for convenience.
 
 The `flake.nix` file at the root of the project defines all the dependencies and tools required to build and run the project.
 
 ### Nix Installation
 
-If you don't have Nix installed, you can install it using one of the following methods:
+Nix is recommended but not required for development. The build process can load nix within docker or podman if nix is not available.
+You can install nix using one of the following methods:
 
 - **Determinate Systems Installer**: [https://docs.determinate.systems/getting-started/](https://docs.determinate.systems/getting-started/)
 - **Nix Package Manager**: [https://nixos.org/download/](https://nixos.org/download/)
@@ -54,11 +54,12 @@ It is meant to serve the situations where more fine-grained control is needed fo
 To manually build all the circuits and controllers, run the following command:
 
 ```sh
-nix run
+./build-circuits.sh
 ```
 
-This command executes the `build-circuits` script defined in `flake.nix`, which does the following:
+This command executes the `build-circuits.sh` script, which does the following:
 
+1. check if nix is installed or load nix within docker/podman
 1. reads the `valence.toml` file in the project root
 2. builds each circuit and controller
 3. places the resulting artifacts in the `artifacts/coprocessor` directory

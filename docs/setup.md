@@ -78,7 +78,7 @@ For a more in-depth explanation of the on-chain components, see the [technical d
 This step performs the following actions:
 
 1. **Embeds the CW20 address**: address of the deployed CW20 contract is embedded into the circuit source code
-2. **Builds the co-processor app**: runs `nix run` to build the circuit and the controller
+2. **Builds the co-processor app**: runs `./build-circuits.sh` to build the circuit and the controller
 3. **Deploys to the co-processor**: compiled circuit and controller are deployed to the co-processor
 
 The ID of the deployed co-processor application is saved to `artifacts/coprocessor_outputs.toml`,
